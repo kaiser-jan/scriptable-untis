@@ -1,0 +1,38 @@
+{
+    "$schema": "https://json.schemastore.org/tsconfig",
+    "compilerOptions": {
+        "module": "ES2022",
+        "target": "ES2022",
+        "lib": [
+            "ES2022"
+        ],
+        "outDir": "dist",
+        "baseUrl": "./src",
+        "isolatedModules": false,
+        "paths": {
+            "@/*": [
+                "*"
+            ]
+        },
+        "typeRoots": [
+            "node_modules/@types/scriptable-ios"
+        ],
+        "types": [
+            "@types/scriptable-ios"
+        ],
+        "composite": false,
+        "declaration": false,
+        "declarationMap": false,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "inlineSources": false,
+        "moduleResolution": "node",
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
+        "preserveWatchOutput": true,
+        "skipLibCheck": true
+    },
+    "exclude": [
+        "node_modules"
+    ]
+}
