@@ -11,7 +11,7 @@ This includes upcoming lessons, exams and grades.
 
 const CURRENT_DATETIME = new Date() // '2022-09-15T14:00' or '2022-09-19T12:30'
 
-// #region Constants
+//#region Constants
 
 const LOCALE = Device.locale().replace('_', '-')
 const SHOW_SUMMARY_MULTIPLIER = true
@@ -34,6 +34,7 @@ const BREAK_DURATION_MAX = 45
 
 /** How long the user authentication data can stay cached.This defined in the Bearer Token given by Untis. */
 const MAX_USER_CACHE_AGE = 15 * 60_000 // minutes
+const MAX_LESSONS_CACHE_AGE = 15 * 60_000 // minutes
 
 /** If lessons are within this scope, the widget will update according to NORMAL_UPDATE_INTERVAL */
 // NOTE: if there currently are lessons remaining on the day, the widget will have ignore these intervals
@@ -566,60 +567,6 @@ async function fetchSchoolYears(user: FullUser) {
 	return transformedSchoolYears
 }
 
-async function prepareTimetable(user: FullUser, config: Config) {
-	// fetch this weeks lessons
-	let timetable = await fetchLessonsFor(user, CURRENT_DATETIME)
-
-	// get the current day as YYYY-MM-DD
-	const todayKey = CURRENT_DATETIME.toISOString().split('T')[0]
-
-	// sort the keys of the timetable (by date)
-	const sortedKeys = sortKeysByDate(timetable)
-	// find the index of the current day
-	const todayIndex = sortedKeys.indexOf(todayKey)
-	// get the next day
-	let nextDayKey = sortedKeys[todayIndex + 1]
-
-	// fetch the next week, if the next day is on the next week
-	if (todayIndex === -1 || todayIndex === sortedKeys.length - 1) {
-		// get the first date of the current timetable week
-		const firstDate = new Date(sortedKeys[0])
-		// get the first date of the next timetable week
-		const nextWeekFirstDate = new Date(firstDate.getTime() + 7 * 24 * 60 * 60 * 1000)
-		console.log(`No lessons for today/tomorrow -> fetching next week. (${nextWeekFirstDate.toISOString()})`)
-		// fetch the next week
-		const nextWeekTimetable = await fetchLessonsFor(user, nextWeekFirstDate)
-		// merge the next week timetable into the current one
-		Object.assign(timetable, nextWeekTimetable)
-		// set the next day key to the first day of the next week
-		nextDayKey = sortKeysByDate(nextWeekTimetable)[0]
-	}
-
-	console.log(`Next day: ${nextDayKey}`)
-	// the timetable for the next day in the timetable (ignore weekends)
-	const lessonsNextDay = timetable[nextDayKey]
-
-	const lessonsToday = timetable[todayKey] ?? []
-	// the lessons which have not passed yet
-	const lessonsTodayRemaining = lessonsToday.filter((l) => l.to > CURRENT_DATETIME)
-
-	// check the teacher selection from the config
-	lessonsTodayRemaining.filter((lesson) => {
-		if (!lesson.subject) return true
-		const lessonOption = config.lessonOptions[lesson.subject.name]
-		if (!lessonOption) return true
-		if (Array.isArray(lessonOption)) {
-			// check if the teacher is in the lesson
-			return lessonOption.some((option) => {
-				return lesson.teachers.some((teacher) => teacher.name === option.teacher)
-			})
-		}
-		return true
-	})
-
-	return { lessonsTodayRemaining, lessonsNextDay, nextDayKey }
-}
-
 //#endregion
 
 //#region Caching
@@ -667,6 +614,154 @@ async function prepareUser(fileManager: FileManager, appDirectory: string, ignor
 	console.log('Fetched user from untis and wrote to cache.')
 
 	return fetchedUser
+}
+
+// TODO: consider adding a validity date (e.g. when the target date for lessons changes)
+async function readFromCache(fileManager: FileManager, appDirectory: string, cacheName: string) {
+	const cacheDirectory = fileManager.joinPath(appDirectory, 'cache')
+
+	if (!fileManager.fileExists(cacheDirectory)) {
+		console.log('Cache directory does not exist.')
+		return {}
+	}
+
+	const cachePath = fileManager.joinPath(cacheDirectory, `${cacheName}.json`)
+	const cacheExists = fileManager.fileExists(cachePath)
+
+	if (!cacheExists) {
+		console.log(`Cache for ${cacheName} does not exist.`)
+		return {}
+	}
+
+	await fileManager.downloadFileFromiCloud(cachePath)
+	const cacheDate = new Date(fileManager.modificationDate(cachePath))
+	const cacheAge = (new Date().getTime() - cacheDate.getTime())
+
+	console.log(`Using cache ${cacheName} (${Math.round(cacheAge / 60_000)}min).`)
+
+	const data = JSON.parse(fileManager.readString(cachePath), (name, value) => {
+		if (typeof value === 'string' && /^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d.\d\d\dZ$/.test(value)) {
+			return new Date(value)
+		}
+		return value
+	})
+
+	return { data, cacheAge, cacheDate }
+}
+
+function writeToCache(fileManager: FileManager, appDirectory: string, data: Object, cacheName: string) {
+	const cacheDirectory = fileManager.joinPath(appDirectory, 'cache')
+	if (!fileManager.fileExists(cacheDirectory)) {
+		fileManager.createDirectory(cacheDirectory, true)
+	}
+	const cachePath = fileManager.joinPath(cacheDirectory, `${cacheName}.json`)
+	fileManager.writeString(cachePath, JSON.stringify(data))
+}
+
+function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWeek: TransformedLessonWeek) {
+	console.log('Comparing cached lessons with fetched lessons.')
+	// exit if all lessons are the same
+	if (JSON.stringify(lessonWeek) === JSON.stringify(cachedLessonWeek)) {
+		console.log('All lessons are the same.')
+		return true
+	}
+
+	// loop over the days
+	for (const dayKey in lessonWeek) {
+		const lessons = lessonWeek[dayKey]
+		const cachedLessons = cachedLessonWeek[dayKey]
+
+		// check if the lessons are the same
+		if (JSON.stringify(lessons) === JSON.stringify(cachedLessons)) {
+			return true
+		}
+
+		console.log('Lessons are not the same.')
+
+		// TODO: send notification
+	}
+}
+//#endregion
+
+//#region Fetching + Caching
+
+interface GetOptions {
+	fileManager: FileManager
+	appDirectory: string
+	ignoreCache?: boolean
+}
+
+async function getLessonsFor(user: FullUser, date: Date, isNext: boolean, options: GetOptions) {
+	const key = isNext ? 'lessons_next' : 'lessons'
+	const { data: cachedLessons, cacheAge, cacheDate } = await readFromCache(options.fileManager, options.appDirectory, key)
+	let fetchedLessons: TransformedLessonWeek
+
+	// refetch if the cache is too old (max age exceeded or not the same day)
+	if (!cachedLessons || cacheAge > MAX_LESSONS_CACHE_AGE || options.ignoreCache || cacheDate.getDate() !== CURRENT_DATETIME.getDate()) {
+		log('Fetching lessons, cache invalid.')
+		fetchedLessons = await fetchLessonsFor(user, date)
+		writeToCache(options.fileManager, options.appDirectory, fetchedLessons, key)
+	}
+
+	if (cachedLessons && fetchedLessons) {
+		compareCachedLessons(fetchedLessons, cachedLessons)
+	}
+
+	return fetchedLessons ?? cachedLessons
+}
+
+async function getTimetable(user: FullUser, options: GetOptions & Config) {
+	// fetch this weeks lessons
+	let timetable = await getLessonsFor(user, CURRENT_DATETIME, false, options)
+
+	// get the current day as YYYY-MM-DD
+	const todayKey = CURRENT_DATETIME.toISOString().split('T')[0]
+
+	// sort the keys of the timetable (by date)
+	const sortedKeys = sortKeysByDate(timetable)
+	// find the index of the current day
+	const todayIndex = sortedKeys.indexOf(todayKey)
+	// get the next day
+	let nextDayKey = sortedKeys[todayIndex + 1]
+
+	// fetch the next week, if the next day is on the next week
+	if (todayIndex === -1 || todayIndex === sortedKeys.length - 1) {
+		// get the first date of the current timetable week
+		const firstDate = new Date(sortedKeys[0])
+		// get the first date of the next timetable week
+		const nextWeekFirstDate = new Date(firstDate.getTime() + 7 * 24 * 60 * 60 * 1000)
+		console.log(`No lessons for today/tomorrow -> fetching next week. (${nextWeekFirstDate.toISOString()})`)
+		// fetch the next week
+		const nextWeekTimetable = await getLessonsFor(user, nextWeekFirstDate, true, options)
+		// merge the next week timetable into the current one
+		Object.assign(timetable, nextWeekTimetable)
+		// set the next day key to the first day of the next week
+		nextDayKey = sortKeysByDate(nextWeekTimetable)[0]
+	}
+
+	console.log(`Next day: ${nextDayKey}`)
+	// the timetable for the next day in the timetable (ignore weekends)
+	const lessonsNextDay = timetable[nextDayKey]
+
+	const lessonsToday = timetable[todayKey] ?? []
+	// the lessons which have not passed yet
+	const lessonsTodayRemaining = lessonsToday.filter((l) => l.to > CURRENT_DATETIME)
+
+	// check the teacher selection from the config
+	lessonsTodayRemaining.filter((lesson) => {
+		if (!lesson.subject) return true
+		const lessonOption = options.lessonOptions[lesson.subject.name]
+		if (!lessonOption) return true
+		if (Array.isArray(lessonOption)) {
+			// check if the teacher is in the lesson
+			return lessonOption.some((option) => {
+				return lesson.teachers.some((teacher) => teacher.name === option.teacher)
+			})
+		}
+		return true
+	})
+
+	return { lessonsTodayRemaining, lessonsNextDay, nextDayKey }
 }
 
 //#endregion
@@ -1142,6 +1237,11 @@ type LessonOptions = {
 
 interface Config {
 	lessonOptions: LessonOptions
+}
+
+interface Options extends Config {
+	fileManager: FileManager
+	appDirectory: string
 }
 
 const defaultLessonOptions: LessonOptions = {}
@@ -2112,6 +2212,8 @@ function setWidgetRefreshDate(
 
 		// if the next lesson (on the next day) is in the scope of the frequent updates
 		if (lessonsTomorrow && lessonsTomorrow.length > 1) {
+			log(lessonsTomorrow[0])
+			log(lessonsTomorrow[0].from)
 			const timeUntilNextLesson = lessonsTomorrow[0].from.getTime() - CURRENT_DATETIME.getTime()
 			shouldLazyUpdate = timeUntilNextLesson > NORMAL_UPDATE_SCOPE
 		}
@@ -2492,7 +2594,7 @@ interface FetchedData {
 
 type FetchableNames = 'timetable' | 'exams' | 'grades' | 'absences' | 'roles'
 
-async function fetchDataForViews(viewNames: ViewName[], user: FullUser, config: Config) {
+async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options: Options) {
 	const fetchedData: FetchedData = {}
 	const itemsToFetch = new Set<FetchableNames>()
 
@@ -2520,7 +2622,7 @@ async function fetchDataForViews(viewNames: ViewName[], user: FullUser, config: 
 	const fetchPromises: Promise<any>[] = []
 
 	if (itemsToFetch.has('timetable')) {
-		const promise = prepareTimetable(user, config).then(({ lessonsTodayRemaining, lessonsNextDay, nextDayKey }) => {
+		const promise = getTimetable(user, options).then(({ lessonsTodayRemaining, lessonsNextDay, nextDayKey }) => {
 			fetchedData.lessonsTodayRemaining = lessonsTodayRemaining
 			fetchedData.lessonsNextDay = lessonsNextDay
 			fetchedData.nextDayKey = nextDayKey
@@ -2572,7 +2674,7 @@ interface ViewBuildData {
 	height: number
 }
 
-async function createWidget(user: FullUser, layout: ViewName[][], config: Config) {
+async function createWidget(user: FullUser, layout: ViewName[][], options: Options) {
 	const widget = new ListWidget()
 	widget.setPadding(paddingHorizontal, paddingVertical, paddingHorizontal, paddingVertical)
 	widget.backgroundColor = Color.black()
@@ -2592,7 +2694,7 @@ async function createWidget(user: FullUser, layout: ViewName[][], config: Config
 	}
 
 	// fetch the data for the shown views
-	const fetchedData = await fetchDataForViews(Array.from(shownViews), user, config)
+	const fetchedData = await fetchDataForViews(Array.from(shownViews), user, options)
 
 	if (fetchedData.lessonsTodayRemaining && fetchedData.lessonsNextDay) {
 		setWidgetRefreshDate(widget, fetchedData.lessonsTodayRemaining, fetchedData.lessonsNextDay)
@@ -2635,9 +2737,9 @@ async function createWidget(user: FullUser, layout: ViewName[][], config: Config
 					}
 					// show a preview if there are no lessons today anymore
 					if (fetchedData.lessonsTodayRemaining.length > 0) {
-						remainingHeight -= addViewLessons(fetchedData.lessonsTodayRemaining, MAX_LESSONS, config, viewData)
+						remainingHeight -= addViewLessons(fetchedData.lessonsTodayRemaining, MAX_LESSONS, options, viewData)
 					} else {
-						remainingHeight -= addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, config, viewData)
+						remainingHeight -= addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, options, viewData)
 					}
 					break
 				case 'preview':
@@ -2648,7 +2750,7 @@ async function createWidget(user: FullUser, layout: ViewName[][], config: Config
 					// only show the day preview, if it is not already shown
 					if (shownViews.has('lessons') && fetchedData.lessonsTodayRemaining?.length === 0) break
 
-					remainingHeight -= addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, config, viewData)
+					remainingHeight -= addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, options, viewData)
 					break
 				case 'exams':
 					if (!fetchedData.exams) {
@@ -2729,11 +2831,9 @@ function addFooter(container: WidgetStack | ListWidget) {
 
 async function setupAndCreateWidget() {
 	const { appDirectory, fileManager } = getAppDirectory()
-	console.log(`App directory: ${appDirectory}`)
-
 	const untisConfig = await readConfig(appDirectory, fileManager)
 	const user = await prepareUser(fileManager, appDirectory)
-	const widget = await createWidget(user, layout, untisConfig)
+	const widget = await createWidget(user, layout, { ...untisConfig, fileManager, appDirectory })
 	return widget
 }
 
@@ -2795,5 +2895,5 @@ console.log(`Script finished in ${new Date().getTime() - scriptStartDatetime.get
 
 Script.complete()
 
-module.exports =  {}
+module.exports = {}
 //#endregion
