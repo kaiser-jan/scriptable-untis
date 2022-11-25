@@ -33,8 +33,12 @@ const BREAK_DURATION_MIN = 7 // minutes
 const BREAK_DURATION_MAX = 45
 
 /** How long the user authentication data can stay cached.This defined in the Bearer Token given by Untis. */
-const MAX_USER_CACHE_AGE = 15 * 60_000 // minutes
-const MAX_LESSONS_CACHE_AGE = 15 * 60_000 // minutes
+const MAX_USER_CACHE_AGE = asMilliseconds(15, 'minutes')
+const MAX_LESSONS_CACHE_AGE = asMilliseconds(30, 'minutes')
+const MAX_EXAMS_CACHE_AGE = asMilliseconds(1, 'days')
+const MAX_GRADES_CACHE_AGE = asMilliseconds(8, 'hours')
+const MAX_ABSENCES_CACHE_AGE = asMilliseconds(1, 'days')
+const MAX_SCHOOL_YEARS_CACHE_AGE = asMilliseconds(1, 'days')
 
 /** If lessons are within this scope, the widget will update according to NORMAL_UPDATE_INTERVAL */
 // NOTE: if there currently are lessons remaining on the day, the widget will have ignore these intervals
@@ -635,7 +639,7 @@ async function readFromCache(fileManager: FileManager, appDirectory: string, cac
 
 	await fileManager.downloadFileFromiCloud(cachePath)
 	const cacheDate = new Date(fileManager.modificationDate(cachePath))
-	const cacheAge = (new Date().getTime() - cacheDate.getTime())
+	const cacheAge = new Date().getTime() - cacheDate.getTime()
 
 	console.log(`Using cache ${cacheName} (${Math.round(cacheAge / 60_000)}min).`)
 
@@ -697,7 +701,12 @@ async function getLessonsFor(user: FullUser, date: Date, isNext: boolean, option
 	let fetchedLessons: TransformedLessonWeek
 
 	// refetch if the cache is too old (max age exceeded or not the same day)
-	if (!cachedLessons || cacheAge > MAX_LESSONS_CACHE_AGE || options.ignoreCache || cacheDate.getDate() !== CURRENT_DATETIME.getDate()) {
+	if (
+		!cachedLessons ||
+		cacheAge > MAX_LESSONS_CACHE_AGE ||
+		options.ignoreCache ||
+		cacheDate.getDate() !== CURRENT_DATETIME.getDate()
+	) {
 		log('Fetching lessons, cache invalid.')
 		fetchedLessons = await fetchLessonsFor(user, date)
 		writeToCache(options.fileManager, options.appDirectory, fetchedLessons, key)
@@ -762,6 +771,47 @@ async function getTimetable(user: FullUser, options: GetOptions & Config) {
 	})
 
 	return { lessonsTodayRemaining, lessonsNextDay, nextDayKey }
+}
+
+async function getCachedOrFetch<T>(
+	key: string,
+	maxAge: number,
+	options: GetOptions,
+	fetchData: () => Promise<T>,
+	compareData?: (fetchedData: T, cachedData: T) => void
+) {
+	const { data: cachedData, cacheAge, cacheDate } = await readFromCache(options.fileManager, options.appDirectory, key)
+
+	let fetchedData: T
+
+	// refetch if the cache is too old (max age exceeded or not the same day)
+	if (!cachedData || cacheAge > maxAge || options.ignoreCache || cacheDate.getDate() !== CURRENT_DATETIME.getDate()) {
+		log(`Fetching data ${key}, cache invalid.`)
+		fetchedData = await fetchData()
+		writeToCache(options.fileManager, options.appDirectory, fetchedData, key)
+	}
+
+	if (cachedData && fetchedData) {
+		compareData(fetchedData, cachedData)
+	}
+
+	return fetchedData ?? cachedData
+}
+
+async function getExamsFor(user: FullUser, from: Date, to: Date, options: GetOptions) {
+	return getCachedOrFetch('exams', MAX_EXAMS_CACHE_AGE, options, () => fetchExamsFor(user, from, to))
+}
+
+async function getGradesFor(user: FullUser, from: Date, to: Date, options: GetOptions) {
+	return getCachedOrFetch('grades', MAX_GRADES_CACHE_AGE, options, () => fetchGradesFor(user, from, to))
+}
+
+async function getAbsencesFor(user: FullUser, from: Date, to: Date, options: GetOptions) {
+	return getCachedOrFetch('absences', MAX_ABSENCES_CACHE_AGE, options, () => fetchAbsencesFor(user, from, to))
+}
+
+async function getSchoolYears(user: FullUser, options: GetOptions) {
+	return getCachedOrFetch('school_years', MAX_SCHOOL_YEARS_CACHE_AGE, options, () => fetchSchoolYears(user))
 }
 
 //#endregion
@@ -2292,6 +2342,19 @@ function getTextWidth(text: string, fontSize: number) {
 	return charWidth * (normalCharCount + reallyNarrowCharCount * 0.5 + narrowCharCount * 0.75 + wideCharCount * 1.25)
 }
 
+function asMilliseconds(duration: number, unit: 'seconds' | 'minutes' | 'hours' | 'days') {
+	switch (unit) {
+		case 'seconds':
+			return duration * 1000
+		case 'minutes':
+			return duration * 60 * 1000
+		case 'hours':
+			return duration * 60 * 60 * 1000
+		case 'days':
+			return duration * 24 * 60 * 60 * 1000
+	}
+}
+
 //#endregion
 
 //#endregion
@@ -2632,7 +2695,7 @@ async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options:
 
 	if (itemsToFetch.has('exams')) {
 		const examsFrom = new Date(new Date().getTime() + EXAM_SCOPE * 24 * 60 * 60 * 1000)
-		const promise = fetchExamsFor(user, examsFrom, CURRENT_DATETIME).then((exams) => {
+		const promise = getExamsFor(user, examsFrom, CURRENT_DATETIME, options).then((exams) => {
 			fetchedData.exams = exams
 		})
 		fetchPromises.push(promise)
@@ -2640,17 +2703,17 @@ async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options:
 
 	if (itemsToFetch.has('grades')) {
 		const gradesFrom = new Date(new Date().getTime() - GRADE_SCOPE * 24 * 60 * 60 * 1000)
-		const promise = fetchGradesFor(user, gradesFrom, CURRENT_DATETIME).then((grades) => {
+		const promise = getGradesFor(user, gradesFrom, CURRENT_DATETIME, options).then((grades) => {
 			fetchedData.grades = grades
 		})
 		fetchPromises.push(promise)
 	}
 
 	if (itemsToFetch.has('absences')) {
-		const schoolYears = await fetchSchoolYears(user)
+		const schoolYears = await getSchoolYears(user, options)
 		// TODO: maybe check if the dates match
 		const currentSchoolYear = schoolYears[0]
-		const promise = fetchAbsencesFor(user, currentSchoolYear.from, CURRENT_DATETIME).then((absences) => {
+		const promise = getAbsencesFor(user, currentSchoolYear.from, CURRENT_DATETIME, options).then((absences) => {
 			fetchedData.absences = absences
 		})
 		fetchPromises.push(promise)
