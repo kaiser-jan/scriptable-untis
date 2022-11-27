@@ -20,17 +20,17 @@ const FOOTER_HEIGHT = 20
 const CORNER_RADIUS = 4
 
 const MAX_LESSONS = 8
-const EXAM_SCOPE = 7 // days
+const EXAM_SCOPE = asMilliseconds(7, 'days')
 const MAX_EXAMS = 3
-const GRADE_SCOPE = 30 // days
+const GRADE_SCOPE = asMilliseconds(30, 'days')
 const MAX_GRADES = 2
 const MAX_ABSENCES = 3
 
 const WIDGET_SPACING = 6
 const WIDGET_PADDING = 6
 
-const BREAK_DURATION_MIN = 7 // minutes
-const BREAK_DURATION_MAX = 45
+const BREAK_DURATION_MIN = asMilliseconds(7, 'minutes')
+const BREAK_DURATION_MAX = asMilliseconds(45, 'minutes')
 
 /** How long the user authentication data can stay cached.This defined in the Bearer Token given by Untis. */
 const MAX_USER_CACHE_AGE = asMilliseconds(15, 'minutes')
@@ -42,10 +42,12 @@ const MAX_SCHOOL_YEARS_CACHE_AGE = asMilliseconds(1, 'days')
 
 /** If lessons are within this scope, the widget will update according to NORMAL_UPDATE_INTERVAL */
 // NOTE: if there currently are lessons remaining on the day, the widget will have ignore these intervals
-const NORMAL_UPDATE_SCOPE = 12 * 3_600_000 // hours
-const NORMAL_UPDATE_INTERVAL = 1 * 3_600_000 // hours
+const NORMAL_UPDATE_SCOPE = asMilliseconds(12, 'hours')
+const NORMAL_UPDATE_INTERVAL = asMilliseconds(1, 'hours')
 /** How often the widget will refresh if there are no lessons in the scope  */
-const LAZY_UPDATE_INTERVAL = 4 * 3_600_000 // hours
+const LAZY_UPDATE_INTERVAL = asMilliseconds(4, 'hours')
+
+let usingOldCache = false
 
 //#endregion
 
@@ -662,29 +664,6 @@ function writeToCache(fileManager: FileManager, appDirectory: string, data: Obje
 	fileManager.writeString(cachePath, JSON.stringify(data))
 }
 
-function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWeek: TransformedLessonWeek) {
-	console.log('Comparing cached lessons with fetched lessons.')
-	// exit if all lessons are the same
-	if (JSON.stringify(lessonWeek) === JSON.stringify(cachedLessonWeek)) {
-		console.log('All lessons are the same.')
-		return true
-	}
-
-	// loop over the days
-	for (const dayKey in lessonWeek) {
-		const lessons = lessonWeek[dayKey]
-		const cachedLessons = cachedLessonWeek[dayKey]
-
-		// check if the lessons are the same
-		if (JSON.stringify(lessons) === JSON.stringify(cachedLessons)) {
-			return true
-		}
-
-		console.log('Lessons are not the same.')
-
-		// TODO: send notification
-	}
-}
 //#endregion
 
 //#region Fetching + Caching
@@ -695,28 +674,60 @@ interface GetOptions {
 	ignoreCache?: boolean
 }
 
-async function getLessonsFor(user: FullUser, date: Date, isNext: boolean, options: GetOptions) {
-	const key = isNext ? 'lessons_next' : 'lessons'
-	const { data: cachedLessons, cacheAge, cacheDate } = await readFromCache(options.fileManager, options.appDirectory, key)
-	let fetchedLessons: TransformedLessonWeek
+async function getCachedOrFetch<T>(
+	key: string,
+	maxAge: number,
+	options: GetOptions,
+	fetchData: () => Promise<T>,
+	compareData?: (fetchedData: T, cachedData: T) => void
+) {
+	const { data: cachedData, cacheAge, cacheDate } = await readFromCache(options.fileManager, options.appDirectory, key)
+
+	let fetchedData: T
 
 	// refetch if the cache is too old (max age exceeded or not the same day)
-	if (
-		!cachedLessons ||
-		cacheAge > MAX_LESSONS_CACHE_AGE ||
-		options.ignoreCache ||
-		cacheDate.getDate() !== CURRENT_DATETIME.getDate()
-	) {
-		log('Fetching lessons, cache invalid.')
-		fetchedLessons = await fetchLessonsFor(user, date)
-		writeToCache(options.fileManager, options.appDirectory, fetchedLessons, key)
+	if (!cachedData || cacheAge > maxAge || options.ignoreCache || cacheDate.getDate() !== CURRENT_DATETIME.getDate()) {
+		log(`Fetching data ${key}, cache invalid.`)
+		try {
+			fetchedData = await fetchData()
+			writeToCache(options.fileManager, options.appDirectory, fetchedData, key)
+		} catch (error) {
+			const castedError = error as Error
+			if (castedError.message.toLowerCase() === ScriptableErrors.NO_INTERNET.toLowerCase()) {
+				log('No internet connection, falling back to old cached data.')
+				usingOldCache = true
+				return cachedData
+			}
+			throw error
+		}
 	}
 
-	if (cachedLessons && fetchedLessons) {
-		compareCachedLessons(fetchedLessons, cachedLessons)
+	if (cachedData && fetchedData && compareData) {
+		compareData(fetchedData, cachedData)
 	}
 
-	return fetchedLessons ?? cachedLessons
+	return fetchedData ?? cachedData
+}
+
+async function getLessonsFor(user: FullUser, date: Date, isNext: boolean, options: GetOptions) {
+	const key = isNext ? 'lessons_next' : 'lessons'
+	return getCachedOrFetch(key, MAX_LESSONS_CACHE_AGE, options, () => fetchLessonsFor(user, date), compareCachedLessons)
+}
+
+async function getExamsFor(user: FullUser, from: Date, to: Date, options: GetOptions) {
+	return getCachedOrFetch('exams', MAX_EXAMS_CACHE_AGE, options, () => fetchExamsFor(user, from, to))
+}
+
+async function getGradesFor(user: FullUser, from: Date, to: Date, options: GetOptions) {
+	return getCachedOrFetch('grades', MAX_GRADES_CACHE_AGE, options, () => fetchGradesFor(user, from, to))
+}
+
+async function getAbsencesFor(user: FullUser, from: Date, to: Date, options: GetOptions) {
+	return getCachedOrFetch('absences', MAX_ABSENCES_CACHE_AGE, options, () => fetchAbsencesFor(user, from, to))
+}
+
+async function getSchoolYears(user: FullUser, options: GetOptions) {
+	return getCachedOrFetch('school_years', MAX_SCHOOL_YEARS_CACHE_AGE, options, () => fetchSchoolYears(user))
 }
 
 async function getTimetable(user: FullUser, options: GetOptions & Config) {
@@ -773,45 +784,32 @@ async function getTimetable(user: FullUser, options: GetOptions & Config) {
 	return { lessonsTodayRemaining, lessonsNextDay, nextDayKey }
 }
 
-async function getCachedOrFetch<T>(
-	key: string,
-	maxAge: number,
-	options: GetOptions,
-	fetchData: () => Promise<T>,
-	compareData?: (fetchedData: T, cachedData: T) => void
-) {
-	const { data: cachedData, cacheAge, cacheDate } = await readFromCache(options.fileManager, options.appDirectory, key)
+//#endregion
 
-	let fetchedData: T
+//#region Comparing
 
-	// refetch if the cache is too old (max age exceeded or not the same day)
-	if (!cachedData || cacheAge > maxAge || options.ignoreCache || cacheDate.getDate() !== CURRENT_DATETIME.getDate()) {
-		log(`Fetching data ${key}, cache invalid.`)
-		fetchedData = await fetchData()
-		writeToCache(options.fileManager, options.appDirectory, fetchedData, key)
+function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWeek: TransformedLessonWeek) {
+	console.log('Comparing cached lessons with fetched lessons.')
+	// exit if all lessons are the same
+	if (JSON.stringify(lessonWeek) === JSON.stringify(cachedLessonWeek)) {
+		console.log('All lessons are the same.')
+		return true
 	}
 
-	if (cachedData && fetchedData) {
-		compareData(fetchedData, cachedData)
+	// loop over the days
+	for (const dayKey in lessonWeek) {
+		const lessons = lessonWeek[dayKey]
+		const cachedLessons = cachedLessonWeek[dayKey]
+
+		// check if the lessons are the same
+		if (JSON.stringify(lessons) === JSON.stringify(cachedLessons)) {
+			return true
+		}
+
+		console.log('Lessons are not the same.')
+
+		// TODO: send notification
 	}
-
-	return fetchedData ?? cachedData
-}
-
-async function getExamsFor(user: FullUser, from: Date, to: Date, options: GetOptions) {
-	return getCachedOrFetch('exams', MAX_EXAMS_CACHE_AGE, options, () => fetchExamsFor(user, from, to))
-}
-
-async function getGradesFor(user: FullUser, from: Date, to: Date, options: GetOptions) {
-	return getCachedOrFetch('grades', MAX_GRADES_CACHE_AGE, options, () => fetchGradesFor(user, from, to))
-}
-
-async function getAbsencesFor(user: FullUser, from: Date, to: Date, options: GetOptions) {
-	return getCachedOrFetch('absences', MAX_ABSENCES_CACHE_AGE, options, () => fetchAbsencesFor(user, from, to))
-}
-
-async function getSchoolYears(user: FullUser, options: GetOptions) {
-	return getCachedOrFetch('school_years', MAX_SCHOOL_YEARS_CACHE_AGE, options, () => fetchSchoolYears(user))
 }
 
 //#endregion
@@ -1532,7 +1530,7 @@ function addViewLessons(
 		const lesson = lessons[i]
 
 		// if the gap between the previous lesson and this lesson is too big, add a break
-		if (previousLesson && lesson.from.getTime() - previousLesson.to.getTime() > BREAK_DURATION_MAX * 60 * 1000) {
+		if (previousLesson && lesson.from.getTime() - previousLesson.to.getTime() > BREAK_DURATION_MAX) {
 			addBreak(container, previousLesson.to)
 			itemCount++
 			remainingHeight -= lessonHeight + WIDGET_SPACING
@@ -2246,7 +2244,7 @@ function setWidgetRefreshDate(
 			console.log(`Refreshing at the start of the next lesson at ${nextRefreshDate}, as it has not started yet`)
 		} else {
 			// if the break is too short
-			if (secondLesson && secondLesson.from.getTime() - firstLesson.to.getTime() < BREAK_DURATION_MAX * 60 * 1000) {
+			if (secondLesson && secondLesson.from.getTime() - firstLesson.to.getTime() < BREAK_DURATION_MAX) {
 				nextRefreshDate = secondLesson.from
 				console.log(`Refreshing at the start of the next lesson at ${nextRefreshDate}, as the break is too short.`)
 			} else {
@@ -2286,7 +2284,7 @@ function setWidgetRefreshDate(
  */
 function shouldCombineLessons(a: TransformedLesson, b: TransformedLesson, ignoreDetails = false, ignoreBreaks = false) {
 	if (a.subject?.name !== b.subject?.name) return false
-	if (!ignoreBreaks && b.from.getTime() - a.to.getTime() > BREAK_DURATION_MIN * 60 * 1000) return false
+	if (!ignoreBreaks && b.from.getTime() - a.to.getTime() > BREAK_DURATION_MIN) return false
 
 	if (ignoreDetails) return true
 
@@ -2447,7 +2445,7 @@ const ErrorCode: IErrorCodes = {
 }
 
 const ScriptableErrors = {
-	NO_INTERNET: 'Error: The internet connection appears to be offline.',
+	NO_INTERNET: 'The internet connection appears to be offline.',
 }
 
 interface ExtendedError extends Error {
@@ -2694,7 +2692,7 @@ async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options:
 	}
 
 	if (itemsToFetch.has('exams')) {
-		const examsFrom = new Date(new Date().getTime() + EXAM_SCOPE * 24 * 60 * 60 * 1000)
+		const examsFrom = new Date(new Date().getTime() + EXAM_SCOPE)
 		const promise = getExamsFor(user, examsFrom, CURRENT_DATETIME, options).then((exams) => {
 			fetchedData.exams = exams
 		})
@@ -2702,7 +2700,7 @@ async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options:
 	}
 
 	if (itemsToFetch.has('grades')) {
-		const gradesFrom = new Date(new Date().getTime() - GRADE_SCOPE * 24 * 60 * 60 * 1000)
+		const gradesFrom = new Date(new Date().getTime() - GRADE_SCOPE)
 		const promise = getGradesFor(user, gradesFrom, CURRENT_DATETIME, options).then((grades) => {
 			fetchedData.grades = grades
 		})
@@ -2863,11 +2861,11 @@ function addFooter(container: WidgetStack | ListWidget) {
 	footerGroup.bottomAlignContent()
 	footerGroup.centerAlignContent()
 	// avoid overflow when pushed to the bottom
-	footerGroup.setPadding(4, 8, 4, 8)
+	footerGroup.setPadding(4, 6, 4, 6)
 	footerGroup.size = new Size(contentSize.width, FOOTER_HEIGHT)
 
 	addSymbol('arrow.clockwise', footerGroup, {
-		color: colors.text.secondary,
+		color: usingOldCache ? colors.text.red : colors.text.secondary,
 		size: 10,
 		outerSize: 10,
 	})
@@ -2876,8 +2874,14 @@ function addFooter(container: WidgetStack | ListWidget) {
 	const updateDateTime = footerGroup.addText(
 		`${new Date().toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })}`
 	)
-	updateDateTime.textColor = colors.text.secondary
+	updateDateTime.textColor = usingOldCache ? colors.text.red : colors.text.secondary
 	updateDateTime.font = Font.regularSystemFont(10)
+
+	if (usingOldCache) {
+		const updateInfo = footerGroup.addText(' (cache)')
+		updateInfo.textColor = colors.text.red
+		updateInfo.font = Font.regularSystemFont(10)
+	}
 
 	footerGroup.addSpacer()
 
@@ -2927,11 +2931,9 @@ async function run() {
 		}
 	} catch (error) {
 		let widget: ListWidget
-		const errorMessage = `${error}`
-		const errorLowercase = errorMessage.toLowerCase()
-		console.log(errorMessage)
+		const castedError = error as Error
 
-		if (errorLowercase == ScriptableErrors.NO_INTERNET.toLowerCase()) {
+		if (castedError.message.toLowerCase() == ScriptableErrors.NO_INTERNET.toLowerCase()) {
 			widget = createErrorWidget('The internet connection seems to be offline!', '', 'wifi.exclamationmark')
 		} else {
 			const extendedError = error as ExtendedError
