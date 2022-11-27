@@ -73,6 +73,7 @@ interface Room extends ExtendedElementData {
 }
 
 interface TransformedLesson {
+	id: number
 	note?: string // lessonText
 	text?: string // periodText
 	info?: string // periodInfo
@@ -788,6 +789,14 @@ async function getTimetable(user: FullUser, options: GetOptions & Config) {
 
 //#region Comparing
 
+function asNumericTime(date: Date) {
+	return date.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })
+}
+
+function asWeekday(date: Date) {
+	return date.toLocaleDateString(LOCALE, { weekday: 'long' })
+}
+
 function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWeek: TransformedLessonWeek) {
 	console.log('Comparing cached lessons with fetched lessons.')
 	// exit if all lessons are the same
@@ -801,14 +810,90 @@ function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWee
 		const lessons = lessonWeek[dayKey]
 		const cachedLessons = cachedLessonWeek[dayKey]
 
-		// check if the lessons are the same
-		if (JSON.stringify(lessons) === JSON.stringify(cachedLessons)) {
-			return true
+		if (!cachedLessons) {
+			console.log(`No cached lessons for ${dayKey}.`)
+			continue
 		}
 
-		console.log('Lessons are not the same.')
+		// check if the lessons for this day are the same
+		if (JSON.stringify(lessons) === JSON.stringify(cachedLessons)) {
+			console.log(`Lessons for ${dayKey} are the same.`)
+			continue
+		}
 
-		// TODO: send notification
+		// loop over the lessons
+		for (const lesson of lessons) {
+			// TODO: apply lesson config earlier
+			const subjectTitle = getSubjectTitle(lesson, false)
+			const dayString = lesson.from.toLocaleDateString(LOCALE, { weekday: 'long' })
+
+			// check if the lesson is in the cached lessons
+			const cachedLesson = cachedLessons.find((l) => l.id === lesson.id)
+			if (!cachedLesson) {
+				// only notify here if the lesson was not rescheduled
+				if (!lesson.isRescheduled) {
+					console.log(`Lesson ${lesson.id} is new.`)
+					scheduleNotification(`${subjectTitle} was added`, `${subjectTitle} was added on ${dayString}`)
+				}
+				continue
+			}
+
+			// check if the lesson has changed
+			if (JSON.stringify(lesson) === JSON.stringify(cachedLesson)) {
+				continue
+			}
+
+			// info, note, text, isRescheduled, state, rooms, subject, teachers
+
+			if (lesson.info !== cachedLesson.info) {
+				scheduleNotification(`Info for ${subjectTitle} changed`, `on ${dayString}: "${lesson.info}"`)
+				continue
+			}
+
+			if (lesson.note !== cachedLesson.note) {
+				scheduleNotification(`Note for ${subjectTitle} changed`, `on ${dayString}: "${lesson.note}"`)
+				continue
+			}
+
+			if (lesson.text !== cachedLesson.text) {
+				scheduleNotification(`Text for ${subjectTitle} changed`, `on ${dayString}: "${lesson.text}"`)
+				continue
+			}
+
+			if (lesson.isRescheduled !== cachedLesson.isRescheduled) {
+				// only notify for the source
+				if (!lesson.rescheduleInfo.isSource) continue
+
+				// if the day is the same
+				if (lesson.rescheduleInfo.from.getDate() === lesson.rescheduleInfo.to.getDate()) {
+					scheduleNotification(
+						`${dayString}: ${subjectTitle} was shifted`,
+						`from ${asNumericTime(lesson.from)} to ${asNumericTime(lesson.rescheduleInfo.from)}`
+					)
+					continue
+				}
+
+				scheduleNotification(
+					`${dayString}: ${subjectTitle} was rescheduled`,
+					`from ${asWeekday(lesson.rescheduleInfo.from)} to ${asWeekday(lesson.rescheduleInfo.to)}`
+				)
+				continue
+			}
+
+			if (lesson.state !== cachedLesson.state) {
+				switch (lesson.state) {
+					case LessonState.CANCELED:
+					case LessonState.FREE:
+						scheduleNotification(
+							`${dayString}: ${subjectTitle} was cancelled`,
+							`${subjectTitle} @ ${asNumericTime(lesson.from)} was cancelled`
+						)
+						break
+					// TODO: substitutions
+				}
+				continue
+			}
+		}
 	}
 }
 
@@ -962,6 +1047,8 @@ function transformLessons(lessons: Lesson[], elements: Element[]): TransformedLe
 
 		// create the transformed lesson
 		const transformedLesson: TransformedLesson = {
+			id: lesson.id,
+
 			note: lesson.lessonText,
 			text: lesson.periodText,
 			info: lesson.periodInfo,
@@ -976,6 +1063,7 @@ function transformLessons(lessons: Lesson[], elements: Element[]): TransformedLe
 			subject: subject,
 			rooms: rooms,
 
+			// TODO: add specific teacher substitution
 			state: lesson.cellState,
 			isEvent: lesson.is.event,
 			isRescheduled: 'rescheduleInfo' in lesson,
@@ -1029,6 +1117,8 @@ function resolveElements(lesson: Lesson, elements: Element[]) {
 	const teachers: Teacher[] = []
 	let subject: Subject | undefined
 	const rooms: Room[] = []
+
+	// TODO: use orgId, which shows the original element id (e.g. for substitutions)
 
 	for (const element of lesson.elements) {
 		// get the matching data from the elements
@@ -1084,12 +1174,12 @@ function resolveElements(lesson: Lesson, elements: Element[]) {
 
 /**
  * Combines some of the given lessons, if they are directly after each other and have the same properties.
- * @param lessonsNextDay
+ * @param lessons
  * @param ignoreDetails if true, only the subject and time will be considered
  */
-function combineLessons(lessonsNextDay: TransformedLesson[], ignoreDetails = false, ignoreBreaks = false) {
+function combineLessons(lessons: TransformedLesson[], ignoreDetails = false, ignoreBreaks = false) {
 	const combinedLessonsNextDay: TransformedLesson[] = []
-	for (const [index, lesson] of lessonsNextDay.entries()) {
+	for (const [index, lesson] of lessons.entries()) {
 		const previousLesson = combinedLessonsNextDay[combinedLessonsNextDay.length - 1]
 
 		if (index !== 0 && previousLesson && shouldCombineLessons(previousLesson, lesson, ignoreDetails, ignoreBreaks)) {
@@ -2289,7 +2379,7 @@ function shouldCombineLessons(a: TransformedLesson, b: TransformedLesson, ignore
 	if (ignoreDetails) return true
 
 	// check if the lessons are equal, ignoring the duration and time (as those are changed when combining)
-	const ignoredEqualKeys = ['duration', 'to', 'from']
+	const ignoredEqualKeys = ['duration', 'to', 'from', 'id']
 	const keyIgnorer = (key: string, value: any) => (ignoredEqualKeys.includes(key) ? undefined : value)
 	return JSON.stringify(a, keyIgnorer) === JSON.stringify(b, keyIgnorer)
 }
@@ -2351,6 +2441,24 @@ function asMilliseconds(duration: number, unit: 'seconds' | 'minutes' | 'hours' 
 		case 'days':
 			return duration * 24 * 60 * 60 * 1000
 	}
+}
+
+function scheduleNotification(
+	title: string,
+	body?: string,
+	sound?: 'default' | 'accept' | 'alert' | 'complete' | 'event' | 'failure' | 'piano_error' | 'piano_success' | 'popup',
+	date = new Date(Date.now() + 5000)
+) {
+	const notification = new Notification()
+
+	notification.title = title
+	notification.body = body
+	notification.sound = sound ?? 'event'
+
+	notification.threadIdentifier = 'untis'
+	notification.deliveryDate = date
+
+	notification.schedule()
 }
 
 //#endregion
