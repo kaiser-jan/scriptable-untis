@@ -78,7 +78,6 @@ interface TransformedLesson {
 	text?: string // periodText
 	info?: string // periodInfo
 	substitutionText?: string
-	// TODO: attachments
 
 	from: Date // date + startTime
 	to: Date // date + endTime
@@ -99,11 +98,12 @@ interface TransformedLesson {
 	isRescheduled: boolean
 	rescheduleInfo?: {
 		isSource: boolean
-		from: Date
-		to: Date
+		otherFrom: Date
+		otherTo: Date
 	}
 
 	duration: number
+	backgroundColor?: string
 }
 
 interface TransformedLessonWeek {
@@ -457,7 +457,7 @@ function prepareRequest(url: string, user: FullUser) {
 	return request
 }
 
-async function fetchLessonsFor(user: FullUser, date: Date = new Date()) {
+async function fetchLessonsFor(user: FullUser, date: Date = new Date(), config: Config) {
 	const urlTimetable = `https://${
 		user.server
 	}.webuntis.com/WebUntis/api/public/timetable/weekly/data?elementType=5&elementId=${user.id}&date=${
@@ -475,7 +475,7 @@ async function fetchLessonsFor(user: FullUser, date: Date = new Date()) {
 
 	console.log(`📅 Got timetable with ${lessons.length} lessons and ${timetableData.elements.length} elements`)
 
-	const transformedLessons = transformLessons(lessons, timetableData.elements)
+	const transformedLessons = transformLessons(lessons, timetableData.elements, config)
 
 	console.log(`🤖 Transformed ${Object.keys(transformedLessons).length} lessons`)
 
@@ -669,25 +669,19 @@ function writeToCache(fileManager: FileManager, appDirectory: string, data: Obje
 
 //#region Fetching + Caching
 
-interface GetOptions {
-	fileManager: FileManager
-	appDirectory: string
-	ignoreCache?: boolean
-}
-
 async function getCachedOrFetch<T>(
 	key: string,
 	maxAge: number,
-	options: GetOptions,
+	options: Options,
 	fetchData: () => Promise<T>,
 	compareData?: (fetchedData: T, cachedData: T) => void
-) {
+): Promise<T> {
 	const { data: cachedData, cacheAge, cacheDate } = await readFromCache(options.fileManager, options.appDirectory, key)
 
 	let fetchedData: T
 
 	// refetch if the cache is too old (max age exceeded or not the same day)
-	if (!cachedData || cacheAge > maxAge || options.ignoreCache || cacheDate.getDate() !== CURRENT_DATETIME.getDate()) {
+	if (!cachedData || cacheAge > maxAge || cacheDate.getDate() !== CURRENT_DATETIME.getDate()) {
 		log(`Fetching data ${key}, cache invalid.`)
 		try {
 			fetchedData = await fetchData()
@@ -710,28 +704,28 @@ async function getCachedOrFetch<T>(
 	return fetchedData ?? cachedData
 }
 
-async function getLessonsFor(user: FullUser, date: Date, isNext: boolean, options: GetOptions) {
+async function getLessonsFor(user: FullUser, date: Date, isNext: boolean, options: Options) {
 	const key = isNext ? 'lessons_next' : 'lessons'
-	return getCachedOrFetch(key, MAX_LESSONS_CACHE_AGE, options, () => fetchLessonsFor(user, date), compareCachedLessons)
+	return getCachedOrFetch(key, MAX_LESSONS_CACHE_AGE, options, () => fetchLessonsFor(user, date, options), compareCachedLessons)
 }
 
-async function getExamsFor(user: FullUser, from: Date, to: Date, options: GetOptions) {
+async function getExamsFor(user: FullUser, from: Date, to: Date, options: Options) {
 	return getCachedOrFetch('exams', MAX_EXAMS_CACHE_AGE, options, () => fetchExamsFor(user, from, to))
 }
 
-async function getGradesFor(user: FullUser, from: Date, to: Date, options: GetOptions) {
+async function getGradesFor(user: FullUser, from: Date, to: Date, options: Options) {
 	return getCachedOrFetch('grades', MAX_GRADES_CACHE_AGE, options, () => fetchGradesFor(user, from, to))
 }
 
-async function getAbsencesFor(user: FullUser, from: Date, to: Date, options: GetOptions) {
+async function getAbsencesFor(user: FullUser, from: Date, to: Date, options: Options) {
 	return getCachedOrFetch('absences', MAX_ABSENCES_CACHE_AGE, options, () => fetchAbsencesFor(user, from, to))
 }
 
-async function getSchoolYears(user: FullUser, options: GetOptions) {
+async function getSchoolYears(user: FullUser, options: Options) {
 	return getCachedOrFetch('school_years', MAX_SCHOOL_YEARS_CACHE_AGE, options, () => fetchSchoolYears(user))
 }
 
-async function getTimetable(user: FullUser, options: GetOptions & Config) {
+async function getTimetable(user: FullUser, options: Options) {
 	// fetch this weeks lessons
 	let timetable = await getLessonsFor(user, CURRENT_DATETIME, false, options)
 
@@ -823,7 +817,6 @@ function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWee
 
 		// loop over the lessons
 		for (const lesson of lessons) {
-			// TODO: apply lesson config earlier
 			const subjectTitle = getSubjectTitle(lesson, false)
 			const dayString = lesson.from.toLocaleDateString(LOCALE, { weekday: 'long' })
 
@@ -865,17 +858,17 @@ function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWee
 				if (!lesson.rescheduleInfo.isSource) continue
 
 				// if the day is the same
-				if (lesson.rescheduleInfo.from.getDate() === lesson.rescheduleInfo.to.getDate()) {
+				if (lesson.rescheduleInfo.otherFrom.getDate() === lesson.rescheduleInfo.otherTo.getDate()) {
 					scheduleNotification(
 						`${dayString}: ${subjectTitle} was shifted`,
-						`from ${asNumericTime(lesson.from)} to ${asNumericTime(lesson.rescheduleInfo.from)}`
+						`from ${asNumericTime(lesson.from)} to ${asNumericTime(lesson.rescheduleInfo.otherFrom)}`
 					)
 					continue
 				}
 
 				scheduleNotification(
 					`${dayString}: ${subjectTitle} was rescheduled`,
-					`from ${asWeekday(lesson.rescheduleInfo.from)} to ${asWeekday(lesson.rescheduleInfo.to)}`
+					`from ${asWeekday(lesson.rescheduleInfo.otherFrom)} to ${asWeekday(lesson.rescheduleInfo.otherTo)}`
 				)
 				continue
 			}
@@ -1032,7 +1025,7 @@ function combineDateAndTime(date: number, time: number) {
 	return new Date(parsedDate.getTime() + parsedTime.getTime())
 }
 
-function transformLessons(lessons: Lesson[], elements: Element[]): TransformedLessonWeek {
+function transformLessons(lessons: Lesson[], elements: Element[], config: Config): TransformedLessonWeek {
 	const transformedLessonWeek: TransformedLessonWeek = {}
 
 	// transform each lesson
@@ -1075,8 +1068,8 @@ function transformLessons(lessons: Lesson[], elements: Element[]): TransformedLe
 		if ('rescheduleInfo' in lesson && lesson.rescheduleInfo) {
 			transformedLesson.rescheduleInfo = {
 				isSource: lesson.rescheduleInfo.isSource,
-				from: combineDateAndTime(lesson.rescheduleInfo.date, lesson.rescheduleInfo.startTime),
-				to: combineDateAndTime(lesson.rescheduleInfo.date, lesson.rescheduleInfo.endTime),
+				otherFrom: combineDateAndTime(lesson.rescheduleInfo.date, lesson.rescheduleInfo.startTime),
+				otherTo: combineDateAndTime(lesson.rescheduleInfo.date, lesson.rescheduleInfo.endTime),
 			}
 		}
 
@@ -1093,6 +1086,9 @@ function transformLessons(lessons: Lesson[], elements: Element[]): TransformedLe
 		if (!transformedLessonWeek[dateKey]) {
 			transformedLessonWeek[dateKey] = []
 		}
+
+		applyCustomLessonConfig(transformedLesson, config)
+
 		transformedLessonWeek[dateKey].push(transformedLesson)
 	}
 
@@ -1812,32 +1808,33 @@ function addWidgetLesson(
 	const isRescheduled = lesson.state === LessonState.RESCHEDULED && lesson.rescheduleInfo?.isSource
 
 	// define the colors
-	const { customLesson, customBackgroundColor } = applyCustomLessonConfig(lesson, config)
-	let backgroundColor = customBackgroundColor
+	
+	applyCustomLessonConfig(lesson, config)
+	let backgroundColor = getColor(lesson.backgroundColor)
 	let textColor = colors.text.primary
 	let iconColor: Color = colors.text.secondary
 
 	// adjust the colors for canceled lessons and similar
-	if (customLesson.state === LessonState.CANCELED || customLesson.state === LessonState.FREE || isRescheduled) {
+	if (lesson.state === LessonState.CANCELED || lesson.state === LessonState.FREE || isRescheduled) {
 		backgroundColor = colors.background.primary
 		textColor = colors.text.disabled
 		iconColor = colors.text.disabled
 	}
 
 	// add the entry with the time
-	const lessonContainer = makeTimelineEntry(to, customLesson.from, { showTime: options.showTime, backgroundColor })
+	const lessonContainer = makeTimelineEntry(to, lesson.from, { showTime: options.showTime, backgroundColor })
 	lessonContainer.spacing = WIDGET_SPACING
 
 	// add the name of the subject
-	const lessonText = lessonContainer.addText(getSubjectTitle(customLesson, options.useSubjectLongName))
+	const lessonText = lessonContainer.addText(getSubjectTitle(lesson, options.useSubjectLongName))
 	lessonText.font = Font.semiboldSystemFont(14)
 	lessonText.textColor = textColor
 	lessonText.leftAlignText()
 	lessonText.lineLimit = 1
 
 	// add a x2 for double lessons etc.
-	if (customLesson.duration > 1) {
-		const durationText = lessonContainer.addText(`x${customLesson.duration}`)
+	if (lesson.duration > 1) {
+		const durationText = lessonContainer.addText(`x${lesson.duration}`)
 		durationText.font = Font.mediumSystemFont(14)
 		durationText.textColor = isCanceled ? colors.text.disabled : colors.text.secondary
 	}
@@ -1845,24 +1842,24 @@ function addWidgetLesson(
 	let iconName: string | undefined = undefined
 
 	// add icons for the lesson state
-	if (customLesson.isEvent) {
+	if (lesson.isEvent) {
 		iconName = 'calendar.circle'
-	} else if (isCanceledOrFree && !customLesson.isRescheduled) {
+	} else if (isCanceledOrFree && !lesson.isRescheduled) {
 		iconName = 'xmark.circle'
 		if (isCanceled) iconColor = colors.text.red
-	} else if (customLesson.state === LessonState.ADDITIONAL) {
+	} else if (lesson.state === LessonState.ADDITIONAL) {
 		iconName = 'plus.circle'
-	} else if (customLesson.state === LessonState.RESCHEDULED) {
+	} else if (lesson.state === LessonState.RESCHEDULED) {
 		iconName = 'calendar.circle'
-	} else if (customLesson.state === LessonState.EXAM) {
+	} else if (lesson.state === LessonState.EXAM) {
 		iconName = 'book.circle'
-	} else if (customLesson.state === LessonState.SUBSTITUTED) {
+	} else if (lesson.state === LessonState.SUBSTITUTED) {
 		iconName = 'person.circle'
-	} else if (customLesson.state === LessonState.ROOM_SUBSTITUTION) {
+	} else if (lesson.state === LessonState.ROOM_SUBSTITUTION) {
 		iconName = 'location.circle'
-	} else if (customLesson.state === LessonState.FREE) {
+	} else if (lesson.state === LessonState.FREE) {
 		iconName = 'bell.circle'
-	} else if (customLesson.text || customLesson.info || customLesson.note) {
+	} else if (lesson.text || lesson.info || lesson.note) {
 		iconName = 'info.circle'
 	}
 
@@ -1870,14 +1867,14 @@ function addWidgetLesson(
 		lessonContainer.addSpacer()
 	}
 
-	if (customLesson.isRescheduled && customLesson.rescheduleInfo?.isSource) {
+	if (lesson.isRescheduled && lesson.rescheduleInfo?.isSource) {
 		addSymbol('arrow.right', lessonContainer, {
 			color: isCanceled ? colors.text.disabled : colors.text.secondary,
 			size: 10,
 		})
 		// display the time it was rescheduled to
 		// const rescheduledTimeWrapper = lessonContainer.addStack()
-		const rescheduledTime = lessonContainer.addDate(customLesson.rescheduleInfo?.from)
+		const rescheduledTime = lessonContainer.addDate(lesson.rescheduleInfo?.otherFrom)
 		rescheduledTime.font = Font.mediumSystemFont(14)
 		rescheduledTime.textColor = isCanceled ? colors.text.disabled : colors.text.secondary
 		rescheduledTime.applyTimeStyle()
@@ -1891,18 +1888,18 @@ function addWidgetLesson(
 }
 
 function convertToSubject(lesson: TransformedLesson, container: WidgetStack, config: Config) {
-	const { customLesson, customBackgroundColor } = applyCustomLessonConfig(lesson, config)
-	let backgroundColor = customBackgroundColor
+	applyCustomLessonConfig(lesson, config)
+	let backgroundColor = getColor(lesson.backgroundColor)
 	let textColor = colors.text.primary
 
 	// apply the colors for canceled lessons and similar
-	if (customLesson.state === LessonState.CANCELED) {
+	if (lesson.state === LessonState.CANCELED) {
 		backgroundColor = colors.background.primary
 		textColor = colors.text.red
 	} else if (lesson.state === LessonState.FREE) {
 		backgroundColor = colors.background.primary
 		textColor = colors.text.disabled
-	} else if (customLesson.state === LessonState.RESCHEDULED) {
+	} else if (lesson.state === LessonState.RESCHEDULED) {
 		// only show as primary if it is not the source -> it is the one that takes place
 		if (lesson.rescheduleInfo?.isSource) {
 			backgroundColor = colors.background.primary
@@ -1923,7 +1920,7 @@ function convertToSubject(lesson: TransformedLesson, container: WidgetStack, con
 	container.spacing = WIDGET_SPACING
 
 	// add the name of the subject
-	const subjectText = container.addText(getSubjectTitle(customLesson))
+	const subjectText = container.addText(getSubjectTitle(lesson))
 	subjectText.font = Font.mediumSystemFont(14)
 	subjectText.textColor = textColor
 	subjectText.leftAlignText()
@@ -1931,8 +1928,8 @@ function convertToSubject(lesson: TransformedLesson, container: WidgetStack, con
 	subjectText.lineLimit = 1
 
 	// add a x2 for double lessons etc.
-	if (SHOW_SUMMARY_MULTIPLIER && customLesson.duration > 1) {
-		const durationText = container.addText(`x${customLesson.duration}`)
+	if (SHOW_SUMMARY_MULTIPLIER && lesson.duration > 1) {
+		const durationText = container.addText(`x${lesson.duration}`)
 		durationText.font = Font.mediumSystemFont(14)
 		durationText.textColor = colors.text.secondary
 	}
@@ -2269,20 +2266,12 @@ function isHomescreenWidgetSize(k: string, widgetSizes: HomescreenWidgetSizes): 
 
 //#region Widget Helpers
 
-function applyCustomLessonConfig(
-	lesson: TransformedLesson,
-	config: Config
-): {
-	customLesson: TransformedLesson
-	customBackgroundColor: Color
-} {
+function applyCustomLessonConfig(lesson: TransformedLesson, config: Config) {
+	lesson.backgroundColor = unparsedColors.background.primary
+
 	// return default values if there is no custom config
 	if (!lesson.subject || !config.lessonOptions[lesson.subject?.name]) {
-		console.log(`No custom config for ${lesson.subject?.name}`)
-		return {
-			customBackgroundColor: colors.background.primary,
-			customLesson: lesson,
-		}
+		return
 	}
 
 	const customOption = config.lessonOptions[lesson.subject?.name]
@@ -2298,10 +2287,7 @@ function applyCustomLessonConfig(
 	}
 
 	if (!unwrappedCustomOption) {
-		return {
-			customBackgroundColor: colors.background.primary,
-			customLesson: lesson,
-		}
+		return
 	}
 
 	// apply the custom color
@@ -2310,11 +2296,7 @@ function applyCustomLessonConfig(
 	if (unwrappedCustomOption.ignoreInfo?.includes(lesson.text ?? '')) lesson.text = ''
 	if (unwrappedCustomOption.subjectOverride) lesson.subject.name = unwrappedCustomOption.subjectOverride
 	if (unwrappedCustomOption.longNameOverride) lesson.subject.longName = unwrappedCustomOption.longNameOverride
-
-	return {
-		customBackgroundColor: getColor(unwrappedCustomOption?.color),
-		customLesson: lesson,
-	}
+	if (unwrappedCustomOption.color) lesson.backgroundColor = unwrappedCustomOption.color
 }
 
 function setWidgetRefreshDate(
@@ -2817,8 +2799,10 @@ async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options:
 
 	if (itemsToFetch.has('absences')) {
 		const schoolYears = await getSchoolYears(user, options)
-		// TODO: maybe check if the dates match
-		const currentSchoolYear = schoolYears[0]
+		// get the current school year
+		const currentSchoolYear = schoolYears.find(
+			(schoolYear) => schoolYear.from <= CURRENT_DATETIME && schoolYear.to >= CURRENT_DATETIME
+		)
 		const promise = getAbsencesFor(user, currentSchoolYear.from, CURRENT_DATETIME, options).then((absences) => {
 			fetchedData.absences = absences
 		})
