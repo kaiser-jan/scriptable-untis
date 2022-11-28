@@ -55,21 +55,30 @@ let usingOldCache = false
 
 //#region Transformed
 
-interface ElementData {
+interface TransformedStatelessElement {
+	id: number
 	name: string
-	state: ElementState
-	// missing: boolean
 }
 
-interface ExtendedElementData extends ElementData {
+interface ExtendedTransformedElement extends TransformedStatelessElement {
 	longName: string
 }
 
-interface Teacher extends ElementData {}
-interface Group extends ExtendedElementData {}
-interface Subject extends ExtendedElementData {}
-interface Room extends ExtendedElementData {
+interface Teacher extends TransformedStatelessElement {}
+interface Group extends ExtendedTransformedElement {}
+interface Subject extends ExtendedTransformedElement {}
+interface Room extends ExtendedTransformedElement {
 	capacity: number
+}
+
+type StatelessElement = Teacher | Group | Subject | Room
+
+type StatefulElement = Stateful<StatelessElement>
+
+// a type for stateless elements with state and original
+type Stateful<T extends StatelessElement> = T & {
+	state: ElementState
+	original?: T
 }
 
 interface TransformedLesson {
@@ -183,6 +192,13 @@ enum ElementType {
 
 type Element = ElementGroup | ElementTeacher | ElementSubject | ElementRoom
 
+interface UnresolvedElement {
+	type: ElementType
+	id: number
+	orgId: number
+	missing: boolean
+	state: ElementState
+}
 interface ElementBase {
 	type: number
 	id: number
@@ -248,13 +264,7 @@ interface Lesson {
 	startTime: number
 	endTime: number
 
-	elements: {
-		type: ElementType
-		id: number
-		orgId: number
-		missing: boolean
-		state: ElementState
-	}[]
+	elements: UnresolvedElement[]
 
 	hasInfo: boolean
 	code: number // known: 0, 12, 120, 124
@@ -706,7 +716,13 @@ async function getCachedOrFetch<T>(
 
 async function getLessonsFor(user: FullUser, date: Date, isNext: boolean, options: Options) {
 	const key = isNext ? 'lessons_next' : 'lessons'
-	return getCachedOrFetch(key, MAX_LESSONS_CACHE_AGE, options, () => fetchLessonsFor(user, date, options), compareCachedLessons)
+	return getCachedOrFetch(
+		key,
+		MAX_LESSONS_CACHE_AGE,
+		options,
+		() => fetchLessonsFor(user, date, options),
+		compareCachedLessons
+	)
 }
 
 async function getExamsFor(user: FullUser, from: Date, to: Date, options: Options) {
@@ -1108,59 +1124,79 @@ function transformLessons(lessons: Lesson[], elements: Element[], config: Config
 	return combinedLessonWeek
 }
 
+function resolveStatelessElement(id: number, type: number, availableElements: Element[]): StatelessElement {
+	const foundElement = availableElements.find((element) => element.id === id && element.type === type)
+	const elementBase: StatelessElement = {
+		id: id,
+		name: foundElement?.name,
+	}
+
+	if (!foundElement) return
+
+	if (foundElement.type === ElementType.TEACHER) {
+		return elementBase
+	}
+
+	const element = elementBase as ExtendedTransformedElement
+	element.longName = foundElement.longName
+
+	if (foundElement.type === ElementType.ROOM) {
+		const room = element as Room
+		room.capacity = foundElement.roomCapacity
+		return room
+	}
+
+	return element
+}
+
+function resolveElement(unresolvedElement: UnresolvedElement, availableElements: Element[]) {
+	const statelessElement = resolveStatelessElement(unresolvedElement.id, unresolvedElement.type, availableElements)
+
+	const element = statelessElement as StatefulElement
+	element.state = unresolvedElement.state
+
+	if (unresolvedElement.orgId) {
+		const originalElement = resolveStatelessElement(unresolvedElement.orgId, unresolvedElement.type, availableElements)
+		element.original = originalElement
+	}
+
+	return element
+}
+
 function resolveElements(lesson: Lesson, elements: Element[]) {
 	const groups: Group[] = []
 	const teachers: Teacher[] = []
 	let subject: Subject | undefined
 	const rooms: Room[] = []
 
-	// TODO: use orgId, which shows the original element id (e.g. for substitutions)
+	for (const unresolvedElement of lesson.elements) {
+		const element = resolveElement(unresolvedElement, elements)
 
-	for (const element of lesson.elements) {
-		// get the matching data from the elements
-		const elementData = elements.find((e) => e.id === element.id && e.type === element.type)
-
-		if (!elementData) {
-			console.warn(`Could not find element ${element.id} with type ${element.type}`)
+		if (!element) {
+			console.warn(`Could not find element ${unresolvedElement.id} with type ${unresolvedElement.type}`)
 			continue
 		}
 
-		const transformedElement: ElementData = {
-			name: elementData.name,
-			state: element.state,
-		}
-
-		// check if it is a teacher, as they miss the field longName
-		if (element.type === ElementType.TEACHER) {
-			teachers.push(transformedElement)
+		if (unresolvedElement.type === ElementType.TEACHER) {
+			teachers.push(element as Teacher)
 			continue
 		}
 
-		if (!('longName' in elementData)) {
-			console.error(`Element data is missing longName property but is not teacher ${elementData}`)
-			continue
-		}
-
-		const transformedExtendedElement: ExtendedElementData = {
-			...transformedElement,
-			longName: elementData.longName,
-		}
-
-		switch (element.type) {
+		switch (unresolvedElement.type) {
 			case ElementType.GROUP:
-				groups.push(transformedExtendedElement)
+				groups.push(element as Group)
 				break
 			case ElementType.SUBJECT:
 				if (subject) {
 					console.error(`Found multiple subjects for lesson ${lesson.lessonId}`)
 				}
-				subject = transformedExtendedElement
+				subject = element as Subject
 				break
 			case ElementType.ROOM:
-				rooms.push({ ...transformedExtendedElement, capacity: elementData.roomCapacity })
+				rooms.push(element as Room)
 				break
 			default:
-				console.error(`Unknown element type ${element.type}`)
+				console.error(`Unknown element type ${unresolvedElement.type}`)
 				break
 		}
 	}
@@ -1808,8 +1844,6 @@ function addWidgetLesson(
 	const isRescheduled = lesson.state === LessonState.RESCHEDULED && lesson.rescheduleInfo?.isSource
 
 	// define the colors
-	
-	applyCustomLessonConfig(lesson, config)
 	let backgroundColor = getColor(lesson.backgroundColor)
 	let textColor = colors.text.primary
 	let iconColor: Color = colors.text.secondary
@@ -1888,7 +1922,6 @@ function addWidgetLesson(
 }
 
 function convertToSubject(lesson: TransformedLesson, container: WidgetStack, config: Config) {
-	applyCustomLessonConfig(lesson, config)
 	let backgroundColor = getColor(lesson.backgroundColor)
 	let textColor = colors.text.primary
 
