@@ -22,8 +22,8 @@ const CORNER_RADIUS = 4
 const MAX_LESSONS = 8
 const EXAM_SCOPE = asMilliseconds(7, 'days')
 const MAX_EXAMS = 3
-const GRADE_SCOPE = asMilliseconds(30, 'days')
-const MAX_GRADES = 2
+const GRADE_SCOPE = asMilliseconds(7, 'days')
+const MAX_GRADES = 1
 const MAX_ABSENCES = 3
 
 const WIDGET_SPACING = 6
@@ -1572,9 +1572,12 @@ function addViewGrades(grades: TransformedGrade[], count: number, { container, w
 
 	if (height < lineHeight + 2 * padding) return 0
 
+	// sort the grades by date (newest first)
+	const sortedGrades = grades.sort((a, b) => b.date.getTime() - a.date.getTime())
+
 	// add the remaining lessons until the max item count is reached
-	for (let i = 0; i < grades.length; i++) {
-		const grade = grades[i]
+	for (let i = 0; i < sortedGrades.length; i++) {
+		const grade = sortedGrades[i]
 
 		const gradeContainer = container.addStack()
 		gradeContainer.layoutHorizontally()
@@ -2283,7 +2286,7 @@ function getWidgetSize(widgetSizes: HomescreenWidgetSizes, widgetFamily?: typeof
 	// return small widget size if the widget family is not set
 	if (!widgetFamily) {
 		console.log('Defaulting to large widget size')
-		return widgetSizes['large']
+		return widgetSizes['medium']
 	}
 
 	if (isHomescreenWidgetSize(widgetFamily, widgetSizes)) {
@@ -2334,54 +2337,50 @@ function applyCustomLessonConfig(lesson: TransformedLesson, config: Config) {
 	if (unwrappedCustomOption.color) lesson.backgroundColor = unwrappedCustomOption.color
 }
 
-function setWidgetRefreshDate(
-	widget: ListWidget,
-	lessonsTodayRemaining: TransformedLesson[],
-	lessonsTomorrow: TransformedLesson[]
-) {
+function getRefreshDateForLessons(lessonsTodayRemaining: TransformedLesson[], lessonsTomorrow: TransformedLesson[]) {
+	let nextRefreshDate: Date
+
 	// set the widget refresh time to the end of the current lesson, or the next lesson if there is only a short break
 	if (lessonsTodayRemaining.length >= 1) {
 		const firstLesson = lessonsTodayRemaining[0]
 		const secondLesson = lessonsTodayRemaining[1]
 
-		let nextRefreshDate
 		// if the next lesson has not started yet
 		if (firstLesson.from > CURRENT_DATETIME) {
 			nextRefreshDate = firstLesson.from
-			console.log(`Refreshing at the start of the next lesson at ${nextRefreshDate}, as it has not started yet`)
+			console.log(`Would refresh at the start of the next lesson at ${nextRefreshDate}, as it has not started yet`)
 		} else {
 			// if the break is too short
 			if (secondLesson && secondLesson.from.getTime() - firstLesson.to.getTime() < BREAK_DURATION_MAX) {
 				nextRefreshDate = secondLesson.from
-				console.log(`Refreshing at the start of the next lesson at ${nextRefreshDate}, as the break is too short.`)
+				console.log(`Would refresh at the start of the next lesson at ${nextRefreshDate}, as the break is too short.`)
 			} else {
 				nextRefreshDate = firstLesson.to
 				console.log(
-					`Refreshing at the end of the current lesson at ${nextRefreshDate}, as there is a long enough break.`
+					`Would refresh at the end of the current lesson at ${nextRefreshDate}, as there is a long enough break.`
 				)
 			}
 		}
-		widget.refreshAfterDate = nextRefreshDate
 	} else {
 		let shouldLazyUpdate = true
 
 		// if the next lesson (on the next day) is in the scope of the frequent updates
 		if (lessonsTomorrow && lessonsTomorrow.length > 1) {
-			log(lessonsTomorrow[0])
-			log(lessonsTomorrow[0].from)
 			const timeUntilNextLesson = lessonsTomorrow[0].from.getTime() - CURRENT_DATETIME.getTime()
 			shouldLazyUpdate = timeUntilNextLesson > NORMAL_UPDATE_SCOPE
 		}
 
 		// refresh based on normal/lazy refreshing
 		if (shouldLazyUpdate) {
-			console.log(`Refreshing in ${LAZY_UPDATE_INTERVAL / 60_000} minutes (lazy updating).`)
-			widget.refreshAfterDate = new Date(CURRENT_DATETIME.getTime() + LAZY_UPDATE_INTERVAL)
+			console.log(`Would refresh in ${LAZY_UPDATE_INTERVAL / 60_000} minutes (lazy updating).`)
+			nextRefreshDate = new Date(CURRENT_DATETIME.getTime() + LAZY_UPDATE_INTERVAL)
 		} else {
-			console.log(`Refreshing in ${NORMAL_UPDATE_INTERVAL / 60_000} minutes (normal updating).`)
-			widget.refreshAfterDate = new Date(CURRENT_DATETIME.getTime() + NORMAL_UPDATE_INTERVAL)
+			console.log(`Would refresh in ${NORMAL_UPDATE_INTERVAL / 60_000} minutes (normal updating).`)
+			nextRefreshDate = new Date(CURRENT_DATETIME.getTime() + NORMAL_UPDATE_INTERVAL)
 		}
 	}
+
+	return nextRefreshDate
 }
 
 /**
@@ -2776,6 +2775,14 @@ interface FetchedData {
 	grades?: TransformedGrade[]
 	absences?: TransformedAbsence[]
 	classRoles?: TransformedClassRole[]
+	refreshDate?: Date
+}
+
+function checkNewRefreshDate(newDate: Date, fetchedData: FetchedData) {
+	if (!fetchedData.refreshDate || newDate < fetchedData.refreshDate) {
+		fetchedData.refreshDate = newDate
+		return
+	}
 }
 
 type FetchableNames = 'timetable' | 'exams' | 'grades' | 'absences' | 'roles'
@@ -2812,6 +2819,7 @@ async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options:
 			fetchedData.lessonsTodayRemaining = lessonsTodayRemaining
 			fetchedData.lessonsNextDay = lessonsNextDay
 			fetchedData.nextDayKey = nextDayKey
+			checkNewRefreshDate(getRefreshDateForLessons(lessonsTodayRemaining, lessonsNextDay), fetchedData)
 		})
 		fetchPromises.push(promise)
 	}
@@ -2821,6 +2829,8 @@ async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options:
 		const promise = getExamsFor(user, examsFrom, CURRENT_DATETIME).then((exams) => {
 			fetchedData.exams = exams
 		})
+		const refreshDate = new Date(Date.now() + MAX_EXAMS_CACHE_AGE / 2)
+		checkNewRefreshDate(refreshDate, fetchedData)
 		fetchPromises.push(promise)
 	}
 
@@ -2829,6 +2839,8 @@ async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options:
 		const promise = getGradesFor(user, gradesFrom, CURRENT_DATETIME).then((grades) => {
 			fetchedData.grades = grades
 		})
+		const refreshDate = new Date(Date.now() + MAX_GRADES_CACHE_AGE / 2)
+		checkNewRefreshDate(refreshDate, fetchedData)
 		fetchPromises.push(promise)
 	}
 
@@ -2841,6 +2853,8 @@ async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options:
 		const promise = getAbsencesFor(user, currentSchoolYear.from, CURRENT_DATETIME).then((absences) => {
 			fetchedData.absences = absences
 		})
+		const refreshDate = new Date(Date.now() + MAX_ABSENCES_CACHE_AGE / 2)
+		checkNewRefreshDate(refreshDate, fetchedData)
 		fetchPromises.push(promise)
 	}
 
@@ -2848,6 +2862,9 @@ async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options:
 		const promise = fetchClassRolesFor(user, CURRENT_DATETIME, CURRENT_DATETIME).then((roles) => {
 			fetchedData.classRoles = roles
 		})
+		// tomorrow midnight
+		const refreshDate = new Date(new Date().setHours(24, 0, 0, 0))
+		checkNewRefreshDate(refreshDate, fetchedData)
 		fetchPromises.push(promise)
 	}
 
@@ -2884,8 +2901,9 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 	// fetch the data for the shown views
 	const fetchedData = await fetchDataForViews(Array.from(shownViews), user, options)
 
-	if (fetchedData.lessonsTodayRemaining && fetchedData.lessonsNextDay) {
-		setWidgetRefreshDate(widget, fetchedData.lessonsTodayRemaining, fetchedData.lessonsNextDay)
+	if (fetchedData.refreshDate) {
+		console.log(`Refresh date: ${fetchedData.refreshDate}`)
+		widget.refreshAfterDate = fetchedData.refreshDate
 	}
 
 	// TODO: flexible layout when only one column
