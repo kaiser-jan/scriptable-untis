@@ -592,13 +592,16 @@ interface CachedUser extends FullUser {
 	lastUpdated: Date
 }
 
-async function prepareUser(fileManager: FileManager, appDirectory: string, ignoreCache = false): Promise<FullUser> {
+async function prepareUser(useICloud: boolean, appDirectory: string, ignoreCache = false): Promise<FullUser> {
+	const fileManager = useICloud ? FileManager.iCloud() : FileManager.local()
 	const userCacheFileName = 'user.json'
 	const userCachePath = fileManager.joinPath(appDirectory, userCacheFileName)
 	const userCacheExists = fileManager.fileExists(userCachePath)
 
 	if (!ignoreCache && userCacheExists) {
-		await fileManager.downloadFileFromiCloud(userCachePath)
+		if (useICloud) {
+			await fileManager.downloadFileFromiCloud(userCachePath)
+		}
 
 		const cachedUser: CachedUser = JSON.parse(fileManager.readString(userCachePath))
 		// parse the date
@@ -634,15 +637,17 @@ async function prepareUser(fileManager: FileManager, appDirectory: string, ignor
 }
 
 // TODO: consider adding a validity date (e.g. when the target date for lessons changes)
-async function readFromCache(fileManager: FileManager, appDirectory: string, cacheName: string) {
-	const cacheDirectory = fileManager.joinPath(appDirectory, 'cache')
+async function readFromCache(cacheName: string) {
+	const fileManager = FileManager.local()
+	const cacheDirectory = fileManager.cacheDirectory()
+	const untisCacheDirectory = fileManager.joinPath(cacheDirectory, 'untis')
 
-	if (!fileManager.fileExists(cacheDirectory)) {
+	if (!fileManager.fileExists(untisCacheDirectory)) {
 		console.log('Cache directory does not exist.')
 		return {}
 	}
 
-	const cachePath = fileManager.joinPath(cacheDirectory, `${cacheName}.json`)
+	const cachePath = fileManager.joinPath(untisCacheDirectory, `${cacheName}.json`)
 	const cacheExists = fileManager.fileExists(cachePath)
 
 	if (!cacheExists) {
@@ -650,7 +655,6 @@ async function readFromCache(fileManager: FileManager, appDirectory: string, cac
 		return {}
 	}
 
-	await fileManager.downloadFileFromiCloud(cachePath)
 	const cacheDate = new Date(fileManager.modificationDate(cachePath))
 	const cacheAge = new Date().getTime() - cacheDate.getTime()
 
@@ -666,12 +670,14 @@ async function readFromCache(fileManager: FileManager, appDirectory: string, cac
 	return { data, cacheAge, cacheDate }
 }
 
-function writeToCache(fileManager: FileManager, appDirectory: string, data: Object, cacheName: string) {
-	const cacheDirectory = fileManager.joinPath(appDirectory, 'cache')
-	if (!fileManager.fileExists(cacheDirectory)) {
-		fileManager.createDirectory(cacheDirectory, true)
+function writeToCache(data: Object, cacheName: string) {
+	const fileManager = FileManager.local()
+	const cacheDirectory = fileManager.cacheDirectory()
+	const untisCacheDirectory = fileManager.joinPath(cacheDirectory, 'untis')
+	if (!fileManager.fileExists(untisCacheDirectory)) {
+		fileManager.createDirectory(untisCacheDirectory, true)
 	}
-	const cachePath = fileManager.joinPath(cacheDirectory, `${cacheName}.json`)
+	const cachePath = fileManager.joinPath(untisCacheDirectory, `${cacheName}.json`)
 	fileManager.writeString(cachePath, JSON.stringify(data))
 }
 
@@ -682,11 +688,10 @@ function writeToCache(fileManager: FileManager, appDirectory: string, data: Obje
 async function getCachedOrFetch<T>(
 	key: string,
 	maxAge: number,
-	options: Options,
 	fetchData: () => Promise<T>,
 	compareData?: (fetchedData: T, cachedData: T) => void
 ): Promise<T> {
-	const { data: cachedData, cacheAge, cacheDate } = await readFromCache(options.fileManager, options.appDirectory, key)
+	const { data: cachedData, cacheAge, cacheDate } = await readFromCache(key)
 
 	let fetchedData: T
 
@@ -695,7 +700,7 @@ async function getCachedOrFetch<T>(
 		log(`Fetching data ${key}, cache invalid.`)
 		try {
 			fetchedData = await fetchData()
-			writeToCache(options.fileManager, options.appDirectory, fetchedData, key)
+			writeToCache(fetchedData, key)
 		} catch (error) {
 			const castedError = error as Error
 			if (castedError.message.toLowerCase() === ScriptableErrors.NO_INTERNET.toLowerCase()) {
@@ -716,29 +721,23 @@ async function getCachedOrFetch<T>(
 
 async function getLessonsFor(user: FullUser, date: Date, isNext: boolean, options: Options) {
 	const key = isNext ? 'lessons_next' : 'lessons'
-	return getCachedOrFetch(
-		key,
-		MAX_LESSONS_CACHE_AGE,
-		options,
-		() => fetchLessonsFor(user, date, options),
-		compareCachedLessons
-	)
+	return getCachedOrFetch(key, MAX_LESSONS_CACHE_AGE, () => fetchLessonsFor(user, date, options), compareCachedLessons)
 }
 
-async function getExamsFor(user: FullUser, from: Date, to: Date, options: Options) {
-	return getCachedOrFetch('exams', MAX_EXAMS_CACHE_AGE, options, () => fetchExamsFor(user, from, to))
+async function getExamsFor(user: FullUser, from: Date, to: Date) {
+	return getCachedOrFetch('exams', MAX_EXAMS_CACHE_AGE, () => fetchExamsFor(user, from, to))
 }
 
-async function getGradesFor(user: FullUser, from: Date, to: Date, options: Options) {
-	return getCachedOrFetch('grades', MAX_GRADES_CACHE_AGE, options, () => fetchGradesFor(user, from, to))
+async function getGradesFor(user: FullUser, from: Date, to: Date) {
+	return getCachedOrFetch('grades', MAX_GRADES_CACHE_AGE, () => fetchGradesFor(user, from, to))
 }
 
-async function getAbsencesFor(user: FullUser, from: Date, to: Date, options: Options) {
-	return getCachedOrFetch('absences', MAX_ABSENCES_CACHE_AGE, options, () => fetchAbsencesFor(user, from, to))
+async function getAbsencesFor(user: FullUser, from: Date, to: Date) {
+	return getCachedOrFetch('absences', MAX_ABSENCES_CACHE_AGE, () => fetchAbsencesFor(user, from, to))
 }
 
-async function getSchoolYears(user: FullUser, options: Options) {
-	return getCachedOrFetch('school_years', MAX_SCHOOL_YEARS_CACHE_AGE, options, () => fetchSchoolYears(user))
+async function getSchoolYears(user: FullUser) {
+	return getCachedOrFetch('school_years', MAX_SCHOOL_YEARS_CACHE_AGE, () => fetchSchoolYears(user))
 }
 
 async function getTimetable(user: FullUser, options: Options) {
@@ -1410,7 +1409,7 @@ interface Config {
 }
 
 interface Options extends Config {
-	fileManager: FileManager
+	useICloud: boolean
 	appDirectory: string
 }
 
@@ -1974,7 +1973,8 @@ function convertToSubject(lesson: TransformedLesson, container: WidgetStack, con
 
 function getAppDirectory() {
 	// TODO: check if icloud is in use
-	const fileManager = FileManager.iCloud()
+	const useICloud = FileManager.local().isFileStoredIniCloud(module.filename)
+	const fileManager = useICloud ? FileManager.iCloud() : FileManager.local()
 	const appFolderName = 'untis'
 	const appDirectory = fileManager.joinPath(fileManager.documentsDirectory(), appFolderName)
 
@@ -1983,14 +1983,16 @@ function getAppDirectory() {
 		fileManager.createDirectory(appDirectory, true)
 	}
 
-	return { appDirectory, fileManager }
+	return { appDirectory, useICloud }
 }
 
-async function readConfig(appDirectory: string, fileManager: FileManager) {
+async function readConfig(appDirectory: string, useICloud: boolean) {
+	const fileManager = useICloud ? FileManager.iCloud() : FileManager.local()
 	const configFileName = 'config.json'
 	const configPath = fileManager.joinPath(appDirectory, configFileName)
-
-	await fileManager.downloadFileFromiCloud(configPath)
+	if (useICloud) {
+		await fileManager.downloadFileFromiCloud(configPath)
+	}
 	const fileConfig: Config = JSON.parse(fileManager.readString(configPath))
 
 	if (!fileManager.fileExists(configPath)) {
@@ -2816,7 +2818,7 @@ async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options:
 
 	if (itemsToFetch.has('exams')) {
 		const examsFrom = new Date(new Date().getTime() + EXAM_SCOPE)
-		const promise = getExamsFor(user, examsFrom, CURRENT_DATETIME, options).then((exams) => {
+		const promise = getExamsFor(user, examsFrom, CURRENT_DATETIME).then((exams) => {
 			fetchedData.exams = exams
 		})
 		fetchPromises.push(promise)
@@ -2824,19 +2826,19 @@ async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options:
 
 	if (itemsToFetch.has('grades')) {
 		const gradesFrom = new Date(new Date().getTime() - GRADE_SCOPE)
-		const promise = getGradesFor(user, gradesFrom, CURRENT_DATETIME, options).then((grades) => {
+		const promise = getGradesFor(user, gradesFrom, CURRENT_DATETIME).then((grades) => {
 			fetchedData.grades = grades
 		})
 		fetchPromises.push(promise)
 	}
 
 	if (itemsToFetch.has('absences')) {
-		const schoolYears = await getSchoolYears(user, options)
+		const schoolYears = await getSchoolYears(user)
 		// get the current school year
 		const currentSchoolYear = schoolYears.find(
 			(schoolYear) => schoolYear.from <= CURRENT_DATETIME && schoolYear.to >= CURRENT_DATETIME
 		)
-		const promise = getAbsencesFor(user, currentSchoolYear.from, CURRENT_DATETIME, options).then((absences) => {
+		const promise = getAbsencesFor(user, currentSchoolYear.from, CURRENT_DATETIME).then((absences) => {
 			fetchedData.absences = absences
 		})
 		fetchPromises.push(promise)
@@ -3022,10 +3024,10 @@ function addFooter(container: WidgetStack | ListWidget) {
 //#region Script
 
 async function setupAndCreateWidget() {
-	const { appDirectory, fileManager } = getAppDirectory()
-	const untisConfig = await readConfig(appDirectory, fileManager)
-	const user = await prepareUser(fileManager, appDirectory)
-	const widget = await createWidget(user, layout, { ...untisConfig, fileManager, appDirectory })
+	const { appDirectory, useICloud } = getAppDirectory()
+	const untisConfig = await readConfig(appDirectory, useICloud)
+	const user = await prepareUser(useICloud, appDirectory)
+	const widget = await createWidget(user, layout, { ...untisConfig, useICloud, appDirectory })
 	return widget
 }
 
