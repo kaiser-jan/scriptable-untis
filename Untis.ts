@@ -14,38 +14,7 @@ const CURRENT_DATETIME = new Date() // '2022-09-15T14:00' or '2022-09-19T12:30'
 //#region Constants
 
 const LOCALE = Device.locale().replace('_', '-')
-const SHOW_SUMMARY_MULTIPLIER = true
-const SHOW_FOOTER = true
 const FOOTER_HEIGHT = 20
-const CORNER_RADIUS = 4
-
-const MAX_LESSONS = 8
-const EXAM_SCOPE = asMilliseconds(7, 'days')
-const MAX_EXAMS = 3
-const GRADE_SCOPE = asMilliseconds(7, 'days')
-const MAX_GRADES = 1
-const MAX_ABSENCES = 3
-
-const WIDGET_SPACING = 6
-const WIDGET_PADDING = 6
-
-const BREAK_DURATION_MIN = asMilliseconds(7, 'minutes')
-const BREAK_DURATION_MAX = asMilliseconds(45, 'minutes')
-
-/** How long the user authentication data can stay cached.This defined in the Bearer Token given by Untis. */
-const MAX_USER_CACHE_AGE = asMilliseconds(15, 'minutes')
-const MAX_LESSONS_CACHE_AGE = asMilliseconds(30, 'minutes')
-const MAX_EXAMS_CACHE_AGE = asMilliseconds(1, 'days')
-const MAX_GRADES_CACHE_AGE = asMilliseconds(8, 'hours')
-const MAX_ABSENCES_CACHE_AGE = asMilliseconds(1, 'days')
-const MAX_SCHOOL_YEARS_CACHE_AGE = asMilliseconds(1, 'days')
-
-/** If lessons are within this scope, the widget will update according to NORMAL_UPDATE_INTERVAL */
-// NOTE: if there currently are lessons remaining on the day, the widget will have ignore these intervals
-const NORMAL_UPDATE_SCOPE = asMilliseconds(12, 'hours')
-const NORMAL_UPDATE_INTERVAL = asMilliseconds(1, 'hours')
-/** How often the widget will refresh if there are no lessons in the scope  */
-const LAZY_UPDATE_INTERVAL = asMilliseconds(4, 'hours')
 
 let usingOldCache = false
 
@@ -592,14 +561,14 @@ interface CachedUser extends FullUser {
 	lastUpdated: Date
 }
 
-async function prepareUser(useICloud: boolean, appDirectory: string, ignoreCache = false): Promise<FullUser> {
-	const fileManager = useICloud ? FileManager.iCloud() : FileManager.local()
+async function prepareUser(options: Options, ignoreCache = false): Promise<FullUser> {
+	const fileManager = options.useICloud ? FileManager.iCloud() : FileManager.local()
 	const userCacheFileName = 'user.json'
-	const userCachePath = fileManager.joinPath(appDirectory, userCacheFileName)
+	const userCachePath = fileManager.joinPath(options.appDirectory, userCacheFileName)
 	const userCacheExists = fileManager.fileExists(userCachePath)
 
 	if (!ignoreCache && userCacheExists) {
-		if (useICloud) {
+		if (options.useICloud) {
 			await fileManager.downloadFileFromiCloud(userCachePath)
 		}
 
@@ -611,7 +580,7 @@ async function prepareUser(useICloud: boolean, appDirectory: string, ignoreCache
 		const userCacheAge = new Date().getTime() - cachedUser.lastUpdated.getTime()
 		console.log(`User cache age: ${(userCacheAge / 1000 / 60).toFixed(2)} minutes`)
 
-		if (userCacheAge < MAX_USER_CACHE_AGE) {
+		if (userCacheAge < options.config.cache.user * 60 * 60 * 1000) {
 			console.log('Using cached user.')
 			return cachedUser
 		}
@@ -658,7 +627,7 @@ async function readFromCache(cacheName: string) {
 	const cacheDate = new Date(fileManager.modificationDate(cachePath))
 	const cacheAge = new Date().getTime() - cacheDate.getTime()
 
-	console.log(`Using cache ${cacheName} (${Math.round(cacheAge / 60_000)}min).`)
+	console.log(`Checking cache ${cacheName} (${Math.round(cacheAge / 60_000)}min).`)
 
 	const data = JSON.parse(fileManager.readString(cachePath), (name, value) => {
 		if (typeof value === 'string' && /^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d.\d\d\dZ$/.test(value)) {
@@ -721,23 +690,28 @@ async function getCachedOrFetch<T>(
 
 async function getLessonsFor(user: FullUser, date: Date, isNext: boolean, options: Options) {
 	const key = isNext ? 'lessons_next' : 'lessons'
-	return getCachedOrFetch(key, MAX_LESSONS_CACHE_AGE, () => fetchLessonsFor(user, date, options), compareCachedLessons)
+	return getCachedOrFetch(
+		key,
+		options.config.cache.lessons * 60 * 60 * 1000,
+		() => fetchLessonsFor(user, date, options),
+		compareCachedLessons
+	)
 }
 
-async function getExamsFor(user: FullUser, from: Date, to: Date) {
-	return getCachedOrFetch('exams', MAX_EXAMS_CACHE_AGE, () => fetchExamsFor(user, from, to))
+async function getExamsFor(user: FullUser, from: Date, to: Date, options: Options) {
+	return getCachedOrFetch('exams', options.config.cache.exams * 60 * 60 * 1000, () => fetchExamsFor(user, from, to))
 }
 
-async function getGradesFor(user: FullUser, from: Date, to: Date) {
-	return getCachedOrFetch('grades', MAX_GRADES_CACHE_AGE, () => fetchGradesFor(user, from, to))
+async function getGradesFor(user: FullUser, from: Date, to: Date, options: Options) {
+	return getCachedOrFetch('grades', options.config.cache.grades * 60 * 60 * 1000, () => fetchGradesFor(user, from, to))
 }
 
-async function getAbsencesFor(user: FullUser, from: Date, to: Date) {
-	return getCachedOrFetch('absences', MAX_ABSENCES_CACHE_AGE, () => fetchAbsencesFor(user, from, to))
+async function getAbsencesFor(user: FullUser, from: Date, to: Date, options: Options) {
+	return getCachedOrFetch('absences', options.config.cache.absences * 60 * 60 * 1000, () => fetchAbsencesFor(user, from, to))
 }
 
-async function getSchoolYears(user: FullUser) {
-	return getCachedOrFetch('school_years', MAX_SCHOOL_YEARS_CACHE_AGE, () => fetchSchoolYears(user))
+async function getSchoolYears(user: FullUser, options: Options) {
+	return getCachedOrFetch('school_years', options.config.cache.schoolYears * 60 * 60 * 1000, () => fetchSchoolYears(user))
 }
 
 async function getTimetable(user: FullUser, options: Options) {
@@ -1117,7 +1091,7 @@ function transformLessons(lessons: Lesson[], elements: Element[], config: Config
 	let combinedLessonWeek: TransformedLessonWeek = {}
 	// combine lessons which are equal and are directly after each other
 	for (const dateKey in transformedLessonWeek) {
-		combinedLessonWeek[dateKey] = combineLessons(transformedLessonWeek[dateKey])
+		combinedLessonWeek[dateKey] = combineLessons(transformedLessonWeek[dateKey], config)
 	}
 
 	return combinedLessonWeek
@@ -1208,12 +1182,16 @@ function resolveElements(lesson: Lesson, elements: Element[]) {
  * @param lessons
  * @param ignoreDetails if true, only the subject and time will be considered
  */
-function combineLessons(lessons: TransformedLesson[], ignoreDetails = false, ignoreBreaks = false) {
+function combineLessons(lessons: TransformedLesson[], config: Config, ignoreDetails = false, ignoreBreaks = false) {
 	const combinedLessonsNextDay: TransformedLesson[] = []
 	for (const [index, lesson] of lessons.entries()) {
 		const previousLesson = combinedLessonsNextDay[combinedLessonsNextDay.length - 1]
 
-		if (index !== 0 && previousLesson && shouldCombineLessons(previousLesson, lesson, ignoreDetails, ignoreBreaks)) {
+		if (
+			index !== 0 &&
+			previousLesson &&
+			shouldCombineLessons(previousLesson, lesson, config, ignoreDetails, ignoreBreaks)
+		) {
 			previousLesson.to = lesson.to
 			previousLesson.duration++
 		} else {
@@ -1379,7 +1357,11 @@ const colors = parseColors(unparsedColors)
 
 function getColor(name: string) {
 	if (!(name in colors.background)) {
-		// console.error('Unknown color', name)
+		// check if it is a hex color
+		if (/^#?([\da-f]{3}){1,2}$/i.test(name)) {
+			return new Color(name)
+		}
+		console.log(`Color ${name} not found`)
 		return colors.background.primary
 	}
 	return new Color(unparsedColors.background[name as keyof typeof unparsedColors.background])
@@ -1387,7 +1369,7 @@ function getColor(name: string) {
 
 //#endregion
 
-//#region Lesson Options
+//#region Config
 
 interface SingleLessonOption {
 	color: string
@@ -1404,26 +1386,12 @@ type LessonOptions = {
 	[key: string]: SingleLessonOption | TeacherSpecificLessonOption[]
 }
 
-interface Config {
-	lessonOptions: LessonOptions
-}
-
 interface Options extends Config {
 	useICloud: boolean
 	appDirectory: string
 }
 
-const defaultLessonOptions: LessonOptions = {}
-
-const defaultConfig: Config = {
-	lessonOptions: defaultLessonOptions,
-}
-
-function getDefaultConfig(): Config {
-	return defaultConfig
-}
-
-const emptyConfig: Config = {
+const defaultConfig = {
 	lessonOptions: {
 		SubjectShortName: {
 			color: 'orange',
@@ -1440,8 +1408,58 @@ const emptyConfig: Config = {
 				ignoreInfo: ['InfoTagWhichShouldBeIgnored'],
 			},
 		],
+	} as LessonOptions,
+
+	config: {
+		locale: 'de-AT',
+		breakMin: 7,
+		breakMax: 45,
+		refreshing: {
+			normalScope: 12,
+			normalInterval: 60,
+			lazyInterval: 4,
+		},
+		cache: {
+			user: 0.25,
+			lessons: 0.5,
+			exams: 24,
+			grades: 8,
+			absences: 24,
+			schoolYears: 24,
+		},
+	},
+
+	views: {
+		lessons: {
+			maxCount: 8,
+		},
+		exams: {
+			maxCount: 3,
+			scopeDays: 7,
+		},
+		grades: {
+			maxCount: 1,
+			scopeDays: 7,
+		},
+		absences: {
+			maxCount: 3,
+		},
+	},
+
+	appearance: {
+		cornerRadius: 4,
+		spacing: 6,
+		padding: 8,
+	},
+	summary: {
+		showMultiplier: true,
+	},
+	footer: {
+		show: true,
 	},
 }
+
+type Config = typeof defaultConfig
 
 //#endregion
 
@@ -1451,7 +1469,12 @@ const emptyConfig: Config = {
 
 //#region Absences
 
-function addViewAbsences(absences: TransformedAbsence[], count: number, { container, width, height }: ViewBuildData) {
+function addViewAbsences(
+	absences: TransformedAbsence[],
+	count: number,
+	{ container, width, height }: ViewBuildData,
+	options: Options
+) {
 	let remainingHeight = height
 	const lineHeight = getCharHeight(14)
 	const padding = 4
@@ -1466,11 +1489,17 @@ function addViewAbsences(absences: TransformedAbsence[], count: number, { contai
 
 		const absenceContainer = container.addStack()
 		absenceContainer.layoutHorizontally()
-		absenceContainer.spacing = WIDGET_SPACING
+		absenceContainer.spacing = options.appearance.spacing
 		absenceContainer.backgroundColor = colors.background.primary
-		absenceContainer.cornerRadius = CORNER_RADIUS
+		absenceContainer.cornerRadius = options.appearance.cornerRadius
 
-		const flowLayoutRow = new FlowLayoutRow(width, remainingHeight, WIDGET_SPACING, padding, absenceContainer)
+		const flowLayoutRow = new FlowLayoutRow(
+			width,
+			remainingHeight,
+			options.appearance.cornerRadius,
+			padding,
+			absenceContainer
+		)
 
 		flowLayoutRow.addIcon('pills.circle', 14, colors.text.secondary)
 
@@ -1500,13 +1529,13 @@ function addViewAbsences(absences: TransformedAbsence[], count: number, { contai
 
 		const { resultingWidth, resultingHeight } = flowLayoutRow.finish()
 
-		remainingHeight -= resultingHeight + WIDGET_SPACING
+		remainingHeight -= resultingHeight + options.appearance.spacing
 
 		// exit if the max item count is reached
 		if (count && i >= count - 1) break
 
 		// exit if it would get too big, use the maximum height
-		if (remainingHeight - 2 * lineHeight + WIDGET_SPACING < 0) break
+		if (remainingHeight - 2 * lineHeight + options.appearance.spacing < 0) break
 	}
 
 	return height - remainingHeight
@@ -1516,27 +1545,29 @@ function addViewAbsences(absences: TransformedAbsence[], count: number, { contai
 
 //#region Exams
 
-function addViewExams(exams: TransformedExam[], count: number, { container, width, height }: ViewBuildData) {
+function addViewExams(exams: TransformedExam[], count: number, { container, width, height }: ViewBuildData, config: Config) {
 	let remainingHeight = height
 	const lineHeight = getCharHeight(14)
 	const padding = 4
 
 	if (height < lineHeight + 2 * padding) return 0
 
+	const sortedExams = exams.sort((a, b) => a.from.getTime() - b.from.getTime())
+
 	// add the remaining lessons until the max item count is reached
-	for (let i = 0; i < exams.length; i++) {
-		const exam = exams[i]
+	for (let i = 0; i < sortedExams.length; i++) {
+		const exam = sortedExams[i]
 
 		// continue if the exam has already passed
 		if (exam.to < CURRENT_DATETIME) continue
 
 		const examContainer = container.addStack()
 		examContainer.layoutHorizontally()
-		examContainer.spacing = WIDGET_SPACING
+		examContainer.spacing = config.appearance.spacing
 		examContainer.backgroundColor = colors.background.primary
-		examContainer.cornerRadius = CORNER_RADIUS
+		examContainer.cornerRadius = config.appearance.cornerRadius
 
-		const flowLayoutRow = new FlowLayoutRow(width, remainingHeight, WIDGET_SPACING, padding, examContainer)
+		const flowLayoutRow = new FlowLayoutRow(width, remainingHeight, config.appearance.spacing, padding, examContainer)
 
 		flowLayoutRow.addIcon('book.circle', 14, colors.text.secondary)
 
@@ -1549,13 +1580,13 @@ function addViewExams(exams: TransformedExam[], count: number, { container, widt
 
 		const { resultingWidth, resultingHeight } = flowLayoutRow.finish()
 
-		remainingHeight -= resultingHeight + WIDGET_SPACING
+		remainingHeight -= resultingHeight + config.appearance.spacing
 
 		// exit if the max item count is reached
 		if (count && i >= count - 1) break
 
 		// exit if it would get too big, use the maximum height
-		if (remainingHeight - 3 * lineHeight + 2 * WIDGET_SPACING < 0) break
+		if (remainingHeight - 3 * lineHeight + 2 * config.appearance.spacing < 0) break
 	}
 
 	return height - remainingHeight
@@ -1565,7 +1596,12 @@ function addViewExams(exams: TransformedExam[], count: number, { container, widt
 
 //#region Grades
 
-function addViewGrades(grades: TransformedGrade[], count: number, { container, width, height }: ViewBuildData) {
+function addViewGrades(
+	grades: TransformedGrade[],
+	count: number,
+	{ container, width, height }: ViewBuildData,
+	options: Options
+) {
 	let remainingHeight = height
 	const lineHeight = getCharHeight(14)
 	const padding = 4
@@ -1581,11 +1617,11 @@ function addViewGrades(grades: TransformedGrade[], count: number, { container, w
 
 		const gradeContainer = container.addStack()
 		gradeContainer.layoutHorizontally()
-		gradeContainer.spacing = WIDGET_SPACING
+		gradeContainer.spacing = options.appearance.spacing
 		gradeContainer.backgroundColor = colors.background.primary
-		gradeContainer.cornerRadius = CORNER_RADIUS
+		gradeContainer.cornerRadius = options.appearance.cornerRadius
 
-		const flowLayoutRow = new FlowLayoutRow(width, remainingHeight, WIDGET_SPACING, padding, gradeContainer)
+		const flowLayoutRow = new FlowLayoutRow(width, remainingHeight, options.appearance.spacing, padding, gradeContainer)
 
 		let usingIcon = true
 		let symbolName = 'circle'
@@ -1620,13 +1656,13 @@ function addViewGrades(grades: TransformedGrade[], count: number, { container, w
 
 		const { resultingWidth, resultingHeight } = flowLayoutRow.finish()
 
-		remainingHeight -= resultingHeight + WIDGET_SPACING
+		remainingHeight -= resultingHeight + options.appearance.spacing
 
 		// exit if the max item count is reached
 		if (count && i >= count - 1) break
 
 		// exit if it would get too big, use the maximum height
-		if (remainingHeight - 3 * lineHeight + 2 * WIDGET_SPACING < 0) break
+		if (remainingHeight - 3 * lineHeight + 2 * options.appearance.spacing < 0) break
 	}
 
 	return height - remainingHeight
@@ -1639,8 +1675,8 @@ function addViewGrades(grades: TransformedGrade[], count: number, { container, w
 function addViewLessons(
 	lessons: TransformedLesson[],
 	count: number | undefined,
-	config: Config,
-	{ container, width, height }: ViewBuildData
+	{ container, width, height }: ViewBuildData,
+	config: Config
 ) {
 	// only allow up to x items to avoid overflow
 	let itemCount = 0
@@ -1654,19 +1690,19 @@ function addViewLessons(
 		const lesson = lessons[i]
 
 		// if the gap between the previous lesson and this lesson is too big, add a break
-		if (previousLesson && lesson.from.getTime() - previousLesson.to.getTime() > BREAK_DURATION_MAX) {
-			addBreak(container, previousLesson.to)
+		if (previousLesson && lesson.from.getTime() - previousLesson.to.getTime() > config.config.breakMax * 60 * 1000) {
+			addBreak(container, previousLesson.to, config)
 			itemCount++
-			remainingHeight -= lessonHeight + WIDGET_SPACING
+			remainingHeight -= lessonHeight + config.appearance.spacing
 			if ((count && itemCount >= count) || remainingHeight - lessonHeight < 0) break
 		}
 
 		// only show the time if the previous lesson didn't start at the same time
 		const showTime = !previousLesson || previousLesson.from.getTime() !== lesson.from.getTime()
 		const useSubjectLongName = width > getCharWidth(14) * 20
-		addWidgetLesson(lesson, container, config, { showTime, useSubjectLongName })
+		addWidgetLesson(lesson, container, config, showTime, useSubjectLongName)
 		itemCount++
-		remainingHeight -= lessonHeight + WIDGET_SPACING
+		remainingHeight -= lessonHeight + config.appearance.spacing
 
 		// exit if the max item count is reached
 		if (count && itemCount >= count) break
@@ -1684,8 +1720,8 @@ function addViewLessons(
 function addViewPreview(
 	lessons: TransformedLesson[],
 	nextDayKey: string,
-	config: Config,
-	{ container, width, height }: ViewBuildData
+	{ container, width, height }: ViewBuildData,
+	config: Config
 ) {
 	const titleHeight = getCharHeight(14)
 	const subjectHeight = getCharHeight(14) + 8
@@ -1694,12 +1730,13 @@ function addViewPreview(
 	// add information about the next day if there is enough space
 	if (lessons && height > titleHeight) {
 		addPreviewTitle(container, lessons, nextDayKey, width)
-		currentHeight += titleHeight + WIDGET_SPACING
+		currentHeight += titleHeight + config.appearance.spacing
 
 		// TODO: might cause overflow, as the height is not checked
 		if (height - currentHeight > subjectHeight) {
 			currentHeight +=
-				addPreviewList(container, lessons, config, width, height - currentHeight).resultingHeight + WIDGET_SPACING
+				addPreviewList(container, lessons, config, width, height - currentHeight).resultingHeight +
+				config.appearance.spacing
 		}
 	}
 	return currentHeight
@@ -1740,7 +1777,7 @@ function addPreviewTitle(container: ListWidget | WidgetStack, lessons: Transform
 
 function addPreviewList(container: WidgetStack, lessons: TransformedLesson[], config: Config, width: number, height: number) {
 	// combine lessons if they have the same subject and are after each other
-	const combinedLessonsNextDay = combineLessons(lessons, true, true)
+	const combinedLessonsNextDay = combineLessons(lessons, config, true, true)
 
 	const spacing = 4
 
@@ -1751,14 +1788,14 @@ function addPreviewList(container: WidgetStack, lessons: TransformedLesson[], co
 
 	const padding = 4
 
-	const flowLayoutRow = new FlowLayoutRow(width, height, WIDGET_SPACING, 0, subjectListContainer)
+	const flowLayoutRow = new FlowLayoutRow(width, height, config.appearance.spacing, 0, subjectListContainer)
 
 	for (const lesson of combinedLessonsNextDay) {
 		// skip the subject if it is 'free'
 		if (lesson.state === LessonState.FREE) continue
 
 		let subjectWidth = getTextWidth(getSubjectTitle(lesson), 14) + 2 * padding
-		if (SHOW_SUMMARY_MULTIPLIER && lesson.duration > 1) {
+		if (config.summary.showMultiplier && lesson.duration > 1) {
 			subjectWidth += getTextWidth('x2', 14) + spacing
 		}
 
@@ -1796,33 +1833,36 @@ function addSymbol(name: string, to: WidgetStack | ListWidget, options: { color:
 /**
  * Adds a break to the widget.
  */
-function addBreak(to: WidgetStack | ListWidget, breakFrom: Date) {
-	const breakContainer = makeTimelineEntry(to, breakFrom, {
-		showTime: true,
-		backgroundColor: colors.background.primary,
-	})
+function addBreak(to: WidgetStack | ListWidget, breakFrom: Date, config: Config) {
+	const breakContainer = makeTimelineEntry(to, breakFrom, true, colors.background.primary, config)
 	const breakTitle = breakContainer.addText('Break')
 	breakTitle.font = Font.mediumSystemFont(14)
 	breakTitle.textColor = colors.text.secondary
 	breakContainer.addSpacer()
 }
 
-function makeTimelineEntry(to: WidgetStack | ListWidget, time: Date, options: { showTime: boolean; backgroundColor: Color }) {
+function makeTimelineEntry(
+	to: WidgetStack | ListWidget,
+	time: Date,
+	showTime: boolean,
+	backgroundColor: Color,
+	config: Config
+) {
 	const lessonWrapper = to.addStack()
 	lessonWrapper.layoutHorizontally()
-	lessonWrapper.spacing = WIDGET_SPACING
+	lessonWrapper.spacing = config.appearance.spacing
 
 	const lessonContainer = lessonWrapper.addStack()
-	lessonContainer.backgroundColor = options.backgroundColor
+	lessonContainer.backgroundColor = backgroundColor
 	lessonContainer.layoutHorizontally()
 	lessonContainer.setPadding(4, 4, 4, 4)
-	lessonContainer.cornerRadius = CORNER_RADIUS
+	lessonContainer.cornerRadius = config.appearance.cornerRadius
 
-	if (options.showTime) {
+	if (showTime) {
 		const dateWrapper = lessonWrapper.addStack()
-		dateWrapper.backgroundColor = options.backgroundColor
+		dateWrapper.backgroundColor = backgroundColor
 		dateWrapper.setPadding(4, 4, 4, 4)
-		dateWrapper.cornerRadius = CORNER_RADIUS
+		dateWrapper.cornerRadius = config.appearance.cornerRadius
 		dateWrapper.size = new Size(48, getCharHeight(14) + 8)
 
 		const date = dateWrapper.addDate(new Date(time))
@@ -1839,7 +1879,8 @@ function addWidgetLesson(
 	lesson: TransformedLesson,
 	to: ListWidget | WidgetStack,
 	config: Config,
-	options: { showTime: boolean; useSubjectLongName: boolean } = { showTime: true, useSubjectLongName: false }
+	showTime = true,
+	useSubjectLongName = false
 ) {
 	const isCanceled = lesson.state === LessonState.CANCELED
 	const isCanceledOrFree = isCanceled || lesson.state === LessonState.FREE
@@ -1858,11 +1899,11 @@ function addWidgetLesson(
 	}
 
 	// add the entry with the time
-	const lessonContainer = makeTimelineEntry(to, lesson.from, { showTime: options.showTime, backgroundColor })
-	lessonContainer.spacing = WIDGET_SPACING
+	const lessonContainer = makeTimelineEntry(to, lesson.from, showTime, backgroundColor, config)
+	lessonContainer.spacing = config.appearance.spacing
 
 	// add the name of the subject
-	const lessonText = lessonContainer.addText(getSubjectTitle(lesson, options.useSubjectLongName))
+	const lessonText = lessonContainer.addText(getSubjectTitle(lesson, useSubjectLongName))
 	lessonText.font = Font.semiboldSystemFont(14)
 	lessonText.textColor = textColor
 	lessonText.leftAlignText()
@@ -1951,8 +1992,8 @@ function convertToSubject(lesson: TransformedLesson, container: WidgetStack, con
 	container.backgroundColor = backgroundColor
 	container.layoutHorizontally()
 	container.setPadding(4, 4, 4, 4)
-	container.cornerRadius = CORNER_RADIUS
-	container.spacing = WIDGET_SPACING
+	container.cornerRadius = config.appearance.cornerRadius
+	container.spacing = config.appearance.spacing
 
 	// add the name of the subject
 	const subjectText = container.addText(getSubjectTitle(lesson))
@@ -1963,7 +2004,7 @@ function convertToSubject(lesson: TransformedLesson, container: WidgetStack, con
 	subjectText.lineLimit = 1
 
 	// add a x2 for double lessons etc.
-	if (SHOW_SUMMARY_MULTIPLIER && lesson.duration > 1) {
+	if (config.summary.showMultiplier && lesson.duration > 1) {
 		const durationText = container.addText(`x${lesson.duration}`)
 		durationText.font = Font.mediumSystemFont(14)
 		durationText.textColor = colors.text.secondary
@@ -2000,11 +2041,11 @@ async function readConfig(appDirectory: string, useICloud: boolean) {
 
 	if (!fileManager.fileExists(configPath)) {
 		console.log('Created config file with default config.')
-		fileManager.writeString(configPath, JSON.stringify(emptyConfig))
+		fileManager.writeString(configPath, JSON.stringify(defaultConfig))
 	}
 
 	// combine the defaultConfig and read config and write it to config
-	return { ...getDefaultConfig(), ...fileConfig }
+	return { ...defaultConfig, ...fileConfig }
 }
 
 //#endregion
@@ -2337,7 +2378,11 @@ function applyCustomLessonConfig(lesson: TransformedLesson, config: Config) {
 	if (unwrappedCustomOption.color) lesson.backgroundColor = unwrappedCustomOption.color
 }
 
-function getRefreshDateForLessons(lessonsTodayRemaining: TransformedLesson[], lessonsTomorrow: TransformedLesson[]) {
+function getRefreshDateForLessons(
+	lessonsTodayRemaining: TransformedLesson[],
+	lessonsTomorrow: TransformedLesson[],
+	config: Config
+) {
 	let nextRefreshDate: Date
 
 	// set the widget refresh time to the end of the current lesson, or the next lesson if there is only a short break
@@ -2351,7 +2396,7 @@ function getRefreshDateForLessons(lessonsTodayRemaining: TransformedLesson[], le
 			console.log(`Would refresh at the start of the next lesson at ${nextRefreshDate}, as it has not started yet`)
 		} else {
 			// if the break is too short
-			if (secondLesson && secondLesson.from.getTime() - firstLesson.to.getTime() < BREAK_DURATION_MAX) {
+			if (secondLesson && secondLesson.from.getTime() - firstLesson.to.getTime() < config.config.breakMax * 60 * 1000) {
 				nextRefreshDate = secondLesson.from
 				console.log(`Would refresh at the start of the next lesson at ${nextRefreshDate}, as the break is too short.`)
 			} else {
@@ -2367,16 +2412,16 @@ function getRefreshDateForLessons(lessonsTodayRemaining: TransformedLesson[], le
 		// if the next lesson (on the next day) is in the scope of the frequent updates
 		if (lessonsTomorrow && lessonsTomorrow.length > 1) {
 			const timeUntilNextLesson = lessonsTomorrow[0].from.getTime() - CURRENT_DATETIME.getTime()
-			shouldLazyUpdate = timeUntilNextLesson > NORMAL_UPDATE_SCOPE
+			shouldLazyUpdate = timeUntilNextLesson > config.config.refreshing.normalScope * 60 * 60 * 1000
 		}
 
 		// refresh based on normal/lazy refreshing
 		if (shouldLazyUpdate) {
-			console.log(`Would refresh in ${LAZY_UPDATE_INTERVAL / 60_000} minutes (lazy updating).`)
-			nextRefreshDate = new Date(CURRENT_DATETIME.getTime() + LAZY_UPDATE_INTERVAL)
+			console.log(`Would refresh in ${config.config.refreshing.lazyInterval} hours (lazy updating).`)
+			nextRefreshDate = new Date(CURRENT_DATETIME.getTime() + config.config.refreshing.lazyInterval * 60 * 60 * 1000)
 		} else {
-			console.log(`Would refresh in ${NORMAL_UPDATE_INTERVAL / 60_000} minutes (normal updating).`)
-			nextRefreshDate = new Date(CURRENT_DATETIME.getTime() + NORMAL_UPDATE_INTERVAL)
+			console.log(`Would refresh in ${config.config.refreshing.normalInterval} hours (normal updating).`)
+			nextRefreshDate = new Date(CURRENT_DATETIME.getTime() + config.config.refreshing.normalInterval * 60 * 60 * 1000)
 		}
 	}
 
@@ -2388,9 +2433,15 @@ function getRefreshDateForLessons(lessonsTodayRemaining: TransformedLesson[], le
  * If ignoreDetails is true, only subject name and time will be compared.
  * @param ignoreDetails if the comparison should only consider subject and time
  */
-function shouldCombineLessons(a: TransformedLesson, b: TransformedLesson, ignoreDetails = false, ignoreBreaks = false) {
+function shouldCombineLessons(
+	a: TransformedLesson,
+	b: TransformedLesson,
+	config: Config,
+	ignoreDetails = false,
+	ignoreBreaks = false
+) {
 	if (a.subject?.name !== b.subject?.name) return false
-	if (!ignoreBreaks && b.from.getTime() - a.to.getTime() > BREAK_DURATION_MIN) return false
+	if (!ignoreBreaks && b.from.getTime() - a.to.getTime() > config.config.breakMin * 60 * 1000) return false
 
 	if (ignoreDetails) return true
 
@@ -2459,6 +2510,10 @@ function asMilliseconds(duration: number, unit: 'seconds' | 'minutes' | 'hours' 
 	}
 }
 
+function asMinutes(duration: number, unit: 'seconds' | 'minutes' | 'hours' | 'days') {
+	return asMilliseconds(duration, unit) / 60_000
+}
+
 function scheduleNotification(
 	title: string,
 	body?: string,
@@ -2482,15 +2537,6 @@ function scheduleNotification(
 //#endregion
 
 //#region Layout
-
-const widgetSizes = getWidgetSizes()
-
-const paddingHorizontal = Math.max(WIDGET_PADDING, 4)
-const paddingVertical = Math.max(WIDGET_PADDING, 6)
-
-const widgetSize = getWidgetSize(widgetSizes, config.widgetFamily)
-
-const contentSize = new Size(widgetSize.width - paddingHorizontal * 2, widgetSize.height - paddingVertical * 2)
 
 const viewNames = ['lessons', 'preview', 'exams', 'grades', 'absences', 'roles'] as const
 type ViewName = typeof viewNames[number]
@@ -2819,41 +2865,41 @@ async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options:
 			fetchedData.lessonsTodayRemaining = lessonsTodayRemaining
 			fetchedData.lessonsNextDay = lessonsNextDay
 			fetchedData.nextDayKey = nextDayKey
-			checkNewRefreshDate(getRefreshDateForLessons(lessonsTodayRemaining, lessonsNextDay), fetchedData)
+			checkNewRefreshDate(getRefreshDateForLessons(lessonsTodayRemaining, lessonsNextDay, options), fetchedData)
 		})
 		fetchPromises.push(promise)
 	}
 
 	if (itemsToFetch.has('exams')) {
-		const examsFrom = new Date(new Date().getTime() + EXAM_SCOPE)
-		const promise = getExamsFor(user, examsFrom, CURRENT_DATETIME).then((exams) => {
+		const examsFrom = new Date(new Date().getTime() + options.views.exams.scopeDays * 24 * 60 * 60 * 1000)
+		const promise = getExamsFor(user, examsFrom, CURRENT_DATETIME, options).then((exams) => {
 			fetchedData.exams = exams
 		})
-		const refreshDate = new Date(Date.now() + MAX_EXAMS_CACHE_AGE / 2)
+		const refreshDate = new Date(Date.now() + (options.config.cache.exams * 60 * 60 * 1000) / 2)
 		checkNewRefreshDate(refreshDate, fetchedData)
 		fetchPromises.push(promise)
 	}
 
 	if (itemsToFetch.has('grades')) {
-		const gradesFrom = new Date(new Date().getTime() - GRADE_SCOPE)
-		const promise = getGradesFor(user, gradesFrom, CURRENT_DATETIME).then((grades) => {
+		const gradesFrom = new Date(new Date().getTime() - options.views.grades.scopeDays * 24 * 60 * 60 * 1000)
+		const promise = getGradesFor(user, gradesFrom, CURRENT_DATETIME, options).then((grades) => {
 			fetchedData.grades = grades
 		})
-		const refreshDate = new Date(Date.now() + MAX_GRADES_CACHE_AGE / 2)
+		const refreshDate = new Date(Date.now() + (options.config.cache.grades * 60 * 60 * 1000) / 2)
 		checkNewRefreshDate(refreshDate, fetchedData)
 		fetchPromises.push(promise)
 	}
 
 	if (itemsToFetch.has('absences')) {
-		const schoolYears = await getSchoolYears(user)
+		const schoolYears = await getSchoolYears(user, options)
 		// get the current school year
 		const currentSchoolYear = schoolYears.find(
 			(schoolYear) => schoolYear.from <= CURRENT_DATETIME && schoolYear.to >= CURRENT_DATETIME
 		)
-		const promise = getAbsencesFor(user, currentSchoolYear.from, CURRENT_DATETIME).then((absences) => {
+		const promise = getAbsencesFor(user, currentSchoolYear.from, CURRENT_DATETIME, options).then((absences) => {
 			fetchedData.absences = absences
 		})
-		const refreshDate = new Date(Date.now() + MAX_ABSENCES_CACHE_AGE / 2)
+		const refreshDate = new Date(Date.now() + (options.config.cache.absences * 60 * 60 * 1000) / 2)
 		checkNewRefreshDate(refreshDate, fetchedData)
 		fetchPromises.push(promise)
 	}
@@ -2881,6 +2927,15 @@ interface ViewBuildData {
 
 async function createWidget(user: FullUser, layout: ViewName[][], options: Options) {
 	const widget = new ListWidget()
+
+	const widgetSizes = getWidgetSizes()
+
+	const paddingHorizontal = Math.max(options.appearance.padding, 4)
+	const paddingVertical = Math.max(options.appearance.padding, 6)
+
+	const widgetSize = getWidgetSize(widgetSizes, config.widgetFamily)
+	const contentSize = new Size(widgetSize.width - paddingHorizontal * 2, widgetSize.height - paddingVertical * 2)
+
 	widget.setPadding(paddingHorizontal, paddingVertical, paddingHorizontal, paddingVertical)
 	widget.backgroundColor = Color.black()
 
@@ -2888,7 +2943,7 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 	widgetContent.layoutHorizontally()
 	// widgetContent.layoutVertically()
 	widgetContent.topAlignContent()
-	widgetContent.spacing = WIDGET_SPACING
+	widgetContent.spacing = options.appearance.spacing
 
 	// make a list of the shown views
 	const shownViews = new Set<ViewName>()
@@ -2915,10 +2970,12 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 		const columnStack = widgetContent.addStack()
 		columnStack.layoutVertically()
 		columnStack.topAlignContent()
-		columnStack.spacing = WIDGET_SPACING
+		columnStack.spacing = options.appearance.spacing
 
 		// calculate the real available height
-		const availableContentHeight = SHOW_FOOTER ? contentSize.height - FOOTER_HEIGHT - WIDGET_SPACING : contentSize.height
+		const availableContentHeight = options.footer.show
+			? contentSize.height - FOOTER_HEIGHT - options.appearance.spacing
+			: contentSize.height
 
 		columnStack.size = new Size(columnWidth, availableContentHeight)
 
@@ -2943,9 +3000,14 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 					}
 					// show a preview if there are no lessons today anymore
 					if (fetchedData.lessonsTodayRemaining.length > 0) {
-						remainingHeight -= addViewLessons(fetchedData.lessonsTodayRemaining, MAX_LESSONS, options, viewData)
+						remainingHeight -= addViewLessons(
+							fetchedData.lessonsTodayRemaining,
+							options.views.lessons.maxCount,
+							viewData,
+							options
+						)
 					} else {
-						remainingHeight -= addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, options, viewData)
+						remainingHeight -= addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData, options)
 					}
 					break
 				case 'preview':
@@ -2956,33 +3018,33 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 					// only show the day preview, if it is not already shown
 					if (shownViews.has('lessons') && fetchedData.lessonsTodayRemaining?.length === 0) break
 
-					remainingHeight -= addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, options, viewData)
+					remainingHeight -= addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData, options)
 					break
 				case 'exams':
 					if (!fetchedData.exams) {
 						console.warn(`Tried to add exams view, but no exams data was fetched`)
 						continue
 					}
-					remainingHeight -= addViewExams(fetchedData.exams, MAX_EXAMS, viewData)
+					remainingHeight -= addViewExams(fetchedData.exams, options.views.exams.maxCount, viewData, options)
 					break
 				case 'grades':
 					if (!fetchedData.grades) {
 						console.warn(`Tried to add grades view, but no grades data was fetched`)
 						continue
 					}
-					remainingHeight -= addViewGrades(fetchedData.grades, MAX_GRADES, viewData)
+					remainingHeight -= addViewGrades(fetchedData.grades, options.views.grades.maxCount, viewData, options)
 					break
 				case 'absences':
 					if (!fetchedData.absences) {
 						console.warn(`Tried to add absences view, but no absences data was fetched`)
 						continue
 					}
-					remainingHeight -= addViewAbsences(fetchedData.absences, MAX_ABSENCES, viewData)
+					remainingHeight -= addViewAbsences(fetchedData.absences, options.views.absences.maxCount, viewData, options)
 					break
 			}
 
-			if (remainingHeight > WIDGET_SPACING) {
-				remainingHeight -= WIDGET_SPACING
+			if (remainingHeight > options.appearance.spacing) {
+				remainingHeight -= options.appearance.spacing
 			}
 		}
 
@@ -2992,14 +3054,14 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 		}
 	}
 
-	if (SHOW_FOOTER) {
-		addFooter(widget)
+	if (options.footer.show) {
+		addFooter(widget, contentSize.width)
 	}
 
 	return widget
 }
 
-function addFooter(container: WidgetStack | ListWidget) {
+function addFooter(container: WidgetStack | ListWidget, width: number) {
 	const footerGroup = container.addStack()
 	footerGroup.layoutHorizontally()
 	footerGroup.spacing = 4
@@ -3007,7 +3069,7 @@ function addFooter(container: WidgetStack | ListWidget) {
 	footerGroup.centerAlignContent()
 	// avoid overflow when pushed to the bottom
 	footerGroup.setPadding(4, 6, 4, 6)
-	footerGroup.size = new Size(contentSize.width, FOOTER_HEIGHT)
+	footerGroup.size = new Size(width, FOOTER_HEIGHT)
 
 	addSymbol('arrow.clockwise', footerGroup, {
 		color: usingOldCache ? colors.text.red : colors.text.secondary,
@@ -3044,8 +3106,9 @@ function addFooter(container: WidgetStack | ListWidget) {
 async function setupAndCreateWidget() {
 	const { appDirectory, useICloud } = getAppDirectory()
 	const untisConfig = await readConfig(appDirectory, useICloud)
-	const user = await prepareUser(useICloud, appDirectory)
-	const widget = await createWidget(user, layout, { ...untisConfig, useICloud, appDirectory })
+	const options = { ...untisConfig, appDirectory, useICloud }
+	const user = await prepareUser(options)
+	const widget = await createWidget(user, layout, options)
 	return widget
 }
 
