@@ -9,7 +9,7 @@ A widget used to display information from Untis.
 This includes upcoming lessons, exams and grades.
 */
 
-const CURRENT_DATETIME = new Date() // '2022-09-15T14:00' or '2022-09-19T12:30'
+const CURRENT_DATETIME = new Date('2022-12-01T11:40') // '2022-09-15T14:00' or '2022-09-19T12:30'
 
 //#region Constants
 
@@ -2159,7 +2159,7 @@ class FlowLayoutRow {
 		const totalHeight = this.previousTotalHeight + this.currentRowHeight + this.padding * 2
 		this.container.size = new Size(totalWidth, totalHeight)
 
-		console.log(`FlowLayoutRow: Finished with size ${totalWidth}x${totalHeight}, ${this.maxHeight - totalHeight} remaining`)
+		// console.log(`FlowLayoutRow: Finished with size ${totalWidth}x${totalHeight}, ${this.maxHeight - totalHeight} remaining`)
 
 		return {
 			resultingWidth: this.maxWidth * 2 * this.padding,
@@ -2980,16 +2980,23 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 		columnStack.size = new Size(columnWidth, availableContentHeight)
 
 		let remainingHeight = availableContentHeight
+		let isFirstView = true
 
 		for (const view of column) {
-			if (remainingHeight <= 0) continue
-
-			console.log(`Adding view ${view} with maximum height ${remainingHeight}`)
+			// exit if there is not enough space left
+			if (remainingHeight <= getCharHeight(14)) continue
 
 			const viewData: ViewBuildData = {
 				container: columnStack,
 				width: columnWidth,
 				height: remainingHeight,
+			}
+
+			let viewHeight = 0
+
+			// add the spacing if necessary (view added and enough space left)
+			if (!isFirstView && viewHeight > 0 && remainingHeight > options.appearance.spacing) {
+				remainingHeight -= options.appearance.spacing
 			}
 
 			switch (view) {
@@ -3000,14 +3007,14 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 					}
 					// show a preview if there are no lessons today anymore
 					if (fetchedData.lessonsTodayRemaining.length > 0) {
-						remainingHeight -= addViewLessons(
+						viewHeight = addViewLessons(
 							fetchedData.lessonsTodayRemaining,
 							options.views.lessons.maxCount,
 							viewData,
 							options
 						)
 					} else {
-						remainingHeight -= addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData, options)
+						viewHeight = addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData, options)
 					}
 					break
 				case 'preview':
@@ -3018,39 +3025,40 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 					// only show the day preview, if it is not already shown
 					if (shownViews.has('lessons') && fetchedData.lessonsTodayRemaining?.length === 0) break
 
-					remainingHeight -= addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData, options)
+					viewHeight = addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData, options)
 					break
 				case 'exams':
 					if (!fetchedData.exams) {
 						console.warn(`Tried to add exams view, but no exams data was fetched`)
 						continue
 					}
-					remainingHeight -= addViewExams(fetchedData.exams, options.views.exams.maxCount, viewData, options)
+					viewHeight = addViewExams(fetchedData.exams, options.views.exams.maxCount, viewData, options)
 					break
 				case 'grades':
 					if (!fetchedData.grades) {
 						console.warn(`Tried to add grades view, but no grades data was fetched`)
 						continue
 					}
-					remainingHeight -= addViewGrades(fetchedData.grades, options.views.grades.maxCount, viewData, options)
+					viewHeight = addViewGrades(fetchedData.grades, options.views.grades.maxCount, viewData, options)
 					break
 				case 'absences':
 					if (!fetchedData.absences) {
 						console.warn(`Tried to add absences view, but no absences data was fetched`)
 						continue
 					}
-					remainingHeight -= addViewAbsences(fetchedData.absences, options.views.absences.maxCount, viewData, options)
+					viewHeight = addViewAbsences(fetchedData.absences, options.views.absences.maxCount, viewData, options)
 					break
 			}
 
-			if (remainingHeight > options.appearance.spacing) {
-				remainingHeight -= options.appearance.spacing
-			}
+			remainingHeight -= viewHeight
+			isFirstView = false
+
+			console.log(`Added view ${view} with height ${viewHeight}, remaining height: ${remainingHeight}`)
 		}
 
 		if (remainingHeight > 4) {
 			// add spacer to fill the remaining space
-			columnStack.addSpacer()
+			columnStack.addSpacer(remainingHeight - 2)
 		}
 	}
 
