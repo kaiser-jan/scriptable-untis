@@ -15,6 +15,7 @@ const CURRENT_DATETIME = new Date() // '2022-09-15T14:00' or '2022-09-19T12:30'
 
 const LOCALE = Device.locale().replace('_', '-')
 const FOOTER_HEIGHT = 20
+const PREVIEW_WIDGET_SIZE: typeof config.widgetFamily = 'medium'
 
 let usingOldCache = false
 
@@ -1854,14 +1855,15 @@ function addPreviewList(container: WidgetStack, lessons: TransformedLesson[], co
 /**
  * Adds a SFSymbol with the correct outer size to match the font size.
  */
-function addSymbol(name: string, to: WidgetStack | ListWidget, options: { color: Color; size: number; outerSize?: number }) {
+function addSymbol(name: string, to: WidgetStack | ListWidget, options: { color: Color; size: number, outerSize?: number }) {
 	const icon = SFSymbol.named(name)
 	icon.applyFont(Font.mediumSystemFont(options.size))
 	const iconImage = to.addImage(icon.image)
-	const outerSize = options.outerSize ?? 1.1 * options.size
+	const outerSize = options.outerSize ?? getCharHeight(options.size)
 	iconImage.imageSize = new Size(outerSize, outerSize)
 	iconImage.resizable = false
 	iconImage.tintColor = options.color
+	return iconImage
 }
 
 /**
@@ -1979,16 +1981,17 @@ function addWidgetLesson(
 	}
 
 	if (lesson.isRescheduled && lesson.rescheduleInfo?.isSource) {
-		addSymbol('arrow.right', lessonContainer, {
+		const iconShift = addSymbol('arrow.right', lessonContainer, {
 			color: isCanceled ? colors.text.disabled : colors.text.secondary,
-			size: 10,
+			size: 12,
 		})
+		// manually correct the arrow box
+		iconShift.imageSize = new Size(getCharWidth(12), getCharHeight(14))
 		// display the time it was rescheduled to
 		// const rescheduledTimeWrapper = lessonContainer.addStack()
-		const rescheduledTime = lessonContainer.addDate(lesson.rescheduleInfo?.otherFrom)
+		const rescheduledTime = lessonContainer.addText(asNumericTime(lesson.rescheduleInfo?.otherFrom))
 		rescheduledTime.font = Font.mediumSystemFont(14)
 		rescheduledTime.textColor = isCanceled ? colors.text.disabled : colors.text.secondary
-		rescheduledTime.applyTimeStyle()
 	}
 
 	if (iconName) {
@@ -2361,7 +2364,7 @@ function getWidgetSize(widgetSizes: HomescreenWidgetSizes, widgetFamily?: typeof
 	// return small widget size if the widget family is not set
 	if (!widgetFamily) {
 		console.log('Defaulting to large widget size')
-		return widgetSizes['medium']
+		return widgetSizes[PREVIEW_WIDGET_SIZE]
 	}
 
 	if (isHomescreenWidgetSize(widgetFamily, widgetSizes)) {
@@ -3163,7 +3166,17 @@ async function runInteractive() {
 	switch (input) {
 		case 'view':
 			const widget = await setupAndCreateWidget()
-			widget.presentLarge()
+			switch (PREVIEW_WIDGET_SIZE) {
+				case 'small':
+					widget.presentSmall()
+					break
+				case 'medium':
+					widget.presentMedium()
+					break
+				case 'large':
+					widget.presentLarge()
+					break
+			}
 			break
 		case 'change':
 			await writeKeychain()
