@@ -9,7 +9,7 @@ A widget used to display information from Untis.
 This includes upcoming lessons, exams and grades.
 */
 
-const CURRENT_DATETIME = new Date('2022-12-01T11:40') // '2022-09-15T14:00' or '2022-09-19T12:30'
+const CURRENT_DATETIME = new Date() // '2022-09-15T14:00' or '2022-09-19T12:30'
 
 //#region Constants
 
@@ -1432,6 +1432,9 @@ const defaultConfig = {
 	views: {
 		lessons: {
 			maxCount: 8,
+			showCanceled: true,
+			showLongBreaks: true,
+			skipShortBreaks: false,
 		},
 		exams: {
 			maxCount: 3,
@@ -1460,6 +1463,25 @@ const defaultConfig = {
 }
 
 type Config = typeof defaultConfig
+
+/**
+ * A function to merge properties of the source object (may be incomplete) into the target object.
+ */
+function deepMerge(target: any, source: any) {
+	for (const key in source) {
+		// recursively merge objects, ensure that the property exists on the target
+		if (typeof source[key] === 'object' && source[key] !== null && key in target) {
+			deepMerge(source[key], target[key])
+		} else {
+			target[key] = source[key]
+		}
+	}
+
+	// Join `target` and modified `source`
+	Object.assign(target || {}, source)
+	log(target)
+	return target
+}
 
 //#endregion
 
@@ -1689,13 +1711,25 @@ function addViewLessons(
 		const previousLesson = lessons[i - 1]
 		const lesson = lessons[i]
 
-		// if the gap between the previous lesson and this lesson is too big, add a break
-		if (previousLesson && lesson.from.getTime() - previousLesson.to.getTime() > config.config.breakMax * 60 * 1000) {
-			addBreak(container, previousLesson.to, config)
-			itemCount++
-			remainingHeight -= lessonHeight + config.appearance.spacing
-			if ((count && itemCount >= count) || remainingHeight - lessonHeight < 0) break
+		// check for a break if the previous lesson exists
+		if (previousLesson) {
+			// if the gap between the previous lesson and this lesson is too big, add a break
+			const gapDuration = lesson.from.getTime() - previousLesson.to.getTime()
+			console.log(gapDuration)
+			console.log(config.config.breakMax)
+			console.log(config.views.lessons.showLongBreaks)
+			if (previousLesson && config.views.lessons.showLongBreaks && gapDuration > config.config.breakMax * 60 * 1000) {
+				addBreak(container, previousLesson.to, config)
+				itemCount++
+				remainingHeight -= lessonHeight + config.appearance.spacing
+				if ((count && itemCount >= count) || remainingHeight - lessonHeight < 0) break
+			}
 		}
+
+		// check if the user wants to show canceled lessons
+		const isRescheduled = lesson.isRescheduled && lesson.rescheduleInfo.isSource
+		const istCancelled = lesson.state === LessonState.CANCELED || lesson.state === LessonState.FREE || isRescheduled
+		if (!config.views.lessons.showCanceled && istCancelled) continue
 
 		// only show the time if the previous lesson didn't start at the same time
 		const showTime = !previousLesson || previousLesson.from.getTime() !== lesson.from.getTime()
@@ -2045,7 +2079,7 @@ async function readConfig(appDirectory: string, useICloud: boolean) {
 	}
 
 	// combine the defaultConfig and read config and write it to config
-	return { ...defaultConfig, ...fileConfig }
+	return deepMerge(defaultConfig, fileConfig)
 }
 
 //#endregion
