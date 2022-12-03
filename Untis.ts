@@ -14,7 +14,6 @@ const CURRENT_DATETIME = new Date('2022-12-02T10:15') // '2022-09-15T14:00' or '
 //#region Constants
 
 const LOCALE = Device.locale().replace('_', '-')
-const FOOTER_HEIGHT = 20
 const PREVIEW_WIDGET_SIZE: typeof config.widgetFamily = 'medium'
 const MAX_TIME_STRING = '10:00'
 // the layout is a list of views separated by commas, the columns are separated by pipes "|"
@@ -423,6 +422,111 @@ interface FullUser extends User {
 
 //#region API
 
+//#region Login
+
+async function login(user: UserData, password: string) {
+	console.log(`🔑 Logging in as ${user.username} in school ${user.school} on ${user.server}.webuntis.com`)
+
+	const cookies = await fetchCookies(user, password)
+	const token = await fetchBearerToken(user, cookies)
+	const fullUser = await fetchUserData({ ...user, cookies, token })
+
+	console.log(
+		`🔓 Logged in as ${fullUser.displayName} (${fullUser.username}) in school ${fullUser.school} on ${fullUser.server}.webuntis.com`
+	)
+
+	return fullUser
+}
+
+async function fetchCookies(user: UserData, password: string) {
+	const credentialBody = `school=${user.school}&j_username=${user.username}&j_password=${password}&token=`
+	const jSpringUrl = `https://${user.server}.webuntis.com/WebUntis/j_spring_security_check`
+
+	const request = new Request(jSpringUrl)
+	request.method = 'POST'
+	request.body = credentialBody
+	request.headers = {
+		Accept: 'application/json',
+		'Content-Type': 'application/x-www-form-urlencoded',
+	}
+
+	await request.load()
+
+	if (request.response.statusCode == 404) {
+		throwError(ErrorCode.NOT_FOUND)
+	}
+
+	const cookies = request.response.cookies.map((cookie: any) => `${cookie.name}=${cookie.value}`)
+
+	if (!cookies) {
+		throwError(ErrorCode.NO_COOKIES)
+	}
+
+	console.log('🍪 Got cookies')
+
+	return cookies
+}
+
+async function fetchBearerToken(user: UserData, cookies: string[]) {
+	const url = `https://${user.server}.webuntis.com/WebUntis/api/token/new`
+
+	const request = new Request(url)
+	request.headers = {
+		cookie: cookies.join(';'),
+	}
+
+	const token = await request.loadString()
+
+	// throw a LOGIN_ERROR if the response contains the string "loginError"
+	if (token.includes('loginError')) {
+		throwError(ErrorCode.LOGIN_ERROR)
+	}
+
+	if (!token) {
+		throwError(ErrorCode.NO_TOKEN)
+	}
+
+	console.log('🎟️  Got Bearer Token for Authorization')
+
+	return token
+}
+
+async function fetchUserData(user: User) {
+	const url = `https://${user.server}.webuntis.com/WebUntis/api/rest/view/v1/app/data`
+
+	const request = new Request(url)
+	request.headers = {
+		Authorization: `Bearer ${user.token}`,
+	}
+
+	const json = await request.loadJSON()
+
+	if (!json || !json.user) {
+		throwError(ErrorCode.NO_USER)
+	}
+
+	if (json.user.name !== user.username) {
+		console.warn(`Username mismatch: ${json.user.name} !== ${user.username}`)
+	}
+
+	const fullUser: FullUser = {
+		server: user.server,
+		school: user.school,
+		id: json.user.person.id,
+		username: user.username,
+		displayName: json.user.person.displayName,
+		imageUrl: json.user.person.imageUrl,
+		token: user.token,
+		cookies: user.cookies,
+	}
+
+	console.log(`👤 Got data for user ${fullUser.username} (id: ${fullUser.id}).\n`)
+
+	return fullUser
+}
+
+//#endregion
+
 //#region API
 
 function formatDateForUntis(date: Date) {
@@ -554,6 +658,323 @@ async function fetchSchoolYears(user: FullUser) {
 	console.log(`📅 Fetched ${json.length} school years`)
 
 	const transformedSchoolYears = transformSchoolYears(json)
+	return transformedSchoolYears
+}
+
+//#endregion
+
+//#region Transforming
+
+function parseDateNumber(date: number) {
+	const dateStr = date.toString()
+	const year = dateStr.slice(0, 4)
+	const month = dateStr.slice(4, 6)
+	const day = dateStr.slice(6, 8)
+	return new Date(`${year}-${month}-${day}`)
+}
+
+function parseTimeNumber(time: number) {
+	const timeStr = time.toString().padStart(4, '0')
+	const hours = timeStr.slice(0, 2)
+	const minutes = timeStr.slice(2, 4)
+	return new Date(`1970-01-01T${hours}:${minutes}`)
+}
+
+/**
+ * Adds the necessary leading 0s, and combines date and time to a new JS Date object
+ * @param date the date as a number, e.g. 20220911
+ * @param time the time as a number, e.g. 830
+ */
+function combineDateAndTime(date: number, time: number) {
+	const parsedDate = parseDateNumber(date)
+	const parsedTime = parseTimeNumber(time)
+	return new Date(parsedDate.getTime() + parsedTime.getTime())
+}
+
+function transformLessons(lessons: Lesson[], elements: Element[], config: Config): TransformedLessonWeek {
+	const transformedLessonWeek: TransformedLessonWeek = {}
+
+	// transform each lesson
+	for (const lesson of lessons) {
+		// get the linked elements from the list
+		const resolvedElements = resolveElements(lesson, elements)
+		if (!resolvedElements) {
+			console.log(`Could not resolve elements for lesson ${lesson.lessonId}`)
+			continue
+		}
+		const { groups, teachers, subject, rooms } = resolvedElements
+
+		// create the transformed lesson
+		const transformedLesson: TransformedLesson = {
+			id: lesson.id,
+
+			note: lesson.lessonText,
+			text: lesson.periodText,
+			info: lesson.periodInfo,
+			substitutionText: lesson.substText,
+
+			from: combineDateAndTime(lesson.date, lesson.startTime),
+			to: combineDateAndTime(lesson.date, lesson.endTime),
+
+			// get all the elements with the matching type (1), and transform them
+			group: groups[0],
+			teachers: teachers,
+			subject: subject,
+			rooms: rooms,
+
+			// TODO: add specific teacher substitution
+			state: lesson.cellState,
+			isEvent: lesson.is.event,
+			isRescheduled: 'rescheduleInfo' in lesson,
+
+			duration: 1, // incremented when combining lessons
+		}
+
+		// add the reschedule info if it exists
+		if ('rescheduleInfo' in lesson && lesson.rescheduleInfo) {
+			transformedLesson.rescheduleInfo = {
+				isSource: lesson.rescheduleInfo.isSource,
+				otherFrom: combineDateAndTime(lesson.rescheduleInfo.date, lesson.rescheduleInfo.startTime),
+				otherTo: combineDateAndTime(lesson.rescheduleInfo.date, lesson.rescheduleInfo.endTime),
+			}
+		}
+
+		// add the exam info if it exists
+		if ('exam' in lesson && lesson.exam) {
+			transformedLesson.exam = {
+				name: lesson.exam.name,
+				markSchemaId: lesson.exam.markSchemaId,
+			}
+		}
+
+		// add the lesson with the date as key
+		const dateKey = transformedLesson.from.toISOString().split('T')[0]
+		if (!transformedLessonWeek[dateKey]) {
+			transformedLessonWeek[dateKey] = []
+		}
+
+		applyCustomLessonConfig(transformedLesson, config)
+
+		transformedLessonWeek[dateKey].push(transformedLesson)
+	}
+
+	console.log('Sorting...')
+
+	// sort the lessons by start time
+	for (const dateKey in transformedLessonWeek) {
+		transformedLessonWeek[dateKey].sort((a, b) => a.from.getTime() - b.from.getTime())
+	}
+
+	let combinedLessonWeek: TransformedLessonWeek = {}
+	// combine lessons which are equal and are directly after each other
+	for (const dateKey in transformedLessonWeek) {
+		combinedLessonWeek[dateKey] = combineLessons(transformedLessonWeek[dateKey], config)
+	}
+
+	return combinedLessonWeek
+}
+
+function resolveStatelessElement(id: number, type: number, availableElements: Element[]): StatelessElement {
+	const foundElement = availableElements.find((element) => element.id === id && element.type === type)
+	const elementBase: StatelessElement = {
+		id: id,
+		name: foundElement?.name,
+	}
+
+	if (!foundElement) return
+
+	if (foundElement.type === ElementType.TEACHER) {
+		return elementBase
+	}
+
+	const element = elementBase as ExtendedTransformedElement
+	element.longName = foundElement.longName
+
+	if (foundElement.type === ElementType.ROOM) {
+		const room = element as Room
+		room.capacity = foundElement.roomCapacity
+		return room
+	}
+
+	return element
+}
+
+function resolveElement(unresolvedElement: UnresolvedElement, availableElements: Element[]) {
+	const statelessElement = resolveStatelessElement(unresolvedElement.id, unresolvedElement.type, availableElements)
+
+	const element = statelessElement as StatefulElement
+	element.state = unresolvedElement.state
+
+	if (unresolvedElement.orgId) {
+		const originalElement = resolveStatelessElement(unresolvedElement.orgId, unresolvedElement.type, availableElements)
+		element.original = originalElement
+	}
+
+	return element
+}
+
+function resolveElements(lesson: Lesson, elements: Element[]) {
+	const groups: Group[] = []
+	const teachers: Teacher[] = []
+	let subject: Subject | undefined
+	const rooms: Room[] = []
+
+	for (const unresolvedElement of lesson.elements) {
+		const element = resolveElement(unresolvedElement, elements)
+
+		if (!element) {
+			console.warn(`Could not find element ${unresolvedElement.id} with type ${unresolvedElement.type}`)
+			continue
+		}
+
+		if (unresolvedElement.type === ElementType.TEACHER) {
+			teachers.push(element as Teacher)
+			continue
+		}
+
+		switch (unresolvedElement.type) {
+			case ElementType.GROUP:
+				groups.push(element as Group)
+				break
+			case ElementType.SUBJECT:
+				if (subject) {
+					console.error(`Found multiple subjects for lesson ${lesson.lessonId}`)
+				}
+				subject = element as Subject
+				break
+			case ElementType.ROOM:
+				rooms.push(element as Room)
+				break
+			default:
+				console.error(`Unknown element type ${unresolvedElement.type}`)
+				break
+		}
+	}
+
+	return { groups, teachers, subject, rooms }
+}
+
+/**
+ * Combines some of the given lessons, if they are directly after each other and have the same properties.
+ * @param lessons
+ * @param ignoreDetails if true, only the subject and time will be considered
+ */
+function combineLessons(lessons: TransformedLesson[], config: Config, ignoreDetails = false, ignoreBreaks = false) {
+	const combinedLessonsNextDay: TransformedLesson[] = []
+	for (const [index, lesson] of lessons.entries()) {
+		const previousLesson = combinedLessonsNextDay[combinedLessonsNextDay.length - 1]
+
+		if (
+			index !== 0 &&
+			previousLesson &&
+			shouldCombineLessons(previousLesson, lesson, config, ignoreDetails, ignoreBreaks)
+		) {
+			previousLesson.to = lesson.to
+			previousLesson.duration++
+		} else {
+			combinedLessonsNextDay.push(lesson)
+		}
+	}
+	return combinedLessonsNextDay
+}
+
+function transformExams(exams: Exam[]) {
+	const transformedExams: TransformedExam[] = []
+
+	for (const exam of exams) {
+		const transformedExam: TransformedExam = {
+			name: exam.name,
+			type: exam.examType,
+			from: combineDateAndTime(exam.examDate, exam.startTime),
+			to: combineDateAndTime(exam.examDate, exam.endTime),
+			subject: exam.subject,
+			teacherNames: exam.teachers,
+			roomNames: exam.rooms,
+		}
+
+		transformedExams.push(transformedExam)
+	}
+
+	return transformedExams
+}
+
+function transformGrades(grades: Grade[]) {
+	const transformedGrades: TransformedGrade[] = []
+	for (const grade of grades) {
+		const transformedGrade: TransformedGrade = {
+			subject: grade.subject,
+			date: parseDateNumber(grade.grade.date),
+			lastUpdated: new Date(grade.grade.lastUpdate),
+			text: grade.grade.text,
+			schemaId: grade.grade.markSchemaId,
+
+			mark: {
+				displayValue: grade.grade.mark.markDisplayValue,
+				name: grade.grade.mark.name,
+				id: grade.grade.mark.id,
+			},
+
+			examType: {
+				name: grade.grade.examType.name,
+				longName: grade.grade.examType.longname,
+			},
+		}
+
+		if (grade.grade.exam) {
+			transformedGrade.exam = {
+				name: grade.grade.exam.name,
+				id: grade.grade.exam.id,
+				date: parseDateNumber(grade.grade.exam.date),
+			}
+		}
+
+		transformedGrades.push(transformedGrade)
+	}
+	return transformedGrades
+}
+
+function transformAbsences(absences: Absence[]) {
+	const transformedAbsences: TransformedAbsence[] = []
+	for (const absence of absences) {
+		const transformedAbsence: TransformedAbsence = {
+			from: combineDateAndTime(absence.startDate, absence.startTime),
+			to: combineDateAndTime(absence.endDate, absence.endTime),
+			createdBy: absence.createdUser,
+			reasonId: absence.reasonId,
+			isExcused: absence.isExcused,
+			excusedBy: absence.excuse.username,
+		}
+		transformedAbsences.push(transformedAbsence)
+	}
+	return transformedAbsences
+}
+
+function transformClassRoles(classRoles: ClassRole[]) {
+	const transformedClassRoles: TransformedClassRole[] = []
+	for (const classRole of classRoles) {
+		const transformedClassRole: TransformedClassRole = {
+			fromDate: parseDateNumber(classRole.startDate),
+			toDate: parseDateNumber(classRole.endDate),
+			firstName: classRole.foreName,
+			lastName: classRole.longName,
+			dutyName: classRole.duty.label,
+		}
+		transformedClassRoles.push(transformedClassRole)
+	}
+	return transformedClassRoles
+}
+
+async function transformSchoolYears(schoolYears: SchoolYear[]) {
+	const transformedSchoolYears: TransformedSchoolYear[] = []
+	for (const schoolYear of schoolYears) {
+		const transformedSchoolYear: TransformedSchoolYear = {
+			name: schoolYear.name,
+			id: schoolYear.id,
+			from: new Date(schoolYear.dateRange.start),
+			to: new Date(schoolYear.dateRange.end),
+		}
+		transformedSchoolYears.push(transformedSchoolYear)
+	}
 	return transformedSchoolYears
 }
 
@@ -883,428 +1304,6 @@ function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWee
 			}
 		}
 	}
-}
-
-//#endregion
-
-//#region Login
-
-async function login(user: UserData, password: string) {
-	console.log(`🔑 Logging in as ${user.username} in school ${user.school} on ${user.server}.webuntis.com`)
-
-	const cookies = await fetchCookies(user, password)
-	const token = await fetchBearerToken(user, cookies)
-	const fullUser = await fetchUserData({ ...user, cookies, token })
-
-	console.log(
-		`🔓 Logged in as ${fullUser.displayName} (${fullUser.username}) in school ${fullUser.school} on ${fullUser.server}.webuntis.com`
-	)
-
-	return fullUser
-}
-
-async function fetchCookies(user: UserData, password: string) {
-	const credentialBody = `school=${user.school}&j_username=${user.username}&j_password=${password}&token=`
-	const jSpringUrl = `https://${user.server}.webuntis.com/WebUntis/j_spring_security_check`
-
-	const request = new Request(jSpringUrl)
-	request.method = 'POST'
-	request.body = credentialBody
-	request.headers = {
-		Accept: 'application/json',
-		'Content-Type': 'application/x-www-form-urlencoded',
-	}
-
-	await request.load()
-
-	if (request.response.statusCode == 404) {
-		throwError(ErrorCode.NOT_FOUND)
-	}
-
-	const cookies = request.response.cookies.map((cookie: any) => `${cookie.name}=${cookie.value}`)
-
-	if (!cookies) {
-		throwError(ErrorCode.NO_COOKIES)
-	}
-
-	console.log('🍪 Got cookies')
-
-	return cookies
-}
-
-async function fetchBearerToken(user: UserData, cookies: string[]) {
-	const url = `https://${user.server}.webuntis.com/WebUntis/api/token/new`
-
-	const request = new Request(url)
-	request.headers = {
-		cookie: cookies.join(';'),
-	}
-
-	const token = await request.loadString()
-
-	// throw a LOGIN_ERROR if the response contains the string "loginError"
-	if (token.includes('loginError')) {
-		throwError(ErrorCode.LOGIN_ERROR)
-	}
-
-	if (!token) {
-		throwError(ErrorCode.NO_TOKEN)
-	}
-
-	console.log('🎟️  Got Bearer Token for Authorization')
-
-	return token
-}
-
-async function fetchUserData(user: User) {
-	const url = `https://${user.server}.webuntis.com/WebUntis/api/rest/view/v1/app/data`
-
-	const request = new Request(url)
-	request.headers = {
-		Authorization: `Bearer ${user.token}`,
-	}
-
-	const json = await request.loadJSON()
-
-	if (!json || !json.user) {
-		throwError(ErrorCode.NO_USER)
-	}
-
-	if (json.user.name !== user.username) {
-		console.warn(`Username mismatch: ${json.user.name} !== ${user.username}`)
-	}
-
-	const fullUser: FullUser = {
-		server: user.server,
-		school: user.school,
-		id: json.user.person.id,
-		username: user.username,
-		displayName: json.user.person.displayName,
-		imageUrl: json.user.person.imageUrl,
-		token: user.token,
-		cookies: user.cookies,
-	}
-
-	console.log(`👤 Got data for user ${fullUser.username} (id: ${fullUser.id}).\n`)
-
-	return fullUser
-}
-
-//#endregion
-
-//#region Transforming
-
-function parseDateNumber(date: number) {
-	const dateStr = date.toString()
-	const year = dateStr.slice(0, 4)
-	const month = dateStr.slice(4, 6)
-	const day = dateStr.slice(6, 8)
-	return new Date(`${year}-${month}-${day}`)
-}
-
-function parseTimeNumber(time: number) {
-	const timeStr = time.toString().padStart(4, '0')
-	const hours = timeStr.slice(0, 2)
-	const minutes = timeStr.slice(2, 4)
-	return new Date(`1970-01-01T${hours}:${minutes}`)
-}
-
-/**
- * Adds the necessary leading 0s, and combines date and time to a new JS Date object
- * @param date the date as a number, e.g. 20220911
- * @param time the time as a number, e.g. 830
- */
-function combineDateAndTime(date: number, time: number) {
-	const parsedDate = parseDateNumber(date)
-	const parsedTime = parseTimeNumber(time)
-	return new Date(parsedDate.getTime() + parsedTime.getTime())
-}
-
-function transformLessons(lessons: Lesson[], elements: Element[], config: Config): TransformedLessonWeek {
-	const transformedLessonWeek: TransformedLessonWeek = {}
-
-	// transform each lesson
-	for (const lesson of lessons) {
-		// get the linked elements from the list
-		const resolvedElements = resolveElements(lesson, elements)
-		if (!resolvedElements) {
-			console.log(`Could not resolve elements for lesson ${lesson.lessonId}`)
-			continue
-		}
-		const { groups, teachers, subject, rooms } = resolvedElements
-
-		// create the transformed lesson
-		const transformedLesson: TransformedLesson = {
-			id: lesson.id,
-
-			note: lesson.lessonText,
-			text: lesson.periodText,
-			info: lesson.periodInfo,
-			substitutionText: lesson.substText,
-
-			from: combineDateAndTime(lesson.date, lesson.startTime),
-			to: combineDateAndTime(lesson.date, lesson.endTime),
-
-			// get all the elements with the matching type (1), and transform them
-			group: groups[0],
-			teachers: teachers,
-			subject: subject,
-			rooms: rooms,
-
-			// TODO: add specific teacher substitution
-			state: lesson.cellState,
-			isEvent: lesson.is.event,
-			isRescheduled: 'rescheduleInfo' in lesson,
-
-			duration: 1, // incremented when combining lessons
-		}
-
-		// add the reschedule info if it exists
-		if ('rescheduleInfo' in lesson && lesson.rescheduleInfo) {
-			transformedLesson.rescheduleInfo = {
-				isSource: lesson.rescheduleInfo.isSource,
-				otherFrom: combineDateAndTime(lesson.rescheduleInfo.date, lesson.rescheduleInfo.startTime),
-				otherTo: combineDateAndTime(lesson.rescheduleInfo.date, lesson.rescheduleInfo.endTime),
-			}
-		}
-
-		// add the exam info if it exists
-		if ('exam' in lesson && lesson.exam) {
-			transformedLesson.exam = {
-				name: lesson.exam.name,
-				markSchemaId: lesson.exam.markSchemaId,
-			}
-		}
-
-		// add the lesson with the date as key
-		const dateKey = transformedLesson.from.toISOString().split('T')[0]
-		if (!transformedLessonWeek[dateKey]) {
-			transformedLessonWeek[dateKey] = []
-		}
-
-		applyCustomLessonConfig(transformedLesson, config)
-
-		transformedLessonWeek[dateKey].push(transformedLesson)
-	}
-
-	console.log('Sorting...')
-
-	// sort the lessons by start time
-	for (const dateKey in transformedLessonWeek) {
-		transformedLessonWeek[dateKey].sort((a, b) => a.from.getTime() - b.from.getTime())
-	}
-
-	let combinedLessonWeek: TransformedLessonWeek = {}
-	// combine lessons which are equal and are directly after each other
-	for (const dateKey in transformedLessonWeek) {
-		combinedLessonWeek[dateKey] = combineLessons(transformedLessonWeek[dateKey], config)
-	}
-
-	return combinedLessonWeek
-}
-
-function resolveStatelessElement(id: number, type: number, availableElements: Element[]): StatelessElement {
-	const foundElement = availableElements.find((element) => element.id === id && element.type === type)
-	const elementBase: StatelessElement = {
-		id: id,
-		name: foundElement?.name,
-	}
-
-	if (!foundElement) return
-
-	if (foundElement.type === ElementType.TEACHER) {
-		return elementBase
-	}
-
-	const element = elementBase as ExtendedTransformedElement
-	element.longName = foundElement.longName
-
-	if (foundElement.type === ElementType.ROOM) {
-		const room = element as Room
-		room.capacity = foundElement.roomCapacity
-		return room
-	}
-
-	return element
-}
-
-function resolveElement(unresolvedElement: UnresolvedElement, availableElements: Element[]) {
-	const statelessElement = resolveStatelessElement(unresolvedElement.id, unresolvedElement.type, availableElements)
-
-	const element = statelessElement as StatefulElement
-	element.state = unresolvedElement.state
-
-	if (unresolvedElement.orgId) {
-		const originalElement = resolveStatelessElement(unresolvedElement.orgId, unresolvedElement.type, availableElements)
-		element.original = originalElement
-	}
-
-	return element
-}
-
-function resolveElements(lesson: Lesson, elements: Element[]) {
-	const groups: Group[] = []
-	const teachers: Teacher[] = []
-	let subject: Subject | undefined
-	const rooms: Room[] = []
-
-	for (const unresolvedElement of lesson.elements) {
-		const element = resolveElement(unresolvedElement, elements)
-
-		if (!element) {
-			console.warn(`Could not find element ${unresolvedElement.id} with type ${unresolvedElement.type}`)
-			continue
-		}
-
-		if (unresolvedElement.type === ElementType.TEACHER) {
-			teachers.push(element as Teacher)
-			continue
-		}
-
-		switch (unresolvedElement.type) {
-			case ElementType.GROUP:
-				groups.push(element as Group)
-				break
-			case ElementType.SUBJECT:
-				if (subject) {
-					console.error(`Found multiple subjects for lesson ${lesson.lessonId}`)
-				}
-				subject = element as Subject
-				break
-			case ElementType.ROOM:
-				rooms.push(element as Room)
-				break
-			default:
-				console.error(`Unknown element type ${unresolvedElement.type}`)
-				break
-		}
-	}
-
-	return { groups, teachers, subject, rooms }
-}
-
-/**
- * Combines some of the given lessons, if they are directly after each other and have the same properties.
- * @param lessons
- * @param ignoreDetails if true, only the subject and time will be considered
- */
-function combineLessons(lessons: TransformedLesson[], config: Config, ignoreDetails = false, ignoreBreaks = false) {
-	const combinedLessonsNextDay: TransformedLesson[] = []
-	for (const [index, lesson] of lessons.entries()) {
-		const previousLesson = combinedLessonsNextDay[combinedLessonsNextDay.length - 1]
-
-		if (
-			index !== 0 &&
-			previousLesson &&
-			shouldCombineLessons(previousLesson, lesson, config, ignoreDetails, ignoreBreaks)
-		) {
-			previousLesson.to = lesson.to
-			previousLesson.duration++
-		} else {
-			combinedLessonsNextDay.push(lesson)
-		}
-	}
-	return combinedLessonsNextDay
-}
-
-function transformExams(exams: Exam[]) {
-	const transformedExams: TransformedExam[] = []
-
-	for (const exam of exams) {
-		const transformedExam: TransformedExam = {
-			name: exam.name,
-			type: exam.examType,
-			from: combineDateAndTime(exam.examDate, exam.startTime),
-			to: combineDateAndTime(exam.examDate, exam.endTime),
-			subject: exam.subject,
-			teacherNames: exam.teachers,
-			roomNames: exam.rooms,
-		}
-
-		transformedExams.push(transformedExam)
-	}
-
-	return transformedExams
-}
-
-function transformGrades(grades: Grade[]) {
-	const transformedGrades: TransformedGrade[] = []
-	for (const grade of grades) {
-		const transformedGrade: TransformedGrade = {
-			subject: grade.subject,
-			date: parseDateNumber(grade.grade.date),
-			lastUpdated: new Date(grade.grade.lastUpdate),
-			text: grade.grade.text,
-			schemaId: grade.grade.markSchemaId,
-
-			mark: {
-				displayValue: grade.grade.mark.markDisplayValue,
-				name: grade.grade.mark.name,
-				id: grade.grade.mark.id,
-			},
-
-			examType: {
-				name: grade.grade.examType.name,
-				longName: grade.grade.examType.longname,
-			},
-		}
-
-		if (grade.grade.exam) {
-			transformedGrade.exam = {
-				name: grade.grade.exam.name,
-				id: grade.grade.exam.id,
-				date: parseDateNumber(grade.grade.exam.date),
-			}
-		}
-
-		transformedGrades.push(transformedGrade)
-	}
-	return transformedGrades
-}
-
-function transformAbsences(absences: Absence[]) {
-	const transformedAbsences: TransformedAbsence[] = []
-	for (const absence of absences) {
-		const transformedAbsence: TransformedAbsence = {
-			from: combineDateAndTime(absence.startDate, absence.startTime),
-			to: combineDateAndTime(absence.endDate, absence.endTime),
-			createdBy: absence.createdUser,
-			reasonId: absence.reasonId,
-			isExcused: absence.isExcused,
-			excusedBy: absence.excuse.username,
-		}
-		transformedAbsences.push(transformedAbsence)
-	}
-	return transformedAbsences
-}
-
-function transformClassRoles(classRoles: ClassRole[]) {
-	const transformedClassRoles: TransformedClassRole[] = []
-	for (const classRole of classRoles) {
-		const transformedClassRole: TransformedClassRole = {
-			fromDate: parseDateNumber(classRole.startDate),
-			toDate: parseDateNumber(classRole.endDate),
-			firstName: classRole.foreName,
-			lastName: classRole.longName,
-			dutyName: classRole.duty.label,
-		}
-		transformedClassRoles.push(transformedClassRole)
-	}
-	return transformedClassRoles
-}
-
-async function transformSchoolYears(schoolYears: SchoolYear[]) {
-	const transformedSchoolYears: TransformedSchoolYear[] = []
-	for (const schoolYear of schoolYears) {
-		const transformedSchoolYear: TransformedSchoolYear = {
-			name: schoolYear.name,
-			id: schoolYear.id,
-			from: new Date(schoolYear.dateRange.start),
-			to: new Date(schoolYear.dateRange.end),
-		}
-		transformedSchoolYears.push(transformedSchoolYear)
-	}
-	return transformedSchoolYears
 }
 
 //#endregion
@@ -3106,7 +3105,7 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 
 		// calculate the real available height
 		const availableContentHeight = options.footer.show
-			? contentSize.height - FOOTER_HEIGHT - options.appearance.spacing
+			? contentSize.height - getFooterHeight(options) - options.appearance.spacing
 			: contentSize.height
 
 		columnStack.size = new Size(columnWidth, availableContentHeight)
@@ -3195,13 +3194,17 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 	}
 
 	if (options.footer.show) {
-		addFooter(widget, contentSize.width)
+		addFooter(widget, contentSize.width, options)
 	}
 
 	return widget
 }
 
-function addFooter(container: WidgetStack | ListWidget, width: number) {
+function getFooterHeight(config: Config) {
+	return getCharHeight(10) + 2 * 4
+}
+
+function addFooter(container: WidgetStack | ListWidget, width: number, config: Config) {
 	const footerGroup = container.addStack()
 	footerGroup.layoutHorizontally()
 	footerGroup.spacing = 4
@@ -3209,14 +3212,14 @@ function addFooter(container: WidgetStack | ListWidget, width: number) {
 	footerGroup.centerAlignContent()
 	// avoid overflow when pushed to the bottom
 	footerGroup.setPadding(4, 6, 4, 6)
-	footerGroup.size = new Size(width, FOOTER_HEIGHT)
+	footerGroup.size = new Size(width, getFooterHeight(config))
 
 	addSymbol('arrow.clockwise', footerGroup, {
 		color: usingOldCache ? colors.text.red : colors.text.secondary,
 		size: 10,
 		outerSize: 10,
 	})
-	
+
 	// show the time of the last update (now) as HH:MM with leading zeros
 	const updateDateTime = footerGroup.addText(
 		`${new Date().toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })}`
