@@ -1775,6 +1775,26 @@ function addViewLessons(
 	let itemCount = 0
 	const lessonHeight = getCharHeight(config.appearance.fontSize) + 8
 
+	const padding = 4
+	const innerSpacing = config.appearance.spacing
+	// the width including: padding, subject, spacing and icon
+	const lessonWidth =
+		2 * padding +
+		getCharWidth(config.appearance.fontSize) * MAX_SUBJECT_NAME_LENGTH +
+		innerSpacing +
+		getCharHeight(config.appearance.fontSize)
+	const timeWidth = getTextWidth(MAX_TIME_STRING, config.appearance.fontSize) + 2 * padding
+	let currentWidth = lessonWidth + config.appearance.spacing + timeWidth
+
+	let showToTime = false
+
+	// check if there is space for a "to" time
+	if (currentWidth + config.appearance.spacing + timeWidth <= width) {
+		showToTime = config.views.lessons.showEndTimes
+		log(`showToTime: ${showToTime}`)
+		currentWidth += config.appearance.spacing + timeWidth
+	}
+
 	let remainingHeight = height
 
 	// add the remaining lessons until the max item count is reached
@@ -1792,7 +1812,7 @@ function addViewLessons(
 			// if the gap between the previous lesson and this lesson is too big, add a break
 			const gapDuration = lesson.from.getTime() - previousLesson.to.getTime()
 			if (previousLesson && config.views.lessons.showLongBreaks && gapDuration > config.config.breakMax * 60 * 1000) {
-				addBreak(container, previousLesson.to, lesson.from, config)
+				addBreak(container, previousLesson.to, lesson.from, showToTime, config)
 				itemCount++
 				remainingHeight -= config.appearance.spacing + lessonHeight
 				if ((count && itemCount >= count) || remainingHeight < lessonHeight + config.appearance.spacing) break
@@ -1803,29 +1823,6 @@ function addViewLessons(
 		const isRescheduled = lesson.isRescheduled && lesson.rescheduleInfo.isSource
 		const istCancelled = lesson.state === LessonState.CANCELED || lesson.state === LessonState.FREE || isRescheduled
 		if (!config.views.lessons.showCanceled && istCancelled) continue
-
-		const padding = 4
-		const innerSpacing = config.appearance.spacing
-		// the width including: padding, subject, spacing and icon
-		const lessonWidth =
-			2 * padding +
-			getCharWidth(config.appearance.fontSize) * MAX_SUBJECT_NAME_LENGTH +
-			innerSpacing +
-			getCharHeight(config.appearance.fontSize)
-		log(`lessonWidth: ${lessonWidth}`)
-		const timeWidth = getTextWidth(MAX_TIME_STRING, config.appearance.fontSize) + 2 * padding
-		log(`timeWidth: ${timeWidth}`)
-		let currentWidth = lessonWidth + config.appearance.spacing + timeWidth
-		log(`currentWidth: ${currentWidth}`)
-		let showToTime = false
-		log(`width: ${width}`)
-
-		// check if there is space for a "to" time
-		if (currentWidth + config.appearance.spacing + timeWidth <= width) {
-			showToTime = config.views.lessons.showEndTimes
-			log(`showToTime: ${showToTime}`)
-			currentWidth += config.appearance.spacing + timeWidth
-		}
 
 		// only show the time if the previous lesson didn't start at the same time
 		const showTime = !previousLesson || previousLesson.from.getTime() !== lesson.from.getTime()
@@ -1991,11 +1988,11 @@ function addSymbol(name: string, to: WidgetStack | ListWidget, options: { color:
 /**
  * Adds a break to the widget.
  */
-function addBreak(to: WidgetStack | ListWidget, breakFrom: Date, breakTo: Date, config: Config) {
+function addBreak(to: WidgetStack | ListWidget, breakFrom: Date, breakTo: Date, showToTime: boolean, config: Config) {
 	const breakContainer = makeTimelineEntry(to, breakFrom, config, {
 		backgroundColor: colors.background.primary,
 		showTime: true,
-		showToTime: config.views.lessons.showEndTimes,
+		showToTime: showToTime,
 		toTime: breakTo,
 	})
 	const breakTitle = breakContainer.addText('Break')
