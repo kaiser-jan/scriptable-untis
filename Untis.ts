@@ -755,8 +755,6 @@ function transformLessons(lessons: Lesson[], elements: Element[], config: Config
 			transformedLessonWeek[dateKey] = []
 		}
 
-		applyCustomLessonConfig(transformedLesson, config)
-
 		transformedLessonWeek[dateKey].push(transformedLesson)
 	}
 
@@ -1172,6 +1170,11 @@ async function getTimetable(user: FullUser, options: Options) {
 		nextDayKey = sortKeysByDate(nextWeekTimetable)[0]
 	}
 
+	// apply custom lesson configs
+	// NOTE: it seems more reasonable to NOT do this while transforming,
+	// as these are different tasks and config changes would not behave as expected
+	applyLessonConfigs(timetable, options)
+
 	console.log(`Next day: ${nextDayKey}`)
 	// the timetable for the next day in the timetable (ignore weekends)
 	const lessonsNextDay = timetable[nextDayKey]
@@ -1254,8 +1257,6 @@ function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWee
 				continue
 			}
 
-			// info, note, text, isRescheduled, state, rooms, subject, teachers
-
 			if (lesson.info !== cachedLesson.info) {
 				scheduleNotification(`Info for ${subjectTitle} changed`, `on ${dayString}: "${lesson.info}"`)
 				continue
@@ -1291,13 +1292,23 @@ function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWee
 				continue
 			}
 
+			if (lesson.exam !== cachedLesson.exam) {
+				if (lesson.exam) {
+					scheduleNotification(
+						`Exam for ${subjectTitle} was added`,
+						`on ${dayString} at ${asNumericTime(lesson.from)}`
+					)
+					continue
+				}
+			}
+
 			if (lesson.state !== cachedLesson.state) {
 				switch (lesson.state) {
 					case LessonState.CANCELED:
 					case LessonState.FREE:
 						scheduleNotification(
 							`${dayString}: ${subjectTitle} was cancelled`,
-							`${subjectTitle} @ ${asNumericTime(lesson.from)} was cancelled`
+							`${subjectTitle} at ${asNumericTime(lesson.from)} was cancelled`
 						)
 						break
 					// TODO: substitutions
@@ -2538,6 +2549,17 @@ function isHomescreenWidgetSize(k: string, widgetSizes: HomescreenWidgetSizes): 
 //#endregion
 
 //#region Widget Helpers
+
+function applyLessonConfigs(timetable: TransformedLessonWeek, config: Config) {
+	// iterate over the days, then the lessons
+	for (const key of Object.keys(timetable)) {
+		const day = timetable[key]
+		for (const lesson of day) {
+			// apply the lesson config
+			applyCustomLessonConfig(lesson, config)
+		}
+	}
+}
 
 function applyCustomLessonConfig(lesson: TransformedLesson, config: Config) {
 	lesson.backgroundColor = unparsedColors.background.primary
