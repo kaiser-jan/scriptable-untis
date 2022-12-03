@@ -65,10 +65,10 @@ interface TransformedLesson {
 	from: Date // date + startTime
 	to: Date // date + endTime
 
-	group: Group
-	subject?: Subject
-	teachers: Teacher[]
-	rooms: Room[]
+	groups: Stateful<Group>[]
+	subject?: Stateful<Subject>
+	teachers: Stateful<Teacher>[]
+	rooms: Stateful<Room>[]
 
 	state: LessonState // cellState
 	isEvent: boolean // is.event
@@ -212,7 +212,8 @@ enum LessonState {
 	EXAM = 'EXAM',
 	RESCHEDULED = 'SHIFT',
 	SUBSTITUTED = 'SUBSTITUTION',
-	ROOM_SUBSTITUTION = 'ROOMSUBSTITUTION',
+	ROOM_SUBSTITUTED = 'ROOMSUBSTITUTION',
+	TEACHER_SUBSTITUTED = 'TEACHERSUBSTITUTION',
 	ADDITIONAL = 'ADDITIONAL',
 }
 
@@ -720,7 +721,7 @@ function transformLessons(lessons: Lesson[], elements: Element[], config: Config
 			to: combineDateAndTime(lesson.date, lesson.endTime),
 
 			// get all the elements with the matching type (1), and transform them
-			group: groups[0],
+			groups: groups,
 			teachers: teachers,
 			subject: subject,
 			rooms: rooms,
@@ -731,6 +732,26 @@ function transformLessons(lessons: Lesson[], elements: Element[], config: Config
 			isRescheduled: 'rescheduleInfo' in lesson,
 
 			duration: 1, // incremented when combining lessons
+		}
+
+		const changedTeacherCount = transformedLesson.teachers.filter((teacher) => teacher.original).length
+		const changedRoomCount = transformedLesson.rooms.filter((room) => room.original).length
+
+		if (changedTeacherCount) {
+			console.log(`Lesson ${transformedLesson.subject.name} has ${changedTeacherCount} changed teachers`)
+			if (changedTeacherCount >= 1) {
+				transformedLesson.state = LessonState.TEACHER_SUBSTITUTED
+			}
+			if (changedRoomCount >= 1) {
+				// set to substituted if the teacher is also substituted
+				if (changedTeacherCount) {
+					transformedLesson.state = LessonState.SUBSTITUTED
+				}
+				transformedLesson.state = LessonState.ROOM_SUBSTITUTED
+			}
+			if (subject.original) {
+				transformedLesson.state = LessonState.SUBSTITUTED
+			}
 		}
 
 		// add the reschedule info if it exists
@@ -806,7 +827,7 @@ function resolveElement(unresolvedElement: UnresolvedElement, availableElements:
 	const element = statelessElement as StatefulElement
 	element.state = unresolvedElement.state
 
-	if (unresolvedElement.orgId) {
+	if (unresolvedElement.orgId && unresolvedElement.orgId !== 0) {
 		const originalElement = resolveStatelessElement(unresolvedElement.orgId, unresolvedElement.type, availableElements)
 		element.original = originalElement
 	}
@@ -815,10 +836,10 @@ function resolveElement(unresolvedElement: UnresolvedElement, availableElements:
 }
 
 function resolveElements(lesson: Lesson, elements: Element[]) {
-	const groups: Group[] = []
-	const teachers: Teacher[] = []
-	let subject: Subject | undefined
-	const rooms: Room[] = []
+	const groups: Stateful<Group>[] = []
+	const teachers: Stateful<Teacher>[] = []
+	let subject: Stateful<Subject> | undefined
+	const rooms: Stateful<Room>[] = []
 
 	for (const unresolvedElement of lesson.elements) {
 		const element = resolveElement(unresolvedElement, elements)
@@ -829,22 +850,22 @@ function resolveElements(lesson: Lesson, elements: Element[]) {
 		}
 
 		if (unresolvedElement.type === ElementType.TEACHER) {
-			teachers.push(element as Teacher)
+			teachers.push(element as Stateful<Teacher>)
 			continue
 		}
 
 		switch (unresolvedElement.type) {
 			case ElementType.GROUP:
-				groups.push(element as Group)
+				groups.push(element as Stateful<Group>)
 				break
 			case ElementType.SUBJECT:
 				if (subject) {
 					console.error(`Found multiple subjects for lesson ${lesson.lessonId}`)
 				}
-				subject = element as Subject
+				subject = element as Stateful<Subject>
 				break
 			case ElementType.ROOM:
-				rooms.push(element as Room)
+				rooms.push(element as Stateful<Room>)
 				break
 			default:
 				console.error(`Unknown element type ${unresolvedElement.type}`)
@@ -1308,6 +1329,9 @@ function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWee
 			}
 
 			if (lesson.state !== cachedLesson.state) {
+				const changedRooms = lesson.rooms.filter((room) => room.original)
+				const changedTeachers = lesson.teachers.filter((teacher) => teacher.original)
+
 				switch (lesson.state) {
 					case LessonState.CANCELED:
 					case LessonState.FREE:
@@ -1316,7 +1340,30 @@ function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWee
 							`${subjectTitle} at ${asNumericTime(lesson.from)} was cancelled`
 						)
 						break
-					// TODO: substitutions
+					case LessonState.ROOM_SUBSTITUTED:
+						for (const room of changedRooms) {
+							scheduleNotification(
+								`${dayString}: ${subjectTitle} - room changed`,
+								`from ${room.original?.name} to ${room.name}`
+							)
+						}
+						break
+					case LessonState.TEACHER_SUBSTITUTED:
+						for (const teacher of changedTeachers) {
+							scheduleNotification(
+								`${dayString}: ${subjectTitle} - teacher substituted`,
+								`from ${teacher.original.name} to ${teacher.name}`
+							)
+						}
+						break
+					case LessonState.SUBSTITUTED:
+						scheduleNotification(
+							`${dayString}: ${subjectTitle} substituted`,
+							`${getSubjectTitle(lesson)} at ${asNumericTime(lesson.from)} with ${lesson.teachers.join(
+								', '
+							)} in ${lesson.rooms.join(', ')}`
+						)
+						break
 				}
 				continue
 			}
@@ -2150,7 +2197,7 @@ function addWidgetLesson(
 		iconName = 'book.circle'
 	} else if (lesson.state === LessonState.SUBSTITUTED) {
 		iconName = 'person.circle'
-	} else if (lesson.state === LessonState.ROOM_SUBSTITUTION) {
+	} else if (lesson.state === LessonState.ROOM_SUBSTITUTED) {
 		iconName = 'location.circle'
 	} else if (lesson.state === LessonState.FREE) {
 		iconName = 'bell.circle'
