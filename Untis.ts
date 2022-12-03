@@ -16,6 +16,8 @@ const CURRENT_DATETIME = new Date('2022-12-02T10:15') // '2022-09-15T14:00' or '
 const LOCALE = Device.locale().replace('_', '-')
 const PREVIEW_WIDGET_SIZE: typeof config.widgetFamily = 'medium'
 const MAX_TIME_STRING = '10:00'
+const MAX_SUBJECT_NAME_LENGTH = 6
+const MAX_LONG_SUBJECT_NAME_LENGTH = 12
 // the layout is a list of views separated by commas, the columns are separated by pipes "|"
 const defaultLayout = 'lessons'
 
@@ -420,7 +422,7 @@ interface FullUser extends User {
 
 //#endregion
 
-//#region API
+//#region API (+ caching, transforming)
 
 //#region Login
 
@@ -1440,6 +1442,7 @@ const defaultConfig = {
 			showCanceled: true,
 			showLongBreaks: true,
 			skipShortBreaks: false,
+			showEndTimes: true,
 		},
 		exams: {
 			maxCount: 3,
@@ -1475,19 +1478,13 @@ type Config = typeof defaultConfig
  */
 function deepMerge(target: any, source: any) {
 	for (const key in source) {
-		// recursively merge objects, ensure that the property exists on the target
-		if (source[key] instanceof Object) {
-			if (!(key in target)) {
-				target[key] = {}
-			}
+		if (source[key] instanceof Object && key in target) {
 			deepMerge(target[key], source[key])
 		} else {
 			target[key] = source[key]
 		}
 	}
 
-	// Join `target` and modified `source`
-	Object.assign(target || {}, source)
 	return target
 }
 
@@ -1784,7 +1781,7 @@ function addViewLessons(
 			// if the gap between the previous lesson and this lesson is too big, add a break
 			const gapDuration = lesson.from.getTime() - previousLesson.to.getTime()
 			if (previousLesson && config.views.lessons.showLongBreaks && gapDuration > config.config.breakMax * 60 * 1000) {
-				addBreak(container, previousLesson.to, config)
+				addBreak(container, previousLesson.to, lesson.from, config)
 				itemCount++
 				remainingHeight -= config.appearance.spacing + lessonHeight
 				if ((count && itemCount >= count) || remainingHeight < lessonHeight + config.appearance.spacing) break
@@ -1796,10 +1793,35 @@ function addViewLessons(
 		const istCancelled = lesson.state === LessonState.CANCELED || lesson.state === LessonState.FREE || isRescheduled
 		if (!config.views.lessons.showCanceled && istCancelled) continue
 
+		const padding = 4
+		const innerSpacing = config.appearance.spacing
+		// the width including: padding, subject, spacing and icon
+		const lessonWidth =
+			2 * padding +
+			getCharWidth(config.appearance.fontSize) * MAX_SUBJECT_NAME_LENGTH +
+			innerSpacing +
+			getCharHeight(config.appearance.fontSize)
+		log(`lessonWidth: ${lessonWidth}`)
+		const timeWidth = getTextWidth(MAX_TIME_STRING, config.appearance.fontSize) + 2 * padding
+		log(`timeWidth: ${timeWidth}`)
+		let currentWidth = lessonWidth + config.appearance.spacing + timeWidth
+		log(`currentWidth: ${currentWidth}`)
+		let showToTime = false
+		log(`width: ${width}`)
+
+		// check if there is space for a "to" time
+		if (currentWidth + config.appearance.spacing + timeWidth <= width) {
+			showToTime = config.views.lessons.showEndTimes
+			log(`showToTime: ${showToTime}`)
+			currentWidth += config.appearance.spacing + timeWidth
+		}
+
 		// only show the time if the previous lesson didn't start at the same time
 		const showTime = !previousLesson || previousLesson.from.getTime() !== lesson.from.getTime()
-		const useSubjectLongName = width > getCharWidth(config.appearance.fontSize) * 20
-		addWidgetLesson(lesson, container, config, showTime, useSubjectLongName)
+		// if there is space for more text (longer subject name)
+		const useSubjectLongName =
+			currentWidth + MAX_LONG_SUBJECT_NAME_LENGTH + getCharWidth(config.appearance.fontSize) <= width
+		addWidgetLesson(lesson, container, config, { showTime, showToTime, useSubjectLongName })
 
 		itemCount++
 		remainingHeight -= lessonHeight
@@ -1958,8 +1980,13 @@ function addSymbol(name: string, to: WidgetStack | ListWidget, options: { color:
 /**
  * Adds a break to the widget.
  */
-function addBreak(to: WidgetStack | ListWidget, breakFrom: Date, config: Config) {
-	const breakContainer = makeTimelineEntry(to, breakFrom, true, colors.background.primary, config)
+function addBreak(to: WidgetStack | ListWidget, breakFrom: Date, breakTo: Date, config: Config) {
+	const breakContainer = makeTimelineEntry(to, breakFrom, config, {
+		backgroundColor: colors.background.primary,
+		showTime: true,
+		showToTime: config.views.lessons.showEndTimes,
+		toTime: breakTo,
+	})
 	const breakTitle = breakContainer.addText('Break')
 	breakTitle.font = Font.mediumSystemFont(config.appearance.fontSize)
 	breakTitle.textColor = colors.text.secondary
@@ -1969,9 +1996,13 @@ function addBreak(to: WidgetStack | ListWidget, breakFrom: Date, config: Config)
 function makeTimelineEntry(
 	to: WidgetStack | ListWidget,
 	time: Date,
-	showTime: boolean,
-	backgroundColor: Color,
-	config: Config
+	config: Config,
+	options: {
+		showTime?: boolean
+		showToTime?: boolean
+		toTime?: Date
+		backgroundColor?: Color
+	} = { showTime: true }
 ) {
 	const padding = 4
 
@@ -1980,26 +2011,43 @@ function makeTimelineEntry(
 	lessonWrapper.spacing = config.appearance.spacing
 
 	const lessonContainer = lessonWrapper.addStack()
-	lessonContainer.backgroundColor = backgroundColor
+	lessonContainer.backgroundColor = options.backgroundColor
 	lessonContainer.layoutHorizontally()
 	lessonContainer.setPadding(padding, padding, padding, padding)
 	lessonContainer.cornerRadius = config.appearance.cornerRadius
 
-	if (showTime) {
-		const dateWrapper = lessonWrapper.addStack()
-		dateWrapper.backgroundColor = backgroundColor
-		dateWrapper.setPadding(padding, padding, padding, padding)
-		dateWrapper.cornerRadius = config.appearance.cornerRadius
-		dateWrapper.size = new Size(
+	if (options.showTime) {
+		const timeWrapper = lessonWrapper.addStack()
+		timeWrapper.backgroundColor = options.backgroundColor
+		timeWrapper.setPadding(padding, padding, padding, padding)
+		timeWrapper.cornerRadius = config.appearance.cornerRadius
+		timeWrapper.size = new Size(
 			getTextWidth(MAX_TIME_STRING, config.appearance.fontSize) + 2 * padding,
 			getCharHeight(config.appearance.fontSize) + 2 * padding
 		)
 
-		const date = dateWrapper.addDate(new Date(time))
-		date.font = Font.mediumSystemFont(config.appearance.fontSize)
-		date.textColor = colors.text.primary
-		date.rightAlignText()
-		date.applyTimeStyle()
+		const timeText = timeWrapper.addDate(new Date(time))
+		timeText.font = Font.mediumSystemFont(config.appearance.fontSize)
+		timeText.textColor = colors.text.primary
+		timeText.rightAlignText()
+		timeText.applyTimeStyle()
+
+		if (options.showToTime) {
+			const timeToWrapper = lessonWrapper.addStack()
+			timeToWrapper.backgroundColor = options.backgroundColor
+			timeToWrapper.setPadding(padding, padding, padding, padding)
+			timeToWrapper.cornerRadius = config.appearance.cornerRadius
+			timeToWrapper.size = new Size(
+				getTextWidth(MAX_TIME_STRING, config.appearance.fontSize) + 2 * padding,
+				getCharHeight(config.appearance.fontSize) + 2 * padding
+			)
+
+			const timeToText = timeToWrapper.addDate(new Date(options.toTime))
+			timeToText.font = Font.mediumSystemFont(config.appearance.fontSize)
+			timeToText.textColor = colors.text.primary
+			timeToText.rightAlignText()
+			timeToText.applyTimeStyle()
+		}
 	}
 
 	return lessonContainer
@@ -2009,8 +2057,15 @@ function addWidgetLesson(
 	lesson: TransformedLesson,
 	to: ListWidget | WidgetStack,
 	config: Config,
-	showTime = true,
-	useSubjectLongName = false
+	options: {
+		showTime: boolean
+		showToTime: boolean
+		useSubjectLongName: boolean
+	} = {
+		showTime: true,
+		showToTime: false,
+		useSubjectLongName: false,
+	}
 ) {
 	const isCanceled = lesson.state === LessonState.CANCELED
 	const isCanceledOrFree = isCanceled || lesson.state === LessonState.FREE
@@ -2029,11 +2084,16 @@ function addWidgetLesson(
 	}
 
 	// add the entry with the time
-	const lessonContainer = makeTimelineEntry(to, lesson.from, showTime, backgroundColor, config)
+	const lessonContainer = makeTimelineEntry(to, lesson.from, config, {
+		showTime: options.showTime,
+		showToTime: options.showToTime,
+		toTime: lesson.to,
+		backgroundColor: backgroundColor,
+	})
 	lessonContainer.spacing = config.appearance.spacing
 
 	// add the name of the subject
-	const lessonText = lessonContainer.addText(getSubjectTitle(lesson, useSubjectLongName))
+	const lessonText = lessonContainer.addText(getSubjectTitle(lesson, options.useSubjectLongName))
 	lessonText.font = Font.semiboldSystemFont(config.appearance.fontSize)
 	lessonText.textColor = textColor
 	lessonText.leftAlignText()
