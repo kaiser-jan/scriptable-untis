@@ -9,13 +9,15 @@ A widget used to display information from Untis.
 This includes upcoming lessons, exams and grades.
 */
 
-const CURRENT_DATETIME = new Date() // '2022-09-15T14:00' or '2022-09-19T12:30'
+const CURRENT_DATETIME = new Date('2022-12-02T10:15') // '2022-09-15T14:00' or '2022-09-19T12:30'
 
 //#region Constants
 
 const LOCALE = Device.locale().replace('_', '-')
 const FOOTER_HEIGHT = 20
 const PREVIEW_WIDGET_SIZE: typeof config.widgetFamily = 'medium'
+// the layout is a list of views separated by commas, the columns are separated by pipes "|"
+const defaultLayout = 'lessons'
 
 let usingOldCache = false
 
@@ -1716,9 +1718,6 @@ function addViewLessons(
 		if (previousLesson) {
 			// if the gap between the previous lesson and this lesson is too big, add a break
 			const gapDuration = lesson.from.getTime() - previousLesson.to.getTime()
-			console.log(gapDuration)
-			console.log(config.config.breakMax)
-			console.log(config.views.lessons.showLongBreaks)
 			if (previousLesson && config.views.lessons.showLongBreaks && gapDuration > config.config.breakMax * 60 * 1000) {
 				addBreak(container, previousLesson.to, config)
 				itemCount++
@@ -1743,6 +1742,21 @@ function addViewLessons(
 		if (count && itemCount >= count) break
 		// exit if it would get too big
 		if (remainingHeight - lessonHeight < 0) break
+	}
+
+	// add a "+ x more" if there are more lessons and there is enough space
+	if (lessons.length > itemCount && remainingHeight > getCharHeight(12)) {
+		const realLessons = filterCanceledLessons(lessons.slice(itemCount - 1))
+		const dayToString = asNumericTime(realLessons[realLessons.length - 1].to)
+		// count the number of remaining lessons including the duration
+		const lessonCount = realLessons.reduce((acc, lesson) => {
+			log(lesson.duration)
+			return acc + lesson.duration
+		}, 0)
+		const andMoreText = container.addText(` + ${lessonCount} more, until ${dayToString}`)
+		andMoreText.font = Font.regularSystemFont(12)
+		andMoreText.textColor = colors.text.secondary
+		remainingHeight -= getCharHeight(12) + config.appearance.spacing
 	}
 
 	return height - remainingHeight
@@ -1777,6 +1791,15 @@ function addViewPreview(
 	return currentHeight
 }
 
+function filterCanceledLessons(lessons: TransformedLesson[]) {
+	// filter out lessons which don't take place
+	return lessons.filter((lesson) => {
+		if (lesson.state === LessonState.FREE || lesson.state === LessonState.CANCELED) return false
+		if (lesson.state === LessonState.RESCHEDULED && lesson.rescheduleInfo?.isSource) return false
+		return true
+	})
+}
+
 function addPreviewTitle(container: ListWidget | WidgetStack, lessons: TransformedLesson[], nextDayKey: string, width: number) {
 	const nextDayHeader = container.addStack()
 	nextDayHeader.layoutHorizontally()
@@ -1794,16 +1817,9 @@ function addPreviewTitle(container: ListWidget | WidgetStack, lessons: Transform
 	nextDayHeader.addSpacer()
 
 	// show from when to when the next day takes place
-	// filter out lessons which don't take place
-	const lessonsNextDay = lessons.filter((lesson) => {
-		if (lesson.state === LessonState.FREE || lesson.state === LessonState.CANCELED) return false
-		if (lesson.state === LessonState.RESCHEDULED && lesson.rescheduleInfo?.isSource) return false
-		return true
-	})
-	const dayFrom = lessonsNextDay[0].from
-	const dayFromString = dayFrom.toLocaleTimeString(LOCALE, { hour: 'numeric', minute: 'numeric' })
-	const dayTo = lessonsNextDay[lessonsNextDay.length - 1].to
-	const dayToString = dayTo.toLocaleTimeString(LOCALE, { hour: 'numeric', minute: 'numeric' })
+	const realLessons = filterCanceledLessons(lessons)
+	const dayFromString = asNumericTime(realLessons[0].from)
+	const dayToString = asNumericTime(realLessons[realLessons.length - 1].to)
 
 	const fromToText = nextDayHeader.addText(`${dayFromString} - ${dayToString}`)
 	fromToText.font = Font.mediumSystemFont(14)
@@ -1855,7 +1871,7 @@ function addPreviewList(container: WidgetStack, lessons: TransformedLesson[], co
 /**
  * Adds a SFSymbol with the correct outer size to match the font size.
  */
-function addSymbol(name: string, to: WidgetStack | ListWidget, options: { color: Color; size: number, outerSize?: number }) {
+function addSymbol(name: string, to: WidgetStack | ListWidget, options: { color: Color, size: number, outerSize?: number }) {
 	const icon = SFSymbol.named(name)
 	icon.applyFont(Font.mediumSystemFont(options.size))
 	const iconImage = to.addImage(icon.image)
@@ -2578,9 +2594,6 @@ function scheduleNotification(
 const viewNames = ['lessons', 'preview', 'exams', 'grades', 'absences', 'roles'] as const
 type ViewName = typeof viewNames[number]
 
-// the layout is a list of views separated by commas, the columns are separated by pipes
-const defaultLayout = 'lessons,preview|exams,grades,absences'
-
 function parseLayoutString(layoutString: string) {
 	let layout: ViewName[][] = []
 	for (const column of layoutString.split('|')) {
@@ -3093,7 +3106,7 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 			console.log(`Added view ${view} with height ${viewHeight}, remaining height: ${remainingHeight}`)
 		}
 
-		if (remainingHeight > 4) {
+		if (remainingHeight) {
 			// add spacer to fill the remaining space
 			columnStack.addSpacer(remainingHeight - 2)
 		}
