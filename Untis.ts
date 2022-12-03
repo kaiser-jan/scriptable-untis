@@ -16,6 +16,7 @@ const CURRENT_DATETIME = new Date('2022-12-02T10:15') // '2022-09-15T14:00' or '
 const LOCALE = Device.locale().replace('_', '-')
 const FOOTER_HEIGHT = 20
 const PREVIEW_WIDGET_SIZE: typeof config.widgetFamily = 'medium'
+const MAX_TIME_STRING = '10:00'
 // the layout is a list of views separated by commas, the columns are separated by pipes "|"
 const defaultLayout = 'lessons'
 
@@ -1456,6 +1457,7 @@ const defaultConfig = {
 		cornerRadius: 4,
 		spacing: 6,
 		padding: 8,
+		fontSize: 14,
 	},
 	summary: {
 		showMultiplier: true,
@@ -1473,16 +1475,19 @@ type Config = typeof defaultConfig
 function deepMerge(target: any, source: any) {
 	for (const key in source) {
 		// recursively merge objects, ensure that the property exists on the target
-		if (typeof source[key] === 'object' && source[key] !== null && key in target) {
-			deepMerge(source[key], target[key])
+		if (source[key] instanceof Object) {
+			if (!(key in target)) {
+				target[key] = {}
+			}
+			deepMerge(target[key], source[key])
 		} else {
 			target[key] = source[key]
+			log(`Config: Overriding ${key} with ${source[key]}`)
 		}
 	}
 
 	// Join `target` and modified `source`
 	Object.assign(target || {}, source)
-	log(target)
 	return target
 }
 
@@ -1501,7 +1506,7 @@ function addViewAbsences(
 	options: Options
 ) {
 	let remainingHeight = height
-	const lineHeight = getCharHeight(14)
+	const lineHeight = getCharHeight(options.appearance.fontSize)
 	const padding = 4
 
 	if (height < lineHeight + 2 * padding) return 0
@@ -1526,12 +1531,17 @@ function addViewAbsences(
 			absenceContainer
 		)
 
-		flowLayoutRow.addIcon('pills.circle', 14, colors.text.secondary)
+		flowLayoutRow.addIcon('pills.circle', options.appearance.fontSize, colors.text.secondary)
 
 		// if the absence is not longer than one day, show the date and duration
 		if (absence.to.getDate() === absence.from.getDate() && absence.to.getMonth() === absence.from.getMonth()) {
 			const fromDate = absence.from.toLocaleDateString(LOCALE, { day: '2-digit', month: 'short' })
-			flowLayoutRow.addText(fromDate, Font.mediumSystemFont(14), 14, colors.text.primary)
+			flowLayoutRow.addText(
+				fromDate,
+				Font.mediumSystemFont(options.appearance.fontSize),
+				options.appearance.fontSize,
+				colors.text.primary
+			)
 
 			// the duration in minutes
 			const duration = (absence.to.getTime() - absence.from.getTime()) / 1000 / 60
@@ -1541,15 +1551,35 @@ function addViewAbsences(
 				.padStart(2, '0')
 			// the duration as hh:mm
 			const durationString = `${hours}h${minutes}`
-			flowLayoutRow.addText(durationString, Font.mediumSystemFont(14), 14, colors.text.secondary)
+			flowLayoutRow.addText(
+				durationString,
+				Font.mediumSystemFont(options.appearance.fontSize),
+				options.appearance.fontSize,
+				colors.text.secondary
+			)
 		}
 		// if the absence is longer than one day, show the start and end date as "dd.mm - dd.mm"
 		else {
 			const from = absence.from.toLocaleString(LOCALE, { day: 'numeric', month: 'short' })
 			const to = absence.to.toLocaleString(LOCALE, { day: 'numeric', month: 'short' })
-			flowLayoutRow.addText(from, Font.mediumSystemFont(14), 14, colors.text.primary)
-			flowLayoutRow.addText('-', Font.mediumSystemFont(14), 14, colors.text.secondary)
-			flowLayoutRow.addText(to, Font.mediumSystemFont(14), 14, colors.text.primary)
+			flowLayoutRow.addText(
+				from,
+				Font.mediumSystemFont(options.appearance.fontSize),
+				options.appearance.fontSize,
+				colors.text.primary
+			)
+			flowLayoutRow.addText(
+				'-',
+				Font.mediumSystemFont(options.appearance.fontSize),
+				options.appearance.fontSize,
+				colors.text.secondary
+			)
+			flowLayoutRow.addText(
+				to,
+				Font.mediumSystemFont(options.appearance.fontSize),
+				options.appearance.fontSize,
+				colors.text.primary
+			)
 		}
 
 		const { resultingWidth, resultingHeight } = flowLayoutRow.finish()
@@ -1572,7 +1602,7 @@ function addViewAbsences(
 
 function addViewExams(exams: TransformedExam[], count: number, { container, width, height }: ViewBuildData, config: Config) {
 	let remainingHeight = height
-	const lineHeight = getCharHeight(14)
+	const lineHeight = getCharHeight(config.appearance.fontSize)
 	const padding = 4
 
 	if (height < lineHeight + 2 * padding) return 0
@@ -1594,14 +1624,29 @@ function addViewExams(exams: TransformedExam[], count: number, { container, widt
 
 		const flowLayoutRow = new FlowLayoutRow(width, remainingHeight, config.appearance.spacing, padding, examContainer)
 
-		flowLayoutRow.addIcon('book.circle', 14, colors.text.secondary)
+		flowLayoutRow.addIcon('book.circle', config.appearance.fontSize, colors.text.secondary)
 
-		flowLayoutRow.addText(exam.subject, Font.mediumSystemFont(14), 14, colors.text.primary)
+		flowLayoutRow.addText(
+			exam.subject,
+			Font.mediumSystemFont(config.appearance.fontSize),
+			config.appearance.fontSize,
+			colors.text.primary
+		)
 
-		flowLayoutRow.addText(exam.type, Font.mediumSystemFont(14), 14, colors.text.secondary)
+		flowLayoutRow.addText(
+			exam.type,
+			Font.mediumSystemFont(config.appearance.fontSize),
+			config.appearance.fontSize,
+			colors.text.secondary
+		)
 
 		const date = exam.from.toLocaleString(LOCALE, { day: 'numeric', month: 'short' })
-		flowLayoutRow.addText(date, Font.regularSystemFont(14), 14, colors.text.secondary)
+		flowLayoutRow.addText(
+			date,
+			Font.regularSystemFont(config.appearance.fontSize),
+			config.appearance.fontSize,
+			colors.text.secondary
+		)
 
 		const { resultingWidth, resultingHeight } = flowLayoutRow.finish()
 
@@ -1625,10 +1670,10 @@ function addViewGrades(
 	grades: TransformedGrade[],
 	count: number,
 	{ container, width, height }: ViewBuildData,
-	options: Options
+	config: Options
 ) {
 	let remainingHeight = height
-	const lineHeight = getCharHeight(14)
+	const lineHeight = getCharHeight(config.appearance.fontSize)
 	const padding = 4
 
 	if (height < lineHeight + 2 * padding) return 0
@@ -1642,11 +1687,11 @@ function addViewGrades(
 
 		const gradeContainer = container.addStack()
 		gradeContainer.layoutHorizontally()
-		gradeContainer.spacing = options.appearance.spacing
+		gradeContainer.spacing = config.appearance.spacing
 		gradeContainer.backgroundColor = colors.background.primary
-		gradeContainer.cornerRadius = options.appearance.cornerRadius
+		gradeContainer.cornerRadius = config.appearance.cornerRadius
 
-		const flowLayoutRow = new FlowLayoutRow(width, remainingHeight, options.appearance.spacing, padding, gradeContainer)
+		const flowLayoutRow = new FlowLayoutRow(width, remainingHeight, config.appearance.spacing, padding, gradeContainer)
 
 		let usingIcon = true
 		let symbolName = 'circle'
@@ -1670,24 +1715,39 @@ function addViewGrades(
 		}
 
 		if (usingIcon) {
-			flowLayoutRow.addIcon(symbolName, 14, colors.text.primary)
+			flowLayoutRow.addIcon(symbolName, config.appearance.fontSize, colors.text.primary)
 		} else {
-			flowLayoutRow.addText(grade.mark.name, Font.mediumSystemFont(14), 14, colors.text.primary)
+			flowLayoutRow.addText(
+				grade.mark.name,
+				Font.mediumSystemFont(config.appearance.fontSize),
+				config.appearance.fontSize,
+				colors.text.primary
+			)
 		}
 
-		flowLayoutRow.addText(grade.subject, Font.mediumSystemFont(14), 14, colors.text.primary)
+		flowLayoutRow.addText(
+			grade.subject,
+			Font.mediumSystemFont(config.appearance.fontSize),
+			config.appearance.fontSize,
+			colors.text.primary
+		)
 
-		flowLayoutRow.addText(grade.examType.name, Font.regularSystemFont(14), 14, colors.text.secondary)
+		flowLayoutRow.addText(
+			grade.examType.name,
+			Font.regularSystemFont(config.appearance.fontSize),
+			config.appearance.fontSize,
+			colors.text.secondary
+		)
 
 		const { resultingWidth, resultingHeight } = flowLayoutRow.finish()
 
-		remainingHeight -= resultingHeight + options.appearance.spacing
+		remainingHeight -= resultingHeight + config.appearance.spacing
 
 		// exit if the max item count is reached
 		if (count && i >= count - 1) break
 
 		// exit if it would get too big, use the maximum height
-		if (remainingHeight - 3 * lineHeight + 2 * options.appearance.spacing < 0) break
+		if (remainingHeight - 3 * lineHeight + 2 * config.appearance.spacing < 0) break
 	}
 
 	return height - remainingHeight
@@ -1705,14 +1765,22 @@ function addViewLessons(
 ) {
 	// only allow up to x items to avoid overflow
 	let itemCount = 0
-	const lessonHeight = getCharHeight(14) + 8
+	const lessonHeight = getCharHeight(config.appearance.fontSize) + 8
 
 	let remainingHeight = height
+
+	log(`Starting with ${remainingHeight} height`)
 
 	// add the remaining lessons until the max item count is reached
 	for (let i = 0; i < lessons.length; i++) {
 		const previousLesson = lessons[i - 1]
 		const lesson = lessons[i]
+
+		// take into account the spacing between the lessons
+		if (i >= 1) {
+			remainingHeight -= config.appearance.spacing
+			log(`Subtracting spacing, now at ${remainingHeight} height`)
+		}
 
 		// check for a break if the previous lesson exists
 		if (previousLesson) {
@@ -1721,8 +1789,10 @@ function addViewLessons(
 			if (previousLesson && config.views.lessons.showLongBreaks && gapDuration > config.config.breakMax * 60 * 1000) {
 				addBreak(container, previousLesson.to, config)
 				itemCount++
-				remainingHeight -= lessonHeight + config.appearance.spacing
-				if ((count && itemCount >= count) || remainingHeight - lessonHeight < 0) break
+				remainingHeight -= config.appearance.spacing + lessonHeight
+				log(`Subtracting break, now at ${remainingHeight} height`)
+				if ((count && itemCount >= count) || remainingHeight < lessonHeight + config.appearance.spacing) break
+				log('Did not exit.')
 			}
 		}
 
@@ -1733,19 +1803,25 @@ function addViewLessons(
 
 		// only show the time if the previous lesson didn't start at the same time
 		const showTime = !previousLesson || previousLesson.from.getTime() !== lesson.from.getTime()
-		const useSubjectLongName = width > getCharWidth(14) * 20
+		const useSubjectLongName = width > getCharWidth(config.appearance.fontSize) * 20
 		addWidgetLesson(lesson, container, config, showTime, useSubjectLongName)
+
 		itemCount++
-		remainingHeight -= lessonHeight + config.appearance.spacing
+		remainingHeight -= lessonHeight
+
+		log(`Subtracting lesson, now at ${remainingHeight} height`)
 
 		// exit if the max item count is reached
 		if (count && itemCount >= count) break
 		// exit if it would get too big
-		if (remainingHeight - lessonHeight < 0) break
+		if (remainingHeight < lessonHeight + config.appearance.spacing) break
+
+		log('Did not exit.')
 	}
 
+	const remainingFontSize = config.appearance.fontSize * 0.8
 	// add a "+ x more" if there are more lessons and there is enough space
-	if (lessons.length > itemCount && remainingHeight > getCharHeight(12)) {
+	if (lessons.length > itemCount && remainingHeight > getCharHeight(remainingFontSize) + config.appearance.spacing) {
 		const realLessons = filterCanceledLessons(lessons.slice(itemCount - 1))
 		const dayToString = asNumericTime(realLessons[realLessons.length - 1].to)
 		// count the number of remaining lessons including the duration
@@ -1754,9 +1830,9 @@ function addViewLessons(
 			return acc + lesson.duration
 		}, 0)
 		const andMoreText = container.addText(` + ${lessonCount} more, until ${dayToString}`)
-		andMoreText.font = Font.regularSystemFont(12)
+		andMoreText.font = Font.regularSystemFont(remainingFontSize)
 		andMoreText.textColor = colors.text.secondary
-		remainingHeight -= getCharHeight(12) + config.appearance.spacing
+		remainingHeight -= getCharHeight(remainingFontSize) + config.appearance.spacing
 	}
 
 	return height - remainingHeight
@@ -1772,13 +1848,13 @@ function addViewPreview(
 	{ container, width, height }: ViewBuildData,
 	config: Config
 ) {
-	const titleHeight = getCharHeight(14)
-	const subjectHeight = getCharHeight(14) + 8
+	const titleHeight = getCharHeight(config.appearance.fontSize)
+	const subjectHeight = getCharHeight(config.appearance.fontSize) + 8
 	let currentHeight = 0
 
 	// add information about the next day if there is enough space
 	if (lessons && height > titleHeight) {
-		addPreviewTitle(container, lessons, nextDayKey, width)
+		addPreviewTitle(container, lessons, nextDayKey, width, config)
 		currentHeight += titleHeight + config.appearance.spacing
 
 		// TODO: might cause overflow, as the height is not checked
@@ -1800,17 +1876,23 @@ function filterCanceledLessons(lessons: TransformedLesson[]) {
 	})
 }
 
-function addPreviewTitle(container: ListWidget | WidgetStack, lessons: TransformedLesson[], nextDayKey: string, width: number) {
+function addPreviewTitle(
+	container: ListWidget | WidgetStack,
+	lessons: TransformedLesson[],
+	nextDayKey: string,
+	width: number,
+	config: Config
+) {
 	const nextDayHeader = container.addStack()
 	nextDayHeader.layoutHorizontally()
 	nextDayHeader.spacing = 4
 	nextDayHeader.bottomAlignContent()
 
 	// get the weekday string
-	const useLongName = width > 22 * getCharWidth(14)
+	const useLongName = width > 22 * getCharWidth(config.appearance.fontSize)
 	const weekdayFormat = useLongName ? 'long' : 'short'
 	const title = nextDayHeader.addText(new Date(nextDayKey).toLocaleDateString(LOCALE, { weekday: weekdayFormat }) + ':')
-	title.font = Font.semiboldSystemFont(14)
+	title.font = Font.semiboldSystemFont(config.appearance.fontSize)
 	title.textColor = colors.text.primary
 	title.lineLimit = 1
 
@@ -1822,7 +1904,7 @@ function addPreviewTitle(container: ListWidget | WidgetStack, lessons: Transform
 	const dayToString = asNumericTime(realLessons[realLessons.length - 1].to)
 
 	const fromToText = nextDayHeader.addText(`${dayFromString} - ${dayToString}`)
-	fromToText.font = Font.mediumSystemFont(14)
+	fromToText.font = Font.mediumSystemFont(config.appearance.fontSize)
 	fromToText.textColor = colors.text.primary
 }
 
@@ -1845,12 +1927,12 @@ function addPreviewList(container: WidgetStack, lessons: TransformedLesson[], co
 		// skip the subject if it is 'free'
 		if (lesson.state === LessonState.FREE) continue
 
-		let subjectWidth = getTextWidth(getSubjectTitle(lesson), 14) + 2 * padding
+		let subjectWidth = getTextWidth(getSubjectTitle(lesson), config.appearance.fontSize) + 2 * padding
 		if (config.summary.showMultiplier && lesson.duration > 1) {
-			subjectWidth += getTextWidth('x2', 14) + spacing
+			subjectWidth += getTextWidth('x2', config.appearance.fontSize) + spacing
 		}
 
-		const subjectContainer = flowLayoutRow.addContainer(subjectWidth, getCharHeight(15) + 8, true)
+		const subjectContainer = flowLayoutRow.addContainer(subjectWidth, getCharHeight(config.appearance.fontSize) + 8, true)
 
 		if (subjectContainer) {
 			convertToSubject(lesson, subjectContainer, config)
@@ -1871,7 +1953,7 @@ function addPreviewList(container: WidgetStack, lessons: TransformedLesson[], co
 /**
  * Adds a SFSymbol with the correct outer size to match the font size.
  */
-function addSymbol(name: string, to: WidgetStack | ListWidget, options: { color: Color, size: number, outerSize?: number }) {
+function addSymbol(name: string, to: WidgetStack | ListWidget, options: { color: Color; size: number; outerSize?: number }) {
 	const icon = SFSymbol.named(name)
 	icon.applyFont(Font.mediumSystemFont(options.size))
 	const iconImage = to.addImage(icon.image)
@@ -1888,7 +1970,7 @@ function addSymbol(name: string, to: WidgetStack | ListWidget, options: { color:
 function addBreak(to: WidgetStack | ListWidget, breakFrom: Date, config: Config) {
 	const breakContainer = makeTimelineEntry(to, breakFrom, true, colors.background.primary, config)
 	const breakTitle = breakContainer.addText('Break')
-	breakTitle.font = Font.mediumSystemFont(14)
+	breakTitle.font = Font.mediumSystemFont(config.appearance.fontSize)
 	breakTitle.textColor = colors.text.secondary
 	breakContainer.addSpacer()
 }
@@ -1900,6 +1982,8 @@ function makeTimelineEntry(
 	backgroundColor: Color,
 	config: Config
 ) {
+	const padding = 4
+
 	const lessonWrapper = to.addStack()
 	lessonWrapper.layoutHorizontally()
 	lessonWrapper.spacing = config.appearance.spacing
@@ -1907,18 +1991,21 @@ function makeTimelineEntry(
 	const lessonContainer = lessonWrapper.addStack()
 	lessonContainer.backgroundColor = backgroundColor
 	lessonContainer.layoutHorizontally()
-	lessonContainer.setPadding(4, 4, 4, 4)
+	lessonContainer.setPadding(padding, padding, padding, padding)
 	lessonContainer.cornerRadius = config.appearance.cornerRadius
 
 	if (showTime) {
 		const dateWrapper = lessonWrapper.addStack()
 		dateWrapper.backgroundColor = backgroundColor
-		dateWrapper.setPadding(4, 4, 4, 4)
+		dateWrapper.setPadding(padding, padding, padding, padding)
 		dateWrapper.cornerRadius = config.appearance.cornerRadius
-		dateWrapper.size = new Size(48, getCharHeight(14) + 8)
+		dateWrapper.size = new Size(
+			getTextWidth(MAX_TIME_STRING, config.appearance.fontSize) + 2 * padding,
+			getCharHeight(config.appearance.fontSize) + 2 * padding
+		)
 
 		const date = dateWrapper.addDate(new Date(time))
-		date.font = Font.mediumSystemFont(14)
+		date.font = Font.mediumSystemFont(config.appearance.fontSize)
 		date.textColor = colors.text.primary
 		date.rightAlignText()
 		date.applyTimeStyle()
@@ -1956,7 +2043,7 @@ function addWidgetLesson(
 
 	// add the name of the subject
 	const lessonText = lessonContainer.addText(getSubjectTitle(lesson, useSubjectLongName))
-	lessonText.font = Font.semiboldSystemFont(14)
+	lessonText.font = Font.semiboldSystemFont(config.appearance.fontSize)
 	lessonText.textColor = textColor
 	lessonText.leftAlignText()
 	lessonText.lineLimit = 1
@@ -1964,7 +2051,7 @@ function addWidgetLesson(
 	// add a x2 for double lessons etc.
 	if (lesson.duration > 1) {
 		const durationText = lessonContainer.addText(`x${lesson.duration}`)
-		durationText.font = Font.mediumSystemFont(14)
+		durationText.font = Font.mediumSystemFont(config.appearance.fontSize)
 		durationText.textColor = isCanceled ? colors.text.disabled : colors.text.secondary
 	}
 
@@ -1999,21 +2086,24 @@ function addWidgetLesson(
 	if (lesson.isRescheduled && lesson.rescheduleInfo?.isSource) {
 		const iconShift = addSymbol('arrow.right', lessonContainer, {
 			color: isCanceled ? colors.text.disabled : colors.text.secondary,
-			size: 12,
+			size: config.appearance.fontSize * 0.8,
 		})
 		// manually correct the arrow box
-		iconShift.imageSize = new Size(getCharWidth(12), getCharHeight(14))
+		iconShift.imageSize = new Size(
+			getCharWidth(config.appearance.fontSize * 0.8),
+			getCharHeight(config.appearance.fontSize)
+		)
 		// display the time it was rescheduled to
 		// const rescheduledTimeWrapper = lessonContainer.addStack()
 		const rescheduledTime = lessonContainer.addText(asNumericTime(lesson.rescheduleInfo?.otherFrom))
-		rescheduledTime.font = Font.mediumSystemFont(14)
+		rescheduledTime.font = Font.mediumSystemFont(config.appearance.fontSize)
 		rescheduledTime.textColor = isCanceled ? colors.text.disabled : colors.text.secondary
 	}
 
 	if (iconName) {
 		// TODO: this does not work properly (min width?) - e.g. 2022-09-19
 		lessonContainer.addSpacer()
-		addSymbol(iconName, lessonContainer, { color: iconColor, size: 14 })
+		addSymbol(iconName, lessonContainer, { color: iconColor, size: config.appearance.fontSize })
 	}
 }
 
@@ -2050,7 +2140,7 @@ function convertToSubject(lesson: TransformedLesson, container: WidgetStack, con
 
 	// add the name of the subject
 	const subjectText = container.addText(getSubjectTitle(lesson))
-	subjectText.font = Font.mediumSystemFont(14)
+	subjectText.font = Font.mediumSystemFont(config.appearance.fontSize)
 	subjectText.textColor = textColor
 	subjectText.leftAlignText()
 	subjectText.minimumScaleFactor = 1
@@ -2059,7 +2149,7 @@ function convertToSubject(lesson: TransformedLesson, container: WidgetStack, con
 	// add a x2 for double lessons etc.
 	if (config.summary.showMultiplier && lesson.duration > 1) {
 		const durationText = container.addText(`x${lesson.duration}`)
-		durationText.font = Font.mediumSystemFont(14)
+		durationText.font = Font.mediumSystemFont(config.appearance.fontSize)
 		durationText.textColor = colors.text.secondary
 	}
 }
@@ -2547,7 +2637,7 @@ function getTextWidth(text: string, fontSize: number) {
 	let normalCharCount = text.length - reallyNarrowCharCount - narrowCharCount - wideCharCount
 
 	// approximate the width of the text
-	return charWidth * (normalCharCount + reallyNarrowCharCount * 0.5 + narrowCharCount * 0.75 + wideCharCount * 1.25)
+	return charWidth * (normalCharCount + reallyNarrowCharCount * 0.4 + narrowCharCount * 0.75 + wideCharCount * 1.25)
 }
 
 function asMilliseconds(duration: number, unit: 'seconds' | 'minutes' | 'hours' | 'days') {
@@ -3034,7 +3124,7 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 
 		for (const view of column) {
 			// exit if there is not enough space left
-			if (remainingHeight <= getCharHeight(14)) continue
+			if (remainingHeight <= getCharHeight(options.appearance.fontSize)) continue
 
 			const viewData: ViewBuildData = {
 				container: columnStack,
