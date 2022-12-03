@@ -85,6 +85,7 @@ interface TransformedLesson {
 		otherTo: Date
 	}
 
+	break?: number
 	duration: number
 	backgroundColor?: string
 }
@@ -869,6 +870,10 @@ function combineLessons(lessons: TransformedLesson[], config: Config, ignoreDeta
 			previousLesson &&
 			shouldCombineLessons(previousLesson, lesson, config, ignoreDetails, ignoreBreaks)
 		) {
+			// update the break duration
+			if (!previousLesson.break) previousLesson.break = 0
+			previousLesson.break += lesson.from.getTime() - previousLesson.to.getTime()
+
 			previousLesson.to = lesson.to
 			previousLesson.duration++
 		} else {
@@ -1452,7 +1457,7 @@ const defaultConfig = {
 			maxCount: 8,
 			showCanceled: true,
 			showLongBreaks: true,
-			skipShortBreaks: false,
+			skipShortBreaks: true,
 			showEndTimes: true,
 		},
 		exams: {
@@ -1525,6 +1530,9 @@ function addViewAbsences(
 
 		if (absence.isExcused) continue
 
+		// subtract the spacing between the items
+		if (i > 0) remainingHeight -= options.appearance.spacing
+
 		const absenceContainer = container.addStack()
 		absenceContainer.layoutHorizontally()
 		absenceContainer.spacing = options.appearance.spacing
@@ -1592,7 +1600,7 @@ function addViewAbsences(
 
 		const { resultingWidth, resultingHeight } = flowLayoutRow.finish()
 
-		remainingHeight -= resultingHeight + options.appearance.spacing
+		remainingHeight -= resultingHeight
 
 		// exit if the max item count is reached
 		if (count && i >= count - 1) break
@@ -1623,6 +1631,9 @@ function addViewExams(exams: TransformedExam[], count: number, { container, widt
 
 		// continue if the exam has already passed
 		if (exam.to < CURRENT_DATETIME) continue
+
+		// subtract the spacing between the items
+		if (i > 0) remainingHeight -= config.appearance.spacing
 
 		const examContainer = container.addStack()
 		examContainer.layoutHorizontally()
@@ -1658,7 +1669,7 @@ function addViewExams(exams: TransformedExam[], count: number, { container, widt
 
 		const { resultingWidth, resultingHeight } = flowLayoutRow.finish()
 
-		remainingHeight -= resultingHeight + config.appearance.spacing
+		remainingHeight -= resultingHeight
 
 		// exit if the max item count is reached
 		if (count && i >= count - 1) break
@@ -1692,6 +1703,9 @@ function addViewGrades(
 	// add the remaining lessons until the max item count is reached
 	for (let i = 0; i < sortedGrades.length; i++) {
 		const grade = sortedGrades[i]
+
+		// subtract the spacing between the items
+		if (i > 0) remainingHeight -= config.appearance.spacing
 
 		const gradeContainer = container.addStack()
 		gradeContainer.layoutHorizontally()
@@ -1749,7 +1763,7 @@ function addViewGrades(
 
 		const { resultingWidth, resultingHeight } = flowLayoutRow.finish()
 
-		remainingHeight -= resultingHeight + config.appearance.spacing
+		remainingHeight -= resultingHeight
 
 		// exit if the max item count is reached
 		if (count && i >= count - 1) break
@@ -1773,9 +1787,10 @@ function addViewLessons(
 ) {
 	// only allow up to x items to avoid overflow
 	let itemCount = 0
-	const lessonHeight = getCharHeight(config.appearance.fontSize) + 8
 
 	const padding = 4
+	const lessonHeight = getCharHeight(config.appearance.fontSize) + 2 * padding
+
 	const innerSpacing = config.appearance.spacing
 	// the width including: padding, subject, spacing and icon
 	const lessonWidth =
@@ -1791,7 +1806,6 @@ function addViewLessons(
 	// check if there is space for a "to" time
 	if (currentWidth + config.appearance.spacing + timeWidth <= width) {
 		showToTime = config.views.lessons.showEndTimes
-		log(`showToTime: ${showToTime}`)
 		currentWidth += config.appearance.spacing + timeWidth
 	}
 
@@ -1803,7 +1817,7 @@ function addViewLessons(
 		const lesson = lessons[i]
 
 		// take into account the spacing between the lessons
-		if (i >= 1) {
+		if (i > 0) {
 			remainingHeight -= config.appearance.spacing
 		}
 
@@ -2091,11 +2105,17 @@ function addWidgetLesson(
 		iconColor = colors.text.disabled
 	}
 
+	// consider breaks during the combined lesson
+	let toTime = lesson.to
+	if (config.views.lessons.skipShortBreaks && lesson.break) {
+		toTime = new Date(lesson.to.getTime() - lesson.break)
+	}
+
 	// add the entry with the time
 	const lessonContainer = makeTimelineEntry(to, lesson.from, config, {
 		showTime: options.showTime,
 		showToTime: options.showToTime,
-		toTime: lesson.to,
+		toTime: toTime,
 		backgroundColor: backgroundColor,
 	})
 	lessonContainer.spacing = config.appearance.spacing
@@ -3183,14 +3203,15 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 		columnStack.spacing = options.appearance.spacing
 
 		// calculate the real available height
-		const availableContentHeight = options.footer.show
-			? contentSize.height - getFooterHeight(options) - options.appearance.spacing
-			: contentSize.height
+		let availableContentHeight = contentSize.height
+		if (options.footer.show) availableContentHeight -= getFooterHeight(options)
 
 		columnStack.size = new Size(columnWidth, availableContentHeight)
 
 		let remainingHeight = availableContentHeight
 		let isFirstView = true
+
+		console.log(`Column has ${availableContentHeight} available height`)
 
 		for (const view of column) {
 			// exit if there is not enough space left
@@ -3268,7 +3289,7 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 
 		if (remainingHeight) {
 			// add spacer to fill the remaining space
-			columnStack.addSpacer(remainingHeight - 2)
+			columnStack.addSpacer(remainingHeight - options.appearance.spacing)
 		}
 	}
 
@@ -3285,6 +3306,7 @@ function getFooterHeight(config: Config) {
 
 function addFooter(container: WidgetStack | ListWidget, width: number, config: Config) {
 	const footerGroup = container.addStack()
+
 	footerGroup.layoutHorizontally()
 	footerGroup.spacing = 4
 	footerGroup.bottomAlignContent()
