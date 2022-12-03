@@ -3287,9 +3287,11 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 			console.log(`Added view ${view} with height ${viewHeight}, remaining height: ${remainingHeight}`)
 		}
 
-		if (remainingHeight) {
+		if (remainingHeight > options.appearance.spacing) {
 			// add spacer to fill the remaining space
-			columnStack.addSpacer(remainingHeight - options.appearance.spacing)
+			let space = remainingHeight - options.appearance.spacing
+			if (space < 0) space = 0
+			columnStack.addSpacer(space)
 		}
 	}
 
