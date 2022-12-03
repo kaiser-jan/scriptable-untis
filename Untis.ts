@@ -456,7 +456,7 @@ async function fetchLessonsFor(user: FullUser, date: Date = new Date(), config: 
 	const timetableData = timetableJson.data.result.data
 	const lessons: Lesson[] = timetableData.elementPeriods[user.id.toString()]
 
-	console.log(`📅 Got timetable with ${lessons.length} lessons and ${timetableData.elements.length} elements`)
+	console.log(`📅 Fetched timetable with ${lessons.length} lessons and ${timetableData.elements.length} elements`)
 
 	const transformedLessons = transformLessons(lessons, timetableData.elements, config)
 
@@ -478,7 +478,7 @@ async function fetchExamsFor(user: FullUser, from: Date, to: Date) {
 	}
 
 	const exams: Exam[] = json.data.exams
-	console.log(`📅 Got ${exams.length} exams`)
+	console.log(`📅 Fetched ${exams.length} exams`)
 
 	const transformedExams = transformExams(exams)
 	return transformedExams
@@ -497,7 +497,7 @@ async function fetchGradesFor(user: FullUser, from: Date, to: Date) {
 	}
 
 	const grades: Grade[] = json.data
-	console.log(`📅 Got ${grades.length} grades`)
+	console.log(`📅 Fetched ${grades.length} grades`)
 
 	const transformedGrades = transformGrades(grades)
 	return transformedGrades
@@ -516,7 +516,7 @@ async function fetchAbsencesFor(user: FullUser, from: Date, to: Date) {
 	}
 
 	const absences: Absence[] = json.data.absences
-	console.log(`📅 Got ${absences.length} absences`)
+	console.log(`📅 Fetched ${absences.length} absences`)
 
 	const transformedAbsences = transformAbsences(absences)
 	return transformedAbsences
@@ -535,7 +535,7 @@ async function fetchClassRolesFor(user: FullUser, from: Date, to: Date) {
 	}
 
 	const classRoles: ClassRole[] = json.data.classRoles
-	console.log(`📅 Got ${classRoles.length} class roles`)
+	console.log(`📅 Fetched ${classRoles.length} class roles`)
 
 	const transformedClassRoles = transformClassRoles(classRoles)
 	return transformedClassRoles
@@ -551,7 +551,7 @@ async function fetchSchoolYears(user: FullUser) {
 		console.warn('⚠️ Could not fetch school years!')
 	}
 
-	console.log(`📅 Got ${json.length} school years`)
+	console.log(`📅 Fetched ${json.length} school years`)
 
 	const transformedSchoolYears = transformSchoolYears(json)
 	return transformedSchoolYears
@@ -589,7 +589,7 @@ async function prepareUser(options: Options, ignoreCache = false): Promise<FullU
 			return cachedUser
 		}
 	} else {
-		console.log('Ignoring cache.')
+		console.log('Ignoring user cache.')
 	}
 
 	// get the user data from the keychain
@@ -652,6 +652,7 @@ function writeToCache(data: Object, cacheName: string) {
 	}
 	const cachePath = fileManager.joinPath(untisCacheDirectory, `${cacheName}.json`)
 	fileManager.writeString(cachePath, JSON.stringify(data))
+	console.log(`Wrote cache for ${cacheName}.`)
 }
 
 //#endregion
@@ -670,14 +671,15 @@ async function getCachedOrFetch<T>(
 
 	// refetch if the cache is too old (max age exceeded or not the same day)
 	if (!cachedData || cacheAge > maxAge || cacheDate.getDate() !== CURRENT_DATETIME.getDate()) {
-		log(`Fetching data ${key}, cache invalid.`)
+		console.log(`Fetching data ${key}, cache invalid.`)
 		try {
 			fetchedData = await fetchData()
 			writeToCache(fetchedData, key)
 		} catch (error) {
 			const castedError = error as Error
+			// TODO: this does not help, as fetching the user already fails
 			if (castedError.message.toLowerCase() === ScriptableErrors.NO_INTERNET.toLowerCase()) {
-				log('No internet connection, falling back to old cached data.')
+				console.log('No internet connection, falling back to old cached data.')
 				usingOldCache = true
 				return cachedData
 			}
@@ -1470,7 +1472,7 @@ const defaultConfig = {
 type Config = typeof defaultConfig
 
 /**
- * A function to merge properties of the source object (may be incomplete) into the target object.
+ * Merges the properties of the source object (may be incomplete) into the target object.
  */
 function deepMerge(target: any, source: any) {
 	for (const key in source) {
@@ -1482,7 +1484,6 @@ function deepMerge(target: any, source: any) {
 			deepMerge(target[key], source[key])
 		} else {
 			target[key] = source[key]
-			log(`Config: Overriding ${key} with ${source[key]}`)
 		}
 	}
 
@@ -1769,8 +1770,6 @@ function addViewLessons(
 
 	let remainingHeight = height
 
-	log(`Starting with ${remainingHeight} height`)
-
 	// add the remaining lessons until the max item count is reached
 	for (let i = 0; i < lessons.length; i++) {
 		const previousLesson = lessons[i - 1]
@@ -1779,7 +1778,6 @@ function addViewLessons(
 		// take into account the spacing between the lessons
 		if (i >= 1) {
 			remainingHeight -= config.appearance.spacing
-			log(`Subtracting spacing, now at ${remainingHeight} height`)
 		}
 
 		// check for a break if the previous lesson exists
@@ -1790,9 +1788,7 @@ function addViewLessons(
 				addBreak(container, previousLesson.to, config)
 				itemCount++
 				remainingHeight -= config.appearance.spacing + lessonHeight
-				log(`Subtracting break, now at ${remainingHeight} height`)
 				if ((count && itemCount >= count) || remainingHeight < lessonHeight + config.appearance.spacing) break
-				log('Did not exit.')
 			}
 		}
 
@@ -1809,14 +1805,10 @@ function addViewLessons(
 		itemCount++
 		remainingHeight -= lessonHeight
 
-		log(`Subtracting lesson, now at ${remainingHeight} height`)
-
 		// exit if the max item count is reached
 		if (count && itemCount >= count) break
 		// exit if it would get too big
 		if (remainingHeight < lessonHeight + config.appearance.spacing) break
-
-		log('Did not exit.')
 	}
 
 	const remainingFontSize = config.appearance.fontSize * 0.8
@@ -1826,10 +1818,10 @@ function addViewLessons(
 		const dayToString = asNumericTime(realLessons[realLessons.length - 1].to)
 		// count the number of remaining lessons including the duration
 		const lessonCount = realLessons.reduce((acc, lesson) => {
-			log(lesson.duration)
 			return acc + lesson.duration
 		}, 0)
 		const andMoreText = container.addText(` + ${lessonCount} more, until ${dayToString}`)
+		console.log(`Added label for ${lessonCount} more lessons until ${dayToString}`)
 		andMoreText.font = Font.regularSystemFont(remainingFontSize)
 		andMoreText.textColor = colors.text.secondary
 		remainingHeight -= getCharHeight(remainingFontSize) + config.appearance.spacing
@@ -2166,7 +2158,7 @@ function getAppDirectory() {
 	const appDirectory = fileManager.joinPath(fileManager.documentsDirectory(), appFolderName)
 
 	if (!fileManager.fileExists(appDirectory)) {
-		console.log('Created app folder.')
+		console.log('Created app directory.')
 		fileManager.createDirectory(appDirectory, true)
 	}
 
@@ -2221,7 +2213,7 @@ class FlowLayoutRow {
 
 	private addRow() {
 		if (this.previousTotalHeight > this.maxHeight) {
-			console.warn('FlowLayoutRow: Cannot add row, max height reached')
+			// console.warn('FlowLayoutRow: Cannot add row, max height reached')
 			return
 		}
 		if (this.currentRowHeight !== 0) {
@@ -2240,9 +2232,9 @@ class FlowLayoutRow {
 
 		// add a new row if the width is not enough
 		if (this.currentRowWidth !== 0 && theoreticalWidth > this.maxWidth) {
-			console.log(
-				`FlowLayoutRow: New row, component: ${componentWidth}, remaining: ${this.maxWidth - this.currentRowWidth}`
-			)
+			// console.log(
+			// 	`FlowLayoutRow: New row, component: ${componentWidth}, remaining: ${this.maxWidth - this.currentRowWidth}`
+			// )
 
 			this.addRow()
 		}
@@ -2250,11 +2242,11 @@ class FlowLayoutRow {
 		// check if the height would overflow
 		if (componentHeight > this.currentRowHeight) {
 			if (this.previousTotalHeight + this.currentRowHeight > this.maxHeight) {
-				console.warn(
-					`FlowLayoutRow: Cannot add component, max height reached. (${
-						this.previousTotalHeight + this.currentRowHeight
-					})`
-				)
+				// console.warn(
+				// 	`FlowLayoutRow: Cannot add component, max height reached. (${
+				// 		this.previousTotalHeight + this.currentRowHeight
+				// 	})`
+				// )
 				return false
 			}
 			// update the current row height
@@ -2469,7 +2461,7 @@ function getWidgetSize(widgetSizes: HomescreenWidgetSizes, widgetFamily?: typeof
 
 	// return small widget size if the widget family is not set
 	if (!widgetFamily) {
-		console.log('Defaulting to large widget size')
+		console.log(`Defaulting to ${PREVIEW_WIDGET_SIZE} widget size`)
 		return widgetSizes[PREVIEW_WIDGET_SIZE]
 	}
 
@@ -3224,7 +3216,7 @@ function addFooter(container: WidgetStack | ListWidget, width: number) {
 		size: 10,
 		outerSize: 10,
 	})
-
+	
 	// show the time of the last update (now) as HH:MM with leading zeros
 	const updateDateTime = footerGroup.addText(
 		`${new Date().toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })}`
