@@ -14,12 +14,12 @@ const CURRENT_DATETIME = new Date() // '2022-09-15T14:00' or '2022-09-19T12:30'
 //#region Constants
 
 const LOCALE = Device.locale().replace('_', '-')
-const PREVIEW_WIDGET_SIZE: typeof config.widgetFamily = 'medium'
+const PREVIEW_WIDGET_SIZE: typeof config.widgetFamily = 'small'
 const MAX_TIME_STRING = '10:00'
 const MAX_SUBJECT_NAME_LENGTH = 6
 const MAX_LONG_SUBJECT_NAME_LENGTH = 12
 // the layout is a list of views separated by commas, the columns are separated by pipes "|"
-const defaultLayout = 'lessons'
+const defaultLayout = 'grades,exams,absences'
 
 let usingOldCache = false
 
@@ -1735,7 +1735,7 @@ function addViewExams(
 		if (exam.to < CURRENT_DATETIME) continue
 
 		// continue is not in the scope
-		const daysUntilExam = Math.floor((exam.from.getTime() - CURRENT_DATETIME.getTime()) / 1000 / 60 / 60 / 24)	
+		const daysUntilExam = Math.floor((exam.from.getTime() - CURRENT_DATETIME.getTime()) / 1000 / 60 / 60 / 24)
 
 		if (config.views.exams.scopeDays && daysUntilExam > config.views.exams.scopeDays) continue
 
@@ -3392,7 +3392,6 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 		columnStack.size = new Size(columnWidth, availableContentHeight)
 
 		let remainingHeight = availableContentHeight
-		let isFirstView = true
 
 		console.log(`Column has ${availableContentHeight} available height`)
 
@@ -3407,11 +3406,6 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 			}
 
 			let viewHeight = 0
-
-			// add the spacing if necessary (view added and enough space left)
-			if (!isFirstView && viewHeight > 0 && remainingHeight > options.appearance.spacing) {
-				remainingHeight -= options.appearance.spacing
-			}
 
 			switch (view) {
 				case 'lessons':
@@ -3474,8 +3468,12 @@ async function createWidget(user: FullUser, layout: ViewName[][], options: Optio
 					break
 			}
 
+			// add the spacing if necessary (view added and enough space left)
+			if (viewHeight > 0 && remainingHeight > options.appearance.spacing) {
+				remainingHeight -= options.appearance.spacing
+			}
+
 			remainingHeight -= viewHeight
-			isFirstView = false
 
 			console.log(`Added view ${view} with height ${viewHeight}, remaining height: ${remainingHeight}`)
 		}
