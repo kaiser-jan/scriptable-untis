@@ -18,6 +18,7 @@ const PREVIEW_WIDGET_SIZE: typeof config.widgetFamily = 'small'
 const MAX_TIME_STRING = '10:00'
 const MAX_SUBJECT_NAME_LENGTH = 6
 const MAX_LONG_SUBJECT_NAME_LENGTH = 12
+const NO_VALUE_PLACEHOLDERS = ['---']
 // the layout is a list of views separated by commas, the columns are separated by pipes "|"
 const defaultLayout = 'grades,exams,absences'
 
@@ -95,6 +96,7 @@ interface TransformedLessonWeek {
 }
 
 interface TransformedExam {
+	id: number
 	type: string
 	name: string
 	from: Date
@@ -917,6 +919,7 @@ function transformExams(exams: Exam[]) {
 
 	for (const exam of exams) {
 		const transformedExam: TransformedExam = {
+			id: exam.id,
 			name: exam.name,
 			type: exam.examType,
 			from: combineDateAndTime(exam.examDate, exam.startTime),
@@ -1088,14 +1091,9 @@ async function readFromCache(cacheName: string) {
 
 	console.log(`Checking cache ${cacheName} (${Math.round(cacheAge / 60_000)}min).`)
 
-	const data = JSON.parse(fileManager.readString(cachePath), (name, value) => {
-		if (typeof value === 'string' && /^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d.\d\d\dZ$/.test(value)) {
-			return new Date(value)
-		}
-		return value
-	})
+	const json = fileManager.readString(cachePath)
 
-	return { data, cacheAge, cacheDate }
+	return { json, cacheAge, cacheDate }
 }
 
 function writeToCache(data: Object, cacheName: string) {
@@ -1129,12 +1127,19 @@ async function getCachedOrFetch<T>(
 	fetchData: () => Promise<T>,
 	compareData?: (fetchedData: T, cachedData: T) => void
 ): Promise<T> {
-	const { data: cachedData, cacheAge, cacheDate } = await readFromCache(key)
+	const { json: cachedJson, cacheAge, cacheDate } = await readFromCache(key)
+
+	const cachedData = JSON.parse(cachedJson, (name, value) => {
+		if (typeof value === 'string' && /^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d.\d\d\dZ$/.test(value)) {
+			return new Date(value)
+		}
+		return value
+	})
 
 	let fetchedData: T
 
 	// refetch if the cache is too old (max age exceeded or not the same day)
-	if (!cachedData || cacheAge > maxAge || cacheDate.getDate() !== CURRENT_DATETIME.getDate()) {
+	if (!cachedJson || cacheAge > maxAge || cacheDate.getDate() !== CURRENT_DATETIME.getDate()) {
 		console.log(`Fetching data ${key}, cache invalid.`)
 		try {
 			fetchedData = await fetchData()
@@ -1152,7 +1157,12 @@ async function getCachedOrFetch<T>(
 	}
 
 	if (cachedData && fetchedData && compareData) {
-		compareData(fetchedData, cachedData)
+		console.log('There is cached data and fetched data, checking for compare...')
+		if (cachedJson === JSON.stringify(fetchedData)) {
+			console.log('Data did not change, not comparing.')
+		} else {
+			compareData(fetchedData, cachedData)
+		}
 	}
 
 	return fetchedData ?? cachedData
@@ -1169,18 +1179,29 @@ async function getLessonsFor(user: FullUser, date: Date, isNext: boolean, option
 }
 
 async function getExamsFor(user: FullUser, from: Date, to: Date, options: Options) {
-	return getCachedOrFetch('exams', options.config.cache.exams * 60 * 60 * 1000, () => fetchExamsFor(user, from, to))
+	return getCachedOrFetch(
+		'exams',
+		options.config.cache.exams * 60 * 60 * 1000,
+		() => fetchExamsFor(user, from, to),
+		compareCachedExams
+	)
 }
 
 async function getGradesFor(user: FullUser, from: Date, to: Date, options: Options) {
-	return getCachedOrFetch('grades', options.config.cache.grades * 60 * 60 * 1000, () =>
-		fetchGradesFor(user, from, to)
+	return getCachedOrFetch(
+		'grades',
+		options.config.cache.grades * 60 * 60 * 1000,
+		() => fetchGradesFor(user, from, to),
+		compareCachedGrades
 	)
 }
 
 async function getAbsencesFor(user: FullUser, from: Date, to: Date, options: Options) {
-	return getCachedOrFetch('absences', options.config.cache.absences * 60 * 60 * 1000, () =>
-		fetchAbsencesFor(user, from, to)
+	return getCachedOrFetch(
+		'absences',
+		options.config.cache.absences * 60 * 60 * 1000,
+		() => fetchAbsencesFor(user, from, to),
+		compareCachedAbsences
 	)
 }
 
@@ -1263,11 +1284,6 @@ function asWeekday(date: Date) {
 
 function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWeek: TransformedLessonWeek) {
 	console.log('Comparing cached lessons with fetched lessons.')
-	// exit if all lessons are the same
-	if (JSON.stringify(lessonWeek) === JSON.stringify(cachedLessonWeek)) {
-		console.log('All lessons are the same.')
-		return true
-	}
 
 	// loop over the days
 	for (const dayKey in lessonWeek) {
@@ -1373,6 +1389,14 @@ function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWee
 						break
 					case LessonState.TEACHER_SUBSTITUTED:
 						for (const teacher of changedTeachers) {
+							if (NO_VALUE_PLACEHOLDERS.includes(teacher.name)) {
+								scheduleNotification(
+									`${dayString}: ${subjectTitle} - teacher cancelled`,
+									`teacher ${teacher.original?.name} cancelled`
+								)
+								return
+							}
+
 							scheduleNotification(
 								`${dayString}: ${subjectTitle} - teacher substituted`,
 								`from ${teacher.original.name} to ${teacher.name}`
@@ -1390,6 +1414,58 @@ function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWee
 				}
 				continue
 			}
+		}
+	}
+}
+function compareCachedExams(exams: TransformedExam[], cachedExams: TransformedExam[]) {
+	// find any exams that were added
+	for (const exam of exams) {
+		const cachedExam = cachedExams.find((cachedExam) => exam.id === cachedExam.id)
+		if (!cachedExam) {
+			scheduleNotification(
+				`Exam ${exam.subject} (${exam.type}) was added`,
+				`on ${exam.from.toLocaleString(LOCALE)}`
+			)
+			continue
+		}
+
+		if (exam.from !== cachedExam.from) {
+			scheduleNotification(
+				`Exam for ${exam.subject} (${exam.type}) was rescheduled`,
+				`from ${cachedExam.from.toLocaleString(LOCALE)} to ${exam.from.toLocaleString(LOCALE)}`
+			)
+			continue
+		}
+	}
+}
+function compareCachedGrades(grades: TransformedGrade[], cachedExams: TransformedGrade[]) {
+	// find any grades that were added
+	for (const grade of grades) {
+		const gradeJson = JSON.stringify(grade)
+		const cachedGrade = cachedExams.find((cachedGrade) => JSON.stringify(cachedGrade) === gradeJson)
+
+		if (!cachedGrade) {
+			scheduleNotification(
+				`You received a grade in ${grade.subject}`,
+				`you got a "${grade.mark}" (${grade.text}) on a ${grade.examType}`
+			)
+			continue
+		}
+	}
+}
+
+function compareCachedAbsences(absences: TransformedAbsence[], cachedAbsences: TransformedAbsence[]) {
+	// find any absences that were added
+	for (const absence of absences) {
+		const absenceJson = JSON.stringify(absence)
+		const cachedAbsence = cachedAbsences.find((cachedAbsence) => JSON.stringify(cachedAbsence) === absenceJson)
+
+		if (!cachedAbsence) {
+			scheduleNotification(
+				`An absence was added by ${absence.createdBy}`,
+				`you were absent from ${absence.from.toLocaleString(LOCALE)} to ${absence.to.toLocaleString(LOCALE)}`
+			)
+			continue
 		}
 	}
 }
