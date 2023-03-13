@@ -14,9 +14,9 @@
                 "*"
             ]
         },
-        "typeRoots": [
-            "node_modules/@types/scriptable-ios"
-        ],
+        // "typeRoots": [
+        //     "node_modules/@types/scriptable-ios"
+        // ],
         "types": [
             "@types/scriptable-ios"
         ],
