@@ -426,7 +426,7 @@ interface FullUser extends User {
 
 //#endregion
 
-//#region API (+ caching, transforming)
+//#region API
 
 //#region Login
 
@@ -1017,8 +1017,11 @@ async function transformSchoolYears(schoolYears: SchoolYear[]) {
 
 //#endregion
 
-//#region Caching
+//#endregion
 
+//#region Caching & Comparing
+
+//#region Caching
 interface CachedUser extends FullUser {
 	lastUpdated: Date
 }
@@ -1116,10 +1119,9 @@ function clearCache() {
 		fileManager.remove(untisCacheDirectory)
 	}
 }
+// #endregion
 
-//#endregion
-
-//#region Fetching + Caching
+//#region Cache or Fetch
 
 async function getCachedOrFetch<T>(
 	key: string,
@@ -1274,13 +1276,6 @@ async function getTimetable(user: FullUser, options: Options) {
 
 //#region Comparing
 
-function asNumericTime(date: Date) {
-	return date.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })
-}
-
-function asWeekday(date: Date) {
-	return date.toLocaleDateString(LOCALE, { weekday: 'long' })
-}
 
 function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWeek: TransformedLessonWeek) {
 	console.log('Comparing cached lessons with fetched lessons.')
@@ -2929,6 +2924,14 @@ function shouldCombineLessons(
 //#endregion
 
 //#region Helpers
+
+function asNumericTime(date: Date) {
+	return date.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })
+}
+
+function asWeekday(date: Date) {
+	return date.toLocaleDateString(LOCALE, { weekday: 'long' })
+}
 
 /**
  * Returns a title for a subject following an order based on what is available.
