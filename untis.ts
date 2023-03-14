@@ -19,6 +19,7 @@ const MAX_TIME_STRING = '10:00'
 const MAX_SUBJECT_NAME_LENGTH = 6
 const MAX_LONG_SUBJECT_NAME_LENGTH = 12
 const NO_VALUE_PLACEHOLDERS = ['---']
+const NOTIFIABLE_TOPICS = ['lessons', 'exams', 'grades', 'absences']
 // the layout is a list of views separated by commas, the columns are separated by pipes "|"
 const defaultLayout = 'lessons,exams'
 
@@ -95,8 +96,11 @@ interface TransformedLessonWeek {
 	[key: string]: TransformedLesson[]
 }
 
+/**
+ * The id would always be 0.
+ */
 interface TransformedExam {
-	id: number
+	// id: number
 	type: string
 	name: string
 	from: Date
@@ -294,6 +298,9 @@ interface Exam {
 	rooms: string[]
 	text: string
 
+	/**
+	 * @deprecated the id is always 0
+	 */
 	id: number
 	studentClass: string[]
 	assignedStudents: {
@@ -919,7 +926,6 @@ function transformExams(exams: Exam[]) {
 
 	for (const exam of exams) {
 		const transformedExam: TransformedExam = {
-			id: exam.id,
 			name: exam.name,
 			type: exam.examType,
 			from: combineDateAndTime(exam.examDate, exam.startTime),
@@ -1104,23 +1110,26 @@ function clearCache() {
 
 //#region Cache or Fetch
 
+function jsonDateReviver(key: string, value: any) {
+	if (typeof value === 'string' && /^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d.\d\d\dZ$/.test(value)) {
+		return new Date(value)
+	}
+	return value
+}
+
 async function getCachedOrFetch<T>(
 	key: string,
 	maxAge: number,
+	options: Options,
 	fetchData: () => Promise<T>,
-	compareData?: (fetchedData: T, cachedData: T) => void
+	compareData?: (fetchedData: T, cachedData: T, options: Options) => void
 ): Promise<T> {
 	const { json: cachedJson, cacheAge, cacheDate } = await readFromCache(key)
 
 	let cachedData = {} as T
 
 	if (cachedJson) {
-		cachedData = JSON.parse(cachedJson, (name, value) => {
-			if (typeof value === 'string' && /^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d.\d\d\dZ$/.test(value)) {
-				return new Date(value)
-			}
-			return value
-		})
+		cachedData = JSON.parse(cachedJson, jsonDateReviver)
 	}
 
 	let fetchedData: T
@@ -1143,12 +1152,18 @@ async function getCachedOrFetch<T>(
 		}
 	}
 
-	if (cachedJson && fetchedData && compareData) {
+	const areNotificationsEnabled = options.notifications.enabled[key]
+
+	if (!areNotificationsEnabled && NOTIFIABLE_TOPICS.includes(key)) {
+		console.log(`Notifications for ${key} are disabled.`)
+	}
+
+	if (cachedJson && fetchedData && compareData && areNotificationsEnabled) {
 		console.log('There is cached data and fetched data, checking for compare...')
 		if (cachedJson === JSON.stringify(fetchedData)) {
 			console.log('Data did not change, not comparing.')
 		} else {
-			compareData(fetchedData, cachedData)
+			compareData(fetchedData, cachedData, options)
 		}
 	}
 
@@ -1160,6 +1175,7 @@ async function getLessonsFor(user: FullUser, date: Date, isNext: boolean, option
 	return getCachedOrFetch(
 		key,
 		options.config.cacheHours.lessons * 60 * 60 * 1000,
+		options,
 		() => fetchLessonsFor(user, date, options),
 		compareCachedLessons
 	)
@@ -1169,6 +1185,7 @@ async function getExamsFor(user: FullUser, from: Date, to: Date, options: Option
 	return getCachedOrFetch(
 		'exams',
 		options.config.cacheHours.exams * 60 * 60 * 1000,
+		options,
 		() => fetchExamsFor(user, from, to),
 		compareCachedExams
 	)
@@ -1178,6 +1195,7 @@ async function getGradesFor(user: FullUser, from: Date, to: Date, options: Optio
 	return getCachedOrFetch(
 		'grades',
 		options.config.cacheHours.grades * 60 * 60 * 1000,
+		options,
 		() => fetchGradesFor(user, from, to),
 		compareCachedGrades
 	)
@@ -1187,13 +1205,14 @@ async function getAbsencesFor(user: FullUser, from: Date, to: Date, options: Opt
 	return getCachedOrFetch(
 		'absences',
 		options.config.cacheHours.absences * 60 * 60 * 1000,
+		options,
 		() => fetchAbsencesFor(user, from, to),
 		compareCachedAbsences
 	)
 }
 
 async function getSchoolYears(user: FullUser, options: Options) {
-	return getCachedOrFetch('school_years', options.config.cacheHours.schoolYears * 60 * 60 * 1000, () =>
+	return getCachedOrFetch('school_years', options.config.cacheHours.schoolYears * 60 * 60 * 1000, options, () =>
 		fetchSchoolYears(user)
 	)
 }
@@ -1215,7 +1234,7 @@ async function getTimetable(user: FullUser, options: Options) {
 	// fetch the next week, if the next day is on the next week
 	if (todayIndex === -1 || todayIndex === sortedKeys.length - 1) {
 		// get the first date of the current timetable week
-		const firstDate = new Date(sortedKeys[0])
+		const firstDate = sortedKeys[0] ? new Date(sortedKeys[0]) : CURRENT_DATETIME
 		// get the first date of the next timetable week
 		const nextWeekFirstDate = new Date(firstDate.getTime() + 7 * 24 * 60 * 60 * 1000)
 		console.log(`No lessons for today/tomorrow -> fetching next week. (${nextWeekFirstDate.toISOString()})`)
@@ -1261,7 +1280,11 @@ async function getTimetable(user: FullUser, options: Options) {
 
 //#region Comparing
 
-function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWeek: TransformedLessonWeek) {
+function compareCachedLessons(
+	lessonWeek: TransformedLessonWeek,
+	cachedLessonWeek: TransformedLessonWeek,
+	options: Options
+) {
 	console.log('Comparing cached lessons with fetched lessons.')
 
 	// loop over the days
@@ -1396,33 +1419,28 @@ function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWee
 		}
 	}
 }
-function compareCachedExams(exams: TransformedExam[], cachedExams: TransformedExam[]) {
+function compareCachedExams(exams: TransformedExam[], cachedExams: TransformedExam[], options: Options) {
 	// find any exams that were added
 	for (const exam of exams) {
-		const cachedExam = cachedExams.find((cachedExam) => exam.id === cachedExam.id)
+		const cachedExam = cachedExams.find((cachedExam) => {
+			return cachedExam.subject === exam.subject && cachedExam.type === exam.type && cachedExam.from === exam.from
+		})
 
 		if (!cachedExam) {
 			scheduleNotification(
-				`Exam ${exam.subject} (${exam.type}) was added`,
-				`on ${exam.from.toLocaleString(LOCALE)}`
-			)
-			continue
-		}
-
-		if (exam.from !== cachedExam.from) {
-			scheduleNotification(
-				`Exam for ${exam.subject} (${exam.type}) was rescheduled`,
-				`from ${cachedExam.from.toLocaleString(LOCALE)} to ${exam.from.toLocaleString(LOCALE)}`
+				`Exam ${exam.subject} on ${exam.from.toLocaleDateString(LOCALE)}`,
+				`The ${exam.type} takes place @ ${exam.from.toLocaleTimeString(LOCALE)} in ${
+					exam.roomNames.join(', ') || 'an unkonwn room'
+				}.`
 			)
 			continue
 		}
 	}
 }
-function compareCachedGrades(grades: TransformedGrade[], cachedExams: TransformedGrade[]) {
+function compareCachedGrades(grades: TransformedGrade[], cachedExams: TransformedGrade[], options: Options) {
 	// find any grades that were added
 	for (const grade of grades) {
-		const gradeJson = JSON.stringify(grade)
-		const cachedGrade = cachedExams.find((cachedGrade) => JSON.stringify(cachedGrade) === gradeJson)
+		const cachedGrade = cachedExams.find((cachedGrade) => JSON.stringify(cachedGrade) === JSON.stringify(grade))
 
 		if (!cachedGrade) {
 			scheduleNotification(
@@ -1434,11 +1452,12 @@ function compareCachedGrades(grades: TransformedGrade[], cachedExams: Transforme
 	}
 }
 
-function compareCachedAbsences(absences: TransformedAbsence[], cachedAbsences: TransformedAbsence[]) {
+function compareCachedAbsences(absences: TransformedAbsence[], cachedAbsences: TransformedAbsence[], options: Options) {
 	// find any absences that were added
 	for (const absence of absences) {
-		const absenceJson = JSON.stringify(absence)
-		const cachedAbsence = cachedAbsences.find((cachedAbsence) => JSON.stringify(cachedAbsence) === absenceJson)
+		const cachedAbsence = cachedAbsences.find(
+			(cachedAbsence) => JSON.stringify(cachedAbsence) === JSON.stringify(absence)
+		)
 
 		if (!cachedAbsence) {
 			scheduleNotification(
@@ -1596,6 +1615,15 @@ const defaultConfig = {
 		},
 		absences: {
 			maxCount: 3,
+		},
+	},
+
+	notifications: {
+		enabled: {
+			lessons: true,
+			exams: true,
+			grades: true,
+			absences: true,
 		},
 	},
 
@@ -2082,6 +2110,30 @@ function addViewPreview(
 	const subjectHeight = getCharHeight(config.appearance.fontSize) + 8
 	let currentHeight = 0
 
+	// if the next lesson is more than 3 days away, don't show the preview
+	if (lessons[0].from.getTime() > CURRENT_DATETIME.getTime() + 3 * 24 * 60 * 60 * 1000) {
+		console.log('Not showing preview because the next lesson is more than 3 days away')
+		const padding = 4
+		const containerHeight = 2 * getCharHeight(config.appearance.fontSize) + 2 * padding
+
+		const messageContainer = container.addStack()
+		messageContainer.layoutHorizontally()
+		messageContainer.setPadding(padding, padding, padding, padding)
+		messageContainer.spacing = config.appearance.spacing
+		messageContainer.backgroundColor = colors.background.primary
+		messageContainer.cornerRadius = config.appearance.cornerRadius
+		messageContainer.size = new Size(width, containerHeight)
+
+		const text = messageContainer.addText('No lessons in the next 3 days! 🥳')
+		text.textColor = colors.text.event
+		text.font = Font.semiboldRoundedSystemFont(config.appearance.fontSize)
+		text.leftAlignText()
+
+		messageContainer.addSpacer()
+
+		return containerHeight
+	}
+
 	// add information about the next day if there is enough space
 	if (lessons && height > titleHeight) {
 		addPreviewTitle(container, lessons, nextDayKey, width, config)
@@ -2477,7 +2529,7 @@ async function readConfig(documentsDirectory: string, useICloud: boolean) {
 	if (useICloud) {
 		await fileManager.downloadFileFromiCloud(configPath)
 	}
-	
+
 	const fileConfig: Config = JSON.parse(fileManager.readString(configPath))
 
 	// combine the defaultConfig and read config and write it to config
