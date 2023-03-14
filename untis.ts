@@ -31,6 +31,9 @@ let usingOldCache = false
 
 //#region Transformed
 
+/**
+ * An element that does not have a state and can therefore not be substituted.
+ */
 interface TransformedStatelessElement {
 	id: number
 	name: string
@@ -51,7 +54,9 @@ type StatelessElement = Teacher | Group | Subject | Room
 
 type StatefulElement = Stateful<StatelessElement>
 
-// a type for stateless elements with state and original
+/**
+ * An element that has a state and can therefore be substituted.
+ */
 type Stateful<T extends StatelessElement> = T & {
 	state: ElementState
 	original?: T
@@ -577,7 +582,7 @@ async function fetchLessonsFor(user: FullUser, date: Date = new Date(), config: 
 
 	const transformedLessons = transformLessons(lessons, timetableData.elements, config)
 
-	console.log(`🤖 Transformed ${Object.keys(transformedLessons).length} lessons`)
+	console.log(`🧬 Transformed ${Object.keys(transformedLessons).length} lessons`)
 
 	return transformedLessons
 }
@@ -708,6 +713,15 @@ function combineDateAndTime(date: number, time: number) {
 	return new Date(parsedDate.getTime() + parsedTime.getTime())
 }
 
+/**
+ * Transforms the lessons from the API to a more usable format,
+ * links them up with the elements, and sorts them by date.
+ * Also tries to correct the state.
+ * @param lessons the lessons to transform returned from the API
+ * @param elements the elements to link to the lessons
+ * @param config the config to use for the transformation
+ * @returns a transformed lesson week
+ */
 function transformLessons(lessons: Lesson[], elements: Element[], config: Config): TransformedLessonWeek {
 	const transformedLessonWeek: TransformedLessonWeek = {}
 
@@ -750,21 +764,19 @@ function transformLessons(lessons: Lesson[], elements: Element[], config: Config
 		const changedTeacherCount = transformedLesson.teachers.filter((teacher) => teacher.original).length
 		const changedRoomCount = transformedLesson.rooms.filter((room) => room.original).length
 
-		if (changedTeacherCount) {
-			console.log(`Lesson ${transformedLesson.subject.name} has ${changedTeacherCount} changed teachers`)
-			if (changedTeacherCount >= 1) {
-				transformedLesson.state = LessonState.TEACHER_SUBSTITUTED
-			}
-			if (changedRoomCount >= 1) {
-				// set to substituted if the teacher is also substituted
-				if (changedTeacherCount) {
-					transformedLesson.state = LessonState.SUBSTITUTED
-				}
-				transformedLesson.state = LessonState.ROOM_SUBSTITUTED
-			}
-			if (subject.original) {
+		// set the state depending on what changed, ordered by importance
+		if (changedTeacherCount >= 1) {
+			transformedLesson.state = LessonState.TEACHER_SUBSTITUTED
+		}
+		if (changedRoomCount >= 1) {
+			// set to substituted if the teacher is also substituted
+			if (changedTeacherCount) {
 				transformedLesson.state = LessonState.SUBSTITUTED
 			}
+			transformedLesson.state = LessonState.ROOM_SUBSTITUTED
+		}
+		if (subject.original) {
+			transformedLesson.state = LessonState.SUBSTITUTED
 		}
 
 		// add the reschedule info if it exists
@@ -809,6 +821,14 @@ function transformLessons(lessons: Lesson[], elements: Element[], config: Config
 	return combinedLessonWeek
 }
 
+/**
+ * Searches for the stateless element with the given id and type in the list of elements.
+ * Stateless means that it cannot be substituted. (e.g. the substitution of an element
+ * @param id
+ * @param type the type as a number, one of the ElementType enum values
+ * @param availableElements	the list of elements to search in, given by the API
+ * @returns	the found element, or undefined if it was not found
+ */
 function resolveStatelessElement(id: number, type: number, availableElements: Element[]): StatelessElement {
 	const foundElement = availableElements.find((element) => element.id === id && element.type === type)
 	const elementBase: StatelessElement = {
@@ -834,7 +854,13 @@ function resolveStatelessElement(id: number, type: number, availableElements: El
 	return element
 }
 
-function resolveElement(unresolvedElement: UnresolvedElement, availableElements: Element[]) {
+/**
+ * Resolves the given unresolved element to a stateful element.
+ * @param unresolvedElement the element to resolve, given by the API
+ * @param availableElements	the list of elements to search in, given by the API
+ * @returns	the resolved element
+ */
+function resolveStatefulElement(unresolvedElement: UnresolvedElement, availableElements: Element[]) {
 	const statelessElement = resolveStatelessElement(unresolvedElement.id, unresolvedElement.type, availableElements)
 
 	const element = statelessElement as StatefulElement
@@ -852,6 +878,12 @@ function resolveElement(unresolvedElement: UnresolvedElement, availableElements:
 	return element
 }
 
+/**
+ * Resolves the elements of the given lesson.
+ * @param lesson the lesson to resolve the elements for
+ * @param elements the list of elements to search in, given by the API
+ * @returns the resolved elements (groups, teachers, subject, rooms)
+ */
 function resolveElements(lesson: Lesson, elements: Element[]) {
 	const groups: Stateful<Group>[] = []
 	const teachers: Stateful<Teacher>[] = []
@@ -859,33 +891,28 @@ function resolveElements(lesson: Lesson, elements: Element[]) {
 	const rooms: Stateful<Room>[] = []
 
 	for (const unresolvedElement of lesson.elements) {
-		const element = resolveElement(unresolvedElement, elements)
+		const element = resolveStatefulElement(unresolvedElement, elements)
 
 		if (!element) {
 			console.warn(`Could not find element ${unresolvedElement.id} with type ${unresolvedElement.type}`)
 			continue
 		}
 
-		if (unresolvedElement.type === ElementType.TEACHER) {
-			teachers.push(element as Stateful<Teacher>)
-			continue
-		}
-
 		switch (unresolvedElement.type) {
+			case ElementType.TEACHER:
+				teachers.push(element as Stateful<Teacher>)
+				break
 			case ElementType.GROUP:
 				groups.push(element as Stateful<Group>)
 				break
 			case ElementType.SUBJECT:
-				if (subject) {
-					console.error(`Found multiple subjects for lesson ${lesson.lessonId}`)
-				}
 				subject = element as Stateful<Subject>
 				break
 			case ElementType.ROOM:
 				rooms.push(element as Stateful<Room>)
 				break
 			default:
-				console.error(`Unknown element type ${unresolvedElement.type}`)
+				console.warn(`Unknown element type ${unresolvedElement.type}`)
 				break
 		}
 	}
@@ -894,7 +921,7 @@ function resolveElements(lesson: Lesson, elements: Element[]) {
 }
 
 /**
- * Combines some of the given lessons, if they are directly after each other and have the same properties.
+ * Combines lessons which are directly after each other and have the same properties.
  * @param lessons
  * @param ignoreDetails if true, only the subject and time will be considered
  */
@@ -1032,10 +1059,17 @@ interface CachedUser extends FullUser {
 	lastUpdated: Date
 }
 
+/**
+ * Tries to read user data from the cache, or logs in if the cache is too old.
+ * @param options
+ * @returns
+ */
 async function prepareUser(options: Options): Promise<FullUser> {
 	const CACHE_KEY = 'user'
+
 	const { json, cacheAge, cacheDate } = await readFromCache(CACHE_KEY)
 
+	// if the cache is not too old, return the cached user
 	if (json && cacheAge < options.config.cacheHours.user * 60 * 60 * 1000) {
 		return JSON.parse(json)
 	}
@@ -1046,18 +1080,18 @@ async function prepareUser(options: Options): Promise<FullUser> {
 	const fetchedUser = await login(userData, userData.password)
 
 	// write the user to the cache
-	const userToCache: CachedUser = {
-		...fetchedUser,
-		lastUpdated: new Date(),
-	}
-	writeToCache(userToCache, CACHE_KEY)
+	writeToCache({ ...fetchedUser, lastUpdated: new Date() }, CACHE_KEY)
 
-	console.log('Fetched user from untis and wrote to cache.')
+	console.log('👤⬇️ Fetched user from untis and wrote to cache.')
 
 	return fetchedUser
 }
 
-// TODO: consider adding a validity date (e.g. when the target date for lessons changes)
+/**
+ * Reads the given cache file, returns the data or an empty object.
+ * @param cacheName the name of the cache file (without extension)
+ * @returns the cached json, the cache age in milliseconds and the cache (modification) date or an empty object
+ */
 async function readFromCache(cacheName: string) {
 	const fileManager = FileManager.local()
 	const cacheDirectory = fileManager.cacheDirectory()
@@ -1076,16 +1110,22 @@ async function readFromCache(cacheName: string) {
 		return {}
 	}
 
+	// read the meta data
 	const cacheDate = new Date(fileManager.modificationDate(cachePath))
 	const cacheAge = new Date().getTime() - cacheDate.getTime()
 
-	console.log(`Checking cache ${cacheName} (${Math.round(cacheAge / 60_000)}min).`)
+	console.log(`🗃️ Cache ${cacheName} is ${Math.round(cacheAge / 60_000)}minutes old.`)
 
 	const json = fileManager.readString(cachePath)
 
 	return { json, cacheAge, cacheDate }
 }
 
+/**
+ * Writes the given data to the cache.
+ * @param data the data to cache
+ * @param cacheName the name of the cache file (without extension)
+ */
 function writeToCache(data: Object, cacheName: string) {
 	const fileManager = FileManager.local()
 	const cacheDirectory = fileManager.cacheDirectory()
@@ -1095,9 +1135,12 @@ function writeToCache(data: Object, cacheName: string) {
 	}
 	const cachePath = fileManager.joinPath(untisCacheDirectory, `${cacheName}.json`)
 	fileManager.writeString(cachePath, JSON.stringify(data))
-	console.log(`Wrote cache for ${cacheName}.`)
+	console.log(`🗃️✏️ Wrote cache for ${cacheName}.`)
 }
 
+/**
+ * Clears the cache by deleting the cache directory.
+ */
 function clearCache() {
 	const fileManager = FileManager.local()
 	const cacheDirectory = fileManager.cacheDirectory()
@@ -1110,6 +1153,9 @@ function clearCache() {
 
 //#region Cache or Fetch
 
+/**
+ * Transforms a json date string back to a Date object.
+ */
 function jsonDateReviver(key: string, value: any) {
 	if (typeof value === 'string' && /^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d.\d\d\dZ$/.test(value)) {
 		return new Date(value)
@@ -1117,6 +1163,15 @@ function jsonDateReviver(key: string, value: any) {
 	return value
 }
 
+/**
+ * Tries to read the given cache, or fetches the data if the cache is too old.
+ * @param key the key of the cache
+ * @param maxAge the maximum age of the cache in milliseconds
+ * @param options
+ * @param fetchData a function which fetches the fresh data
+ * @param compareData a function which compares the fetched data with the cached data for sending notifications
+ * @returns the cached or fetched data
+ */
 async function getCachedOrFetch<T>(
 	key: string,
 	maxAge: number,
@@ -1137,19 +1192,11 @@ async function getCachedOrFetch<T>(
 	// refetch if the cache is too old (max age exceeded or not the same day)
 	if (!cachedJson || cacheAge > maxAge || cacheDate.getDate() !== CURRENT_DATETIME.getDate()) {
 		console.log(`Fetching data ${key}, cache invalid.`)
-		try {
-			fetchedData = await fetchData()
-			writeToCache(fetchedData, key)
-		} catch (error) {
-			const castedError = error as Error
-			// TODO: this does not help, as fetching the user already fails
-			if (castedError.message.toLowerCase() === ScriptableErrors.NO_INTERNET.toLowerCase()) {
-				console.log('No internet connection, falling back to old cached data.')
-				usingOldCache = true
-				return cachedData
-			}
-			throw error
-		}
+
+		// we cannot fall back to the cached data if there is no internet,
+		// as the script will already have failed when fetching the user
+		fetchedData = await fetchData()
+		writeToCache(fetchedData, key)
 	}
 
 	const areNotificationsEnabled = options.notifications.enabled[key]
@@ -1217,6 +1264,12 @@ async function getSchoolYears(user: FullUser, options: Options) {
 	)
 }
 
+/**
+ * Fetches the timetable for the current week (and for the next week if necessary) and filters which lessons remain for today.
+ * @param user the user to fetch for
+ * @param options
+ * @returns the remaining lessons for today, the lessons tomorrow and the key (date) of the next day
+ */
 async function getTimetable(user: FullUser, options: Options) {
 	// fetch this weeks lessons
 	let timetable = await getLessonsFor(user, CURRENT_DATETIME, false, options)
@@ -1280,6 +1333,13 @@ async function getTimetable(user: FullUser, options: Options) {
 
 //#region Comparing
 
+/**
+ * Compares the fetched lessons with the cached lessons and sends notifications for most changes.
+ * @param lessonWeek
+ * @param cachedLessonWeek
+ * @param options
+ * @returns
+ */
 function compareCachedLessons(
 	lessonWeek: TransformedLessonWeek,
 	cachedLessonWeek: TransformedLessonWeek,
@@ -1419,6 +1479,7 @@ function compareCachedLessons(
 		}
 	}
 }
+
 function compareCachedExams(exams: TransformedExam[], cachedExams: TransformedExam[], options: Options) {
 	// find any exams that were added
 	for (const exam of exams) {
@@ -1437,6 +1498,7 @@ function compareCachedExams(exams: TransformedExam[], cachedExams: TransformedEx
 		}
 	}
 }
+
 function compareCachedGrades(grades: TransformedGrade[], cachedExams: TransformedGrade[], options: Options) {
 	// find any grades that were added
 	for (const grade of grades) {
@@ -2158,6 +2220,10 @@ function filterCanceledLessons(lessons: TransformedLesson[]) {
 	})
 }
 
+/**
+ * Adds a title for the preview containing the weekday,
+ * and from when to when the lessons take place ignoring canceled lessons.
+ */
 function addPreviewTitle(
 	container: ListWidget | WidgetStack,
 	lessons: TransformedLesson[],
@@ -2192,6 +2258,9 @@ function addPreviewTitle(
 	fromToText.textColor = colors.text.primary
 }
 
+/**
+ * Adds a list of subjects of the given day to the widget.
+ */
 function addPreviewList(
 	container: WidgetStack,
 	lessons: TransformedLesson[],
@@ -2229,7 +2298,7 @@ function addPreviewList(
 		)
 
 		if (subjectContainer) {
-			convertToSubject(lesson, subjectContainer, config)
+			fillContainerWithSubject(lesson, subjectContainer, config)
 		}
 	}
 
@@ -2278,6 +2347,14 @@ function addBreak(to: WidgetStack | ListWidget, breakFrom: Date, breakTo: Date, 
 	breakContainer.addSpacer()
 }
 
+/**
+ * Creates a "timeline entry" which is a container (you can add content to) with the time on the left.
+ * @param to the container to add the entry to
+ * @param time the from time of the entry
+ * @param config
+ * @param options additional options
+ * @returns the first stack of the entry, which can be used to add content
+ */
 function makeTimelineEntry(
 	to: WidgetStack | ListWidget,
 	time: Date,
@@ -2338,6 +2415,14 @@ function makeTimelineEntry(
 	return lessonContainer
 }
 
+/**
+ * Adds a lesson to the widget. This includes its subject, additional info (as an icon) and the time.
+ * The state is also shown as through colors. (canceled, event)
+ * @param lesson the lesson to add
+ * @param to the container to add the lesson to
+ * @param config
+ * @param options
+ */
 function addWidgetLesson(
 	lesson: TransformedLesson,
 	to: ListWidget | WidgetStack,
@@ -2449,7 +2534,13 @@ function addWidgetLesson(
 	}
 }
 
-function convertToSubject(lesson: TransformedLesson, container: WidgetStack, config: Config) {
+/**
+ * Fills/transforms the given container with the given lesson information.
+ * @param lesson
+ * @param container
+ * @param config
+ */
+function fillContainerWithSubject(lesson: TransformedLesson, container: WidgetStack, config: Config) {
 	let backgroundColor = getColor(lesson.backgroundColor)
 	let textColor = colors.text.primary
 
@@ -2505,6 +2596,7 @@ function getFileManagerOptions() {
 	const fileManager = useICloud ? FileManager.iCloud() : FileManager.local()
 
 	const documentsDirectory = fileManager.documentsDirectory()
+
 	// const appFolderName = 'untis'
 	// const appDirectory = fileManager.joinPath(documentsDirectory, appFolderName)
 
@@ -2516,6 +2608,12 @@ function getFileManagerOptions() {
 	return { useICloud, documentsDirectory }
 }
 
+/**
+ * Reads the config from the file system and if it does not exist, creates it with the default config.
+ * @param documentsDirectory the scriptable documents directory
+ * @param useICloud
+ * @returns
+ */
 async function readConfig(documentsDirectory: string, useICloud: boolean) {
 	const fileManager = useICloud ? FileManager.iCloud() : FileManager.local()
 	const configFileName = 'untis-config.json'
@@ -2540,6 +2638,10 @@ async function readConfig(documentsDirectory: string, useICloud: boolean) {
 
 //#region Flow Layout
 
+/**
+ * A helper class which can be used to lay out items in a horizontal flow layout.
+ * This makes it possible to wrap to the next line if the items exceed the maximum width.
+ */
 class FlowLayoutRow {
 	private currentRowWidth = 0
 	private currentRowHeight = 0
@@ -2585,21 +2687,12 @@ class FlowLayoutRow {
 
 		// add a new row if the width is not enough
 		if (this.currentRowWidth !== 0 && theoreticalWidth > this.maxWidth) {
-			// console.log(
-			// 	`FlowLayoutRow: New row, component: ${componentWidth}, remaining: ${this.maxWidth - this.currentRowWidth}`
-			// )
-
 			this.addRow()
 		}
 
 		// check if the height would overflow
 		if (componentHeight > this.currentRowHeight) {
 			if (this.previousTotalHeight + this.currentRowHeight > this.maxHeight) {
-				// console.warn(
-				// 	`FlowLayoutRow: Cannot add component, max height reached. (${
-				// 		this.previousTotalHeight + this.currentRowHeight
-				// 	})`
-				// )
 				return false
 			}
 			// update the current row height
@@ -2646,8 +2739,6 @@ class FlowLayoutRow {
 		const totalWidth = this.maxWidth + this.padding * 2
 		const totalHeight = this.previousTotalHeight + this.currentRowHeight + this.padding * 2
 		this.container.size = new Size(totalWidth, totalHeight)
-
-		// console.log(`FlowLayoutRow: Finished with size ${totalWidth}x${totalHeight}, ${this.maxHeight - totalHeight} remaining`)
 
 		return {
 			resultingWidth: this.maxWidth * 2 * this.padding,
@@ -2776,6 +2867,7 @@ function getWidgetSizes() {
 
 	const deviceSize = Device.screenSize()
 	const deviceSizeString = `${deviceSize.width}x${deviceSize.height}`
+	// for rotated devices, the width and height are swapped
 	const alternativeDeviceSizeString = `${deviceSize.height}x${deviceSize.width}`
 	console.log(`Device size: ${deviceSizeString}`)
 
@@ -2806,6 +2898,9 @@ function getWidgetSizes() {
 	}
 }
 
+/**
+ * Returns the widget size for the current widget family and device.
+ */
 function getWidgetSize(widgetSizes: HomescreenWidgetSizes, widgetFamily?: typeof config.widgetFamily): Size {
 	// return a placeholder if the widget size is not defined
 	if (widgetSizes === undefined) {
@@ -2833,6 +2928,9 @@ function isHomescreenWidgetSize(k: string, widgetSizes: HomescreenWidgetSizes): 
 
 //#region Widget Helpers
 
+/**
+ * Applies the custom lesson config to a timetable.
+ **/
 function applyLessonConfigs(timetable: TransformedLessonWeek, config: Config) {
 	// iterate over the days, then the lessons
 	for (const key of Object.keys(timetable)) {
@@ -2844,6 +2942,9 @@ function applyLessonConfigs(timetable: TransformedLessonWeek, config: Config) {
 	}
 }
 
+/**
+ * Applies the custom lesson config to a lesson.
+ */
 function applyCustomLessonConfig(lesson: TransformedLesson, config: Config) {
 	lesson.backgroundColor = unparsedColors.background.primary
 
@@ -2877,6 +2978,9 @@ function applyCustomLessonConfig(lesson: TransformedLesson, config: Config) {
 	if (unwrappedCustomOption.color) lesson.backgroundColor = unwrappedCustomOption.color
 }
 
+/**
+ * Find out when to refresh the widget based on the content.
+ */
 function getRefreshDateForLessons(
 	lessonsTodayRemaining: TransformedLesson[],
 	lessonsTomorrow: TransformedLesson[],
@@ -3028,10 +3132,13 @@ function asMilliseconds(duration: number, unit: 'seconds' | 'minutes' | 'hours' 
 	}
 }
 
-function asMinutes(duration: number, unit: 'seconds' | 'minutes' | 'hours' | 'days') {
-	return asMilliseconds(duration, unit) / 60_000
-}
-
+/**
+ * Schedules a notification with the given parameters.
+ * @param title 
+ * @param body 
+ * @param sound the sound to play, defaults to 'event'
+ * @param date the date to schedule the notification for, defaults to 5 seconds from now
+ */
 function scheduleNotification(
 	title: string,
 	body?: string,
@@ -3076,7 +3183,7 @@ function parseLayoutString(layoutString: string) {
 			if (viewNames.includes(view as ViewName)) {
 				columnViews.push(view as ViewName)
 			} else {
-				console.warn(`Invalid view name: ${view}`)
+				console.warn(`⚠️ Invalid view name: ${view}`)
 			}
 		}
 		layout.push(columnViews)
@@ -3085,6 +3192,9 @@ function parseLayoutString(layoutString: string) {
 	return layout
 }
 
+/**
+ * Adapts the number of columns in the layout to the widget size.
+ */
 function adaptLayoutForSize(layout: ViewName[][]) {
 	switch (config.widgetFamily) {
 		case 'small':
@@ -3365,6 +3475,9 @@ function checkNewRefreshDate(newDate: Date, fetchedData: FetchedData) {
 
 type FetchableNames = 'timetable' | 'exams' | 'grades' | 'absences' | 'roles'
 
+/**
+ * Fetches the data which is required for the given views.
+ */
 async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options: Options) {
 	const fetchedData: FetchedData = {}
 	const itemsToFetch = new Set<FetchableNames>()
@@ -3457,6 +3570,10 @@ interface ViewBuildData {
 	height: number
 }
 
+/**
+ * Creates the widget by adding as many views to it as fit.
+ * Also adds the footer.
+ */
 async function createWidget(user: FullUser, layout: ViewName[][], options: Options) {
 	const widget = new ListWidget()
 
