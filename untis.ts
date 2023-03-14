@@ -1446,7 +1446,7 @@ function compareCachedGrades(grades: TransformedGrade[], cachedExams: Transforme
 		if (!cachedGrade) {
 			scheduleNotification(
 				`You received a grade in ${grade.subject}`,
-				`you got a "${grade.mark}" (${grade.text}) on a ${grade.examType}`
+				`you got a "${grade.mark.displayValue}" (${grade.text}) on a ${grade.examType.name}`
 			)
 			continue
 		}
