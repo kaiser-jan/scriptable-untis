@@ -1131,12 +1131,16 @@ async function getCachedOrFetch<T>(
 ): Promise<T> {
 	const { json: cachedJson, cacheAge, cacheDate } = await readFromCache(key)
 
-	const cachedData = JSON.parse(cachedJson, (name, value) => {
-		if (typeof value === 'string' && /^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d.\d\d\dZ$/.test(value)) {
-			return new Date(value)
-		}
-		return value
-	})
+	let cachedData = {} as T
+
+	if (cachedJson) {
+		cachedData = JSON.parse(cachedJson, (name, value) => {
+			if (typeof value === 'string' && /^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d.\d\d\dZ$/.test(value)) {
+				return new Date(value)
+			}
+			return value
+		})
+	}
 
 	let fetchedData: T
 
@@ -1158,7 +1162,7 @@ async function getCachedOrFetch<T>(
 		}
 	}
 
-	if (cachedData && fetchedData && compareData) {
+	if (cachedJson && fetchedData && compareData) {
 		console.log('There is cached data and fetched data, checking for compare...')
 		if (cachedJson === JSON.stringify(fetchedData)) {
 			console.log('Data did not change, not comparing.')
@@ -1275,7 +1279,6 @@ async function getTimetable(user: FullUser, options: Options) {
 //#endregion
 
 //#region Comparing
-
 
 function compareCachedLessons(lessonWeek: TransformedLessonWeek, cachedLessonWeek: TransformedLessonWeek) {
 	console.log('Comparing cached lessons with fetched lessons.')
@@ -1416,6 +1419,7 @@ function compareCachedExams(exams: TransformedExam[], cachedExams: TransformedEx
 	// find any exams that were added
 	for (const exam of exams) {
 		const cachedExam = cachedExams.find((cachedExam) => exam.id === cachedExam.id)
+
 		if (!cachedExam) {
 			scheduleNotification(
 				`Exam ${exam.subject} (${exam.type}) was added`,
@@ -3628,14 +3632,23 @@ async function setupAndCreateWidget() {
 	return widget
 }
 
+enum ScriptActions {
+	VIEW = '💻 Show Widget',
+	CHANGE_CREDENTIALS = '🔑 Change Credentials',
+	CLEAR_CACHE = '🗑️ Clear Cache',
+}
+
 async function runInteractive() {
-	const actions = ['view', 'change', 'clearCache']
+	const actions = Object.values(ScriptActions).filter((item) => {
+		return isNaN(Number(item))
+	})
+
 	const input = await selectOption(actions, {
 		title: 'What do you want to do?',
 	})
 
 	switch (input) {
-		case 'view':
+		case ScriptActions.VIEW:
 			const widget = await setupAndCreateWidget()
 			switch (PREVIEW_WIDGET_SIZE) {
 				case 'small':
@@ -3649,10 +3662,10 @@ async function runInteractive() {
 					break
 			}
 			break
-		case 'change':
+		case ScriptActions.CHANGE_CREDENTIALS:
 			await writeKeychain()
 			break
-		case 'clearCache':
+		case ScriptActions.CLEAR_CACHE:
 			await clearCache()
 	}
 }
