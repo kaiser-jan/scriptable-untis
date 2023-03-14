@@ -1,4 +1,4 @@
-import { ErrorCode } from "./utils/errors"
+import { ErrorCode, createError } from "./utils/errors"
 
 const keychainRequestStrings = {
 	school: {
@@ -77,7 +77,7 @@ async function requestKeychainEntry(key: AvailableKeychainEntries, defaultValue 
 			throw createError(ErrorCode.INVALID_WEBUNTIS_URL)
 		case 'username':
 		case 'password':
-			const input = await askForInput({ ...keychainRequestStrings[key], defaultValue })
+			const input = await askForInput({ ...keychainRequestStrings[key], defaultValue, isSecure: key === 'password' })
 			Keychain.set(`webuntis-${key}`, input)
 			return input
 	}
@@ -134,8 +134,4 @@ export async function selectOption(
 	}
 
 	return availableOptions[responseIndex]
-}
-
-function createError(INVALID_WEBUNTIS_URL: any) {
-	throw new Error("Function not implemented.")
 }

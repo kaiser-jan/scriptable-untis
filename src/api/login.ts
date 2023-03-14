@@ -1,4 +1,4 @@
-import { ErrorCode, throwError } from "@/utils/errors"
+import { ErrorCode, createError } from "@/utils/errors"
 
 export async function login(user: UserData, password: string) {
 	console.log(`🔑 Logging in as ${user.username} in school ${user.school} on ${user.server}.webuntis.com`)
@@ -29,13 +29,13 @@ async function fetchCookies(user: UserData, password: string) {
 	await request.load()
 
 	if (request.response.statusCode == 404) {
-		throwError(ErrorCode.NOT_FOUND)
+		throw createError(ErrorCode.NOT_FOUND)
 	}
 
 	const cookies = request.response.cookies.map((cookie: any) => `${cookie.name}=${cookie.value}`)
 
 	if (!cookies) {
-		throwError(ErrorCode.NO_COOKIES)
+		throw createError(ErrorCode.NO_COOKIES)
 	}
 
 	console.log('🍪 Got cookies')
@@ -55,11 +55,11 @@ async function fetchBearerToken(user: UserData, cookies: string[]) {
 
 	// throw a LOGIN_ERROR if the response contains the string "loginError"
 	if (token.includes('loginError')) {
-		throwError(ErrorCode.LOGIN_ERROR)
+		throw createError(ErrorCode.LOGIN_ERROR)
 	}
 
 	if (!token) {
-		throwError(ErrorCode.NO_TOKEN)
+		throw createError(ErrorCode.NO_TOKEN)
 	}
 
 	console.log('🎟️  Got Bearer Token for Authorization')
@@ -78,7 +78,7 @@ async function fetchUserData(user: User) {
 	const json = await request.loadJSON()
 
 	if (!json || !json.user) {
-		throwError(ErrorCode.NO_USER)
+		throw createError(ErrorCode.NO_USER)
 	}
 
 	if (json.user.name !== user.username) {

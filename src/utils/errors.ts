@@ -55,7 +55,7 @@ export interface ExtendedError extends Error {
  * @param errorCode
  * @returns an Error to be thrown
  */
-function createError(errorCode: IErrorCode) {
+export function createError(errorCode: IErrorCode) {
 	const error = new Error() as ExtendedError
 	error.name = errorCode.title
 	if (errorCode.description) {
@@ -65,10 +65,6 @@ function createError(errorCode: IErrorCode) {
 		error.icon = errorCode.icon
 	}
 	return error
-}
-
-export function throwError(errorCode: IErrorCode) {
-	throw createError(errorCode)
 }
 
 export function createErrorWidget(title: string, description: string, icon?: string) {
