@@ -1045,7 +1045,7 @@ async function prepareUser(options: Options, ignoreCache = false): Promise<FullU
 		const userCacheAge = new Date().getTime() - cachedUser.lastUpdated.getTime()
 		console.log(`User cache age: ${(userCacheAge / 1000 / 60).toFixed(2)} minutes`)
 
-		if (userCacheAge < options.config.cache.user * 60 * 60 * 1000) {
+		if (userCacheAge < options.config.cacheHours.user * 60 * 60 * 1000) {
 			console.log('Using cached user.')
 			return cachedUser
 		}
@@ -1174,7 +1174,7 @@ async function getLessonsFor(user: FullUser, date: Date, isNext: boolean, option
 	const key = isNext ? 'lessons_next' : 'lessons'
 	return getCachedOrFetch(
 		key,
-		options.config.cache.lessons * 60 * 60 * 1000,
+		options.config.cacheHours.lessons * 60 * 60 * 1000,
 		() => fetchLessonsFor(user, date, options),
 		compareCachedLessons
 	)
@@ -1183,7 +1183,7 @@ async function getLessonsFor(user: FullUser, date: Date, isNext: boolean, option
 async function getExamsFor(user: FullUser, from: Date, to: Date, options: Options) {
 	return getCachedOrFetch(
 		'exams',
-		options.config.cache.exams * 60 * 60 * 1000,
+		options.config.cacheHours.exams * 60 * 60 * 1000,
 		() => fetchExamsFor(user, from, to),
 		compareCachedExams
 	)
@@ -1192,7 +1192,7 @@ async function getExamsFor(user: FullUser, from: Date, to: Date, options: Option
 async function getGradesFor(user: FullUser, from: Date, to: Date, options: Options) {
 	return getCachedOrFetch(
 		'grades',
-		options.config.cache.grades * 60 * 60 * 1000,
+		options.config.cacheHours.grades * 60 * 60 * 1000,
 		() => fetchGradesFor(user, from, to),
 		compareCachedGrades
 	)
@@ -1201,14 +1201,14 @@ async function getGradesFor(user: FullUser, from: Date, to: Date, options: Optio
 async function getAbsencesFor(user: FullUser, from: Date, to: Date, options: Options) {
 	return getCachedOrFetch(
 		'absences',
-		options.config.cache.absences * 60 * 60 * 1000,
+		options.config.cacheHours.absences * 60 * 60 * 1000,
 		() => fetchAbsencesFor(user, from, to),
 		compareCachedAbsences
 	)
 }
 
 async function getSchoolYears(user: FullUser, options: Options) {
-	return getCachedOrFetch('school_years', options.config.cache.schoolYears * 60 * 60 * 1000, () =>
+	return getCachedOrFetch('school_years', options.config.cacheHours.schoolYears * 60 * 60 * 1000, () =>
 		fetchSchoolYears(user)
 	)
 }
@@ -1576,14 +1576,14 @@ const defaultConfig = {
 
 	config: {
 		locale: 'de-AT',
-		breakMin: 7,
-		breakMax: 45,
+		breakMinMinutes: 7,
+		breakMaxMinutes: 45,
 		refreshing: {
-			normalScope: 12,
-			normalInterval: 60,
-			lazyInterval: 4,
+			normalScopeHours: 12,
+			normalIntervalMinutes: 60,
+			lazyIntervalMinutes: 4 * 60,
 		},
-		cache: {
+		cacheHours: {
 			user: 0.25,
 			lessons: 0.5,
 			exams: 24,
@@ -2034,7 +2034,7 @@ function addViewLessons(
 			if (
 				previousLesson &&
 				config.views.lessons.showLongBreaks &&
-				gapDuration > config.config.breakMax * 60 * 1000
+				gapDuration > config.config.breakMaxMinutes * 60 * 1000
 			) {
 				addBreak(container, previousLesson.to, lesson.from, showToTime, config)
 				itemCount++
@@ -2859,7 +2859,7 @@ function getRefreshDateForLessons(
 			// if the break is too short
 			if (
 				secondLesson &&
-				secondLesson.from.getTime() - firstLesson.to.getTime() < config.config.breakMax * 60 * 1000
+				secondLesson.from.getTime() - firstLesson.to.getTime() < config.config.breakMaxMinutes * 60 * 1000
 			) {
 				nextRefreshDate = secondLesson.from
 				console.log(
@@ -2878,19 +2878,19 @@ function getRefreshDateForLessons(
 		// if the next lesson (on the next day) is in the scope of the frequent updates
 		if (lessonsTomorrow && lessonsTomorrow.length > 1) {
 			const timeUntilNextLesson = lessonsTomorrow[0].from.getTime() - CURRENT_DATETIME.getTime()
-			shouldLazyUpdate = timeUntilNextLesson > config.config.refreshing.normalScope * 60 * 60 * 1000
+			shouldLazyUpdate = timeUntilNextLesson > config.config.refreshing.normalScopeHours * 60 * 60 * 1000
 		}
 
 		// refresh based on normal/lazy refreshing
 		if (shouldLazyUpdate) {
-			console.log(`Would refresh in ${config.config.refreshing.lazyInterval} hours (lazy updating).`)
+			console.log(`Would refresh in ${config.config.refreshing.lazyIntervalMinutes} minutes (lazy updating).`)
 			nextRefreshDate = new Date(
-				CURRENT_DATETIME.getTime() + config.config.refreshing.lazyInterval * 60 * 60 * 1000
+				CURRENT_DATETIME.getTime() + config.config.refreshing.lazyIntervalMinutes * 60 * 1000
 			)
 		} else {
-			console.log(`Would refresh in ${config.config.refreshing.normalInterval} hours (normal updating).`)
+			console.log(`Would refresh in ${config.config.refreshing.normalIntervalMinutes} minutes (normal updating).`)
 			nextRefreshDate = new Date(
-				CURRENT_DATETIME.getTime() + config.config.refreshing.normalInterval * 60 * 60 * 1000
+				CURRENT_DATETIME.getTime() + config.config.refreshing.normalIntervalMinutes * 60 * 1000
 			)
 		}
 	}
@@ -2911,7 +2911,7 @@ function shouldCombineLessons(
 	ignoreBreaks = false
 ) {
 	if (a.subject?.name !== b.subject?.name) return false
-	if (!ignoreBreaks && b.from.getTime() - a.to.getTime() > config.config.breakMin * 60 * 1000) return false
+	if (!ignoreBreaks && b.from.getTime() - a.to.getTime() > config.config.breakMinMinutes * 60 * 1000) return false
 
 	if (ignoreDetails) return true
 
@@ -3367,7 +3367,7 @@ async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options:
 		const promise = getExamsFor(user, examsFrom, CURRENT_DATETIME, options).then((exams) => {
 			fetchedData.exams = exams
 		})
-		const refreshDate = new Date(Date.now() + (options.config.cache.exams * 60 * 60 * 1000) / 2)
+		const refreshDate = new Date(Date.now() + (options.config.cacheHours.exams * 60 * 60 * 1000) / 2)
 		checkNewRefreshDate(refreshDate, fetchedData)
 		fetchPromises.push(promise)
 	}
@@ -3377,7 +3377,7 @@ async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options:
 		const promise = getGradesFor(user, gradesFrom, CURRENT_DATETIME, options).then((grades) => {
 			fetchedData.grades = grades
 		})
-		const refreshDate = new Date(Date.now() + (options.config.cache.grades * 60 * 60 * 1000) / 2)
+		const refreshDate = new Date(Date.now() + (options.config.cacheHours.grades * 60 * 60 * 1000) / 2)
 		checkNewRefreshDate(refreshDate, fetchedData)
 		fetchPromises.push(promise)
 	}
@@ -3391,7 +3391,7 @@ async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options:
 		const promise = getAbsencesFor(user, currentSchoolYear.from, CURRENT_DATETIME, options).then((absences) => {
 			fetchedData.absences = absences
 		})
-		const refreshDate = new Date(Date.now() + (options.config.cache.absences * 60 * 60 * 1000) / 2)
+		const refreshDate = new Date(Date.now() + (options.config.cacheHours.absences * 60 * 60 * 1000) / 2)
 		checkNewRefreshDate(refreshDate, fetchedData)
 		fetchPromises.push(promise)
 	}
