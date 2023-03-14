@@ -1026,31 +1026,12 @@ interface CachedUser extends FullUser {
 	lastUpdated: Date
 }
 
-async function prepareUser(options: Options, ignoreCache = false): Promise<FullUser> {
-	const fileManager = options.useICloud ? FileManager.iCloud() : FileManager.local()
-	const userCacheFileName = 'user.json'
-	const userCachePath = fileManager.joinPath(options.appDirectory, userCacheFileName)
-	const userCacheExists = fileManager.fileExists(userCachePath)
+async function prepareUser(options: Options): Promise<FullUser> {
+	const CACHE_KEY = 'user'
+	const { json, cacheAge, cacheDate } = await readFromCache(CACHE_KEY)
 
-	if (!ignoreCache && userCacheExists) {
-		if (options.useICloud) {
-			await fileManager.downloadFileFromiCloud(userCachePath)
-		}
-
-		const cachedUser: CachedUser = JSON.parse(fileManager.readString(userCachePath))
-		// parse the date
-		cachedUser.lastUpdated = new Date(cachedUser.lastUpdated)
-
-		// get the cache age
-		const userCacheAge = new Date().getTime() - cachedUser.lastUpdated.getTime()
-		console.log(`User cache age: ${(userCacheAge / 1000 / 60).toFixed(2)} minutes`)
-
-		if (userCacheAge < options.config.cacheHours.user * 60 * 60 * 1000) {
-			console.log('Using cached user.')
-			return cachedUser
-		}
-	} else {
-		console.log('Ignoring user cache.')
+	if (json && cacheAge < options.config.cacheHours.user * 60 * 60 * 1000) {
+		return JSON.parse(json)
 	}
 
 	// get the user data from the keychain
@@ -1063,7 +1044,7 @@ async function prepareUser(options: Options, ignoreCache = false): Promise<FullU
 		...fetchedUser,
 		lastUpdated: new Date(),
 	}
-	fileManager.writeString(userCachePath, JSON.stringify(userToCache))
+	writeToCache(userToCache, CACHE_KEY)
 
 	console.log('Fetched user from untis and wrote to cache.')
 
@@ -1556,7 +1537,7 @@ type LessonOptions = {
 
 interface Options extends Config {
 	useICloud: boolean
-	appDirectory: string
+	documentsDirectory: string
 }
 
 const defaultConfig = {
@@ -2467,34 +2448,37 @@ function convertToSubject(lesson: TransformedLesson, container: WidgetStack, con
 
 //#region File System
 
-function getAppDirectory() {
-	// TODO: check if icloud is in use
+function getFileManagerOptions() {
 	const useICloud = FileManager.local().isFileStoredIniCloud(module.filename)
 	const fileManager = useICloud ? FileManager.iCloud() : FileManager.local()
-	const appFolderName = 'untis'
-	const appDirectory = fileManager.joinPath(fileManager.documentsDirectory(), appFolderName)
 
-	if (!fileManager.fileExists(appDirectory)) {
-		console.log('Created app directory.')
-		fileManager.createDirectory(appDirectory, true)
-	}
+	const documentsDirectory = fileManager.documentsDirectory()
+	// const appFolderName = 'untis'
+	// const appDirectory = fileManager.joinPath(documentsDirectory, appFolderName)
 
-	return { appDirectory, useICloud }
+	// if (!fileManager.fileExists(appDirectory)) {
+	// 	console.log('Created app directory.')
+	// 	fileManager.createDirectory(appDirectory, true)
+	// }
+
+	return { useICloud, documentsDirectory }
 }
 
-async function readConfig(appDirectory: string, useICloud: boolean) {
+async function readConfig(documentsDirectory: string, useICloud: boolean) {
 	const fileManager = useICloud ? FileManager.iCloud() : FileManager.local()
-	const configFileName = 'config.json'
-	const configPath = fileManager.joinPath(appDirectory, configFileName)
-	if (useICloud) {
-		await fileManager.downloadFileFromiCloud(configPath)
-	}
-	const fileConfig: Config = JSON.parse(fileManager.readString(configPath))
+	const configFileName = 'untis-config.json'
+	const configPath = fileManager.joinPath(documentsDirectory, configFileName)
 
 	if (!fileManager.fileExists(configPath)) {
 		console.log('Created config file with default config.')
 		fileManager.writeString(configPath, JSON.stringify(defaultConfig))
 	}
+
+	if (useICloud) {
+		await fileManager.downloadFileFromiCloud(configPath)
+	}
+	
+	const fileConfig: Config = JSON.parse(fileManager.readString(configPath))
 
 	// combine the defaultConfig and read config and write it to config
 	return deepMerge(defaultConfig, fileConfig)
@@ -3624,9 +3608,9 @@ function addFooter(container: WidgetStack | ListWidget, width: number, config: C
 //#region Script
 
 async function setupAndCreateWidget() {
-	const { appDirectory, useICloud } = getAppDirectory()
-	const untisConfig = await readConfig(appDirectory, useICloud)
-	const options = { ...untisConfig, appDirectory, useICloud }
+	const { useICloud, documentsDirectory } = getFileManagerOptions()
+	const untisConfig = await readConfig(documentsDirectory, useICloud)
+	const options: Options = { ...untisConfig, documentsDirectory, useICloud }
 	const user = await prepareUser(options)
 	const widget = await createWidget(user, layout, options)
 	return widget
