@@ -20,7 +20,7 @@ const MAX_SUBJECT_NAME_LENGTH = 6
 const MAX_LONG_SUBJECT_NAME_LENGTH = 12
 const NO_VALUE_PLACEHOLDERS = ['---']
 // the layout is a list of views separated by commas, the columns are separated by pipes "|"
-const defaultLayout = 'grades,exams,absences'
+const defaultLayout = 'lessons,exams'
 
 let usingOldCache = false
 
