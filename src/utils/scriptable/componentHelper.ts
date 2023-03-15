@@ -1,10 +1,10 @@
-import { MAX_TIME_STRING } from "@/constants";
-import { getCharHeight, getTextWidth, getCharWidth, asNumericTime } from "../helper";
-import { getSubjectTitle } from "../lessonHelper";
-import { TransformedLesson } from "@/types/transformed";
-import { Config } from "@/preferences/config";
-import { LessonState } from "@/types/api";
-import { colors, getColor } from "@/preferences/colors";
+import { MAX_TIME_STRING } from '@/constants'
+import { getCharHeight, getTextWidth, getCharWidth, asNumericTime } from '../helper'
+import { getSubjectTitle } from '../lessonHelper'
+import { TransformedLesson } from '@/types/transformed'
+import { Config } from '@/preferences/config'
+import { LessonState } from '@/types/api'
+import { colors, getColor } from '@/preferences/colors'
 
 /**
  * Adds a SFSymbol with the correct outer size to match the font size.
@@ -27,7 +27,13 @@ export function addSymbol(
 /**
  * Adds a break to the widget.
  */
-export function addBreak(to: WidgetStack | ListWidget, breakFrom: Date, breakTo: Date, showToTime: boolean, config: Config) {
+export function addBreak(
+	to: WidgetStack | ListWidget,
+	breakFrom: Date,
+	breakTo: Date,
+	showToTime: boolean,
+	config: Config
+) {
 	const breakContainer = makeTimelineEntry(to, breakFrom, config, {
 		backgroundColor: colors.background.primary,
 		showTime: true,
@@ -108,6 +114,32 @@ function makeTimelineEntry(
 	return lessonContainer
 }
 
+function getLessonColors(lesson: TransformedLesson) {
+	const isCanceledOrFree = lesson.state === LessonState.CANCELED || lesson.state === LessonState.FREE
+	/** Whether the lesson was rescheduled away from here. (isSource) */
+	const isRescheduledAway = lesson.state === LessonState.RESCHEDULED && lesson.rescheduleInfo?.isSource
+
+	// define the colors
+	let backgroundColor = getColor(lesson.backgroundColor)
+	let textColor = colors.text.primary
+	let secondaryTextColor = colors.text.secondary
+
+	// adjust the colors for canceled lessons and similar
+	if (isCanceledOrFree || isRescheduledAway) {
+		backgroundColor = colors.background.primary
+		textColor = colors.text.disabled
+		secondaryTextColor = colors.text.disabled
+
+		// only make it red if it's canceled
+		if (lesson.state === LessonState.CANCELED) {
+			textColor = colors.text.red
+			secondaryTextColor = colors.text.red
+		}
+	}
+
+	return { backgroundColor, textColor, secondaryTextColor }
+}
+
 /**
  * Adds a lesson to the widget. This includes its subject, additional info (as an icon) and the time.
  * The state is also shown as through colors. (canceled, event)
@@ -130,21 +162,9 @@ export function addWidgetLesson(
 		useSubjectLongName: false,
 	}
 ) {
-	const isCanceled = lesson.state === LessonState.CANCELED
-	const isCanceledOrFree = isCanceled || lesson.state === LessonState.FREE
-	const isRescheduled = lesson.state === LessonState.RESCHEDULED && lesson.rescheduleInfo?.isSource
+	const isCanceledOrFree = lesson.state === LessonState.CANCELED || lesson.state === LessonState.FREE
 
-	// define the colors
-	let backgroundColor = getColor(lesson.backgroundColor)
-	let textColor = colors.text.primary
-	let iconColor: Color = colors.text.secondary
-
-	// adjust the colors for canceled lessons and similar
-	if (lesson.state === LessonState.CANCELED || lesson.state === LessonState.FREE || isRescheduled) {
-		backgroundColor = colors.background.primary
-		textColor = colors.text.disabled
-		iconColor = colors.text.disabled
-	}
+	const { backgroundColor, textColor, secondaryTextColor } = getLessonColors(lesson)
 
 	// consider breaks during the combined lesson
 	let toTime = lesson.to
@@ -172,29 +192,30 @@ export function addWidgetLesson(
 	if (lesson.duration > 1) {
 		const durationText = lessonContainer.addText(`x${lesson.duration}`)
 		durationText.font = Font.mediumSystemFont(config.appearance.fontSize)
-		durationText.textColor = isCanceled ? colors.text.disabled : colors.text.secondary
+		durationText.textColor = secondaryTextColor
 	}
 
 	let iconName: string | undefined = undefined
+
+	const STATE_ICON_MAP: Record<LessonState, string> = {
+		[LessonState.NORMAL]: undefined,
+		[LessonState.CANCELED]: 'xmark.circle',
+		[LessonState.FREE]: 'xmark.circle',
+		[LessonState.ADDITIONAL]: 'plus.circle',
+		[LessonState.RESCHEDULED]: 'calendar.circle',
+		[LessonState.EXAM]: 'book.circle',
+		[LessonState.SUBSTITUTED]: 'person.circle',
+		[LessonState.TEACHER_SUBSTITUTED]: 'person.circle',
+		[LessonState.ROOM_SUBSTITUTED]: 'location.circle',
+	}
 
 	// add icons for the lesson state
 	if (lesson.isEvent) {
 		iconName = 'calendar.circle'
 	} else if (isCanceledOrFree && !lesson.isRescheduled) {
 		iconName = 'xmark.circle'
-		if (isCanceled) iconColor = colors.text.red
-	} else if (lesson.state === LessonState.ADDITIONAL) {
-		iconName = 'plus.circle'
-	} else if (lesson.state === LessonState.RESCHEDULED) {
-		iconName = 'calendar.circle'
-	} else if (lesson.state === LessonState.EXAM) {
-		iconName = 'book.circle'
-	} else if (lesson.state === LessonState.SUBSTITUTED) {
-		iconName = 'person.circle'
-	} else if (lesson.state === LessonState.ROOM_SUBSTITUTED) {
-		iconName = 'location.circle'
-	} else if (lesson.state === LessonState.FREE) {
-		iconName = 'bell.circle'
+	} else if (STATE_ICON_MAP[lesson.state]) {
+		iconName = STATE_ICON_MAP[lesson.state]
 	} else if (lesson.text || lesson.info || lesson.note) {
 		iconName = 'info.circle'
 	}
@@ -203,27 +224,27 @@ export function addWidgetLesson(
 		lessonContainer.addSpacer()
 	}
 
+	// add a shift info if the lesson was rescheduled
 	if (lesson.isRescheduled && lesson.rescheduleInfo?.isSource) {
 		const iconShift = addSymbol('arrow.right', lessonContainer, {
-			color: isCanceled ? colors.text.disabled : colors.text.secondary,
+			color: colors.text.disabled,
 			size: config.appearance.fontSize * 0.8,
 		})
 		// manually correct the arrow box
+		// TODO(proof): does this really center the arrow?
 		iconShift.imageSize = new Size(
 			getCharWidth(config.appearance.fontSize * 0.8),
 			getCharHeight(config.appearance.fontSize)
 		)
 		// display the time it was rescheduled to
-		// const rescheduledTimeWrapper = lessonContainer.addStack()
 		const rescheduledTime = lessonContainer.addText(asNumericTime(lesson.rescheduleInfo?.otherFrom))
 		rescheduledTime.font = Font.mediumSystemFont(config.appearance.fontSize)
-		rescheduledTime.textColor = isCanceled ? colors.text.disabled : colors.text.secondary
+		rescheduledTime.textColor = colors.text.disabled
 	}
 
 	if (iconName) {
-		// TODO: this does not work properly (min width?) - e.g. 2022-09-19
 		lessonContainer.addSpacer()
-		addSymbol(iconName, lessonContainer, { color: iconColor, size: config.appearance.fontSize })
+		addSymbol(iconName, lessonContainer, { color: secondaryTextColor, size: config.appearance.fontSize })
 	}
 }
 
@@ -234,29 +255,7 @@ export function addWidgetLesson(
  * @param config
  */
 export function fillContainerWithSubject(lesson: TransformedLesson, container: WidgetStack, config: Config) {
-	let backgroundColor = getColor(lesson.backgroundColor)
-	let textColor = colors.text.primary
-
-	// apply the colors for canceled lessons and similar
-	if (lesson.state === LessonState.CANCELED) {
-		backgroundColor = colors.background.primary
-		textColor = colors.text.red
-	} else if (lesson.state === LessonState.FREE) {
-		backgroundColor = colors.background.primary
-		textColor = colors.text.disabled
-	} else if (lesson.state === LessonState.RESCHEDULED) {
-		// only show as primary if it is not the source -> it is the one that takes place
-		if (lesson.rescheduleInfo?.isSource) {
-			backgroundColor = colors.background.primary
-			textColor = colors.text.disabled
-		} else {
-			backgroundColor = colors.background.primary
-			textColor = colors.text.primary
-		}
-	} else if (lesson.isEvent) {
-		backgroundColor = colors.background.primary
-		textColor = colors.text.event
-	}
+	const { backgroundColor, textColor, secondaryTextColor } = getLessonColors(lesson)
 
 	container.backgroundColor = backgroundColor
 	container.layoutHorizontally()
