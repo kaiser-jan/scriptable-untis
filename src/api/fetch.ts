@@ -1,7 +1,15 @@
-import { Config } from "@/preferences/config"
-import { formatDateForUntis } from "@/utils/helper"
-import { transformExams, transformGrades, transformAbsences, transformClassRoles, transformSchoolYears, transformLessons } from "./transform"
-import { Lesson, Exam, Grade, ClassRole, Absence } from "@/types/api"
+import { Config } from '@/preferences/config'
+import { formatDateForUntis } from '@/utils/helper'
+import {
+	transformExams,
+	transformGrades,
+	transformAbsences,
+	transformClassRoles,
+	transformSchoolYears,
+} from './transform'
+import { transformLessons } from "./transformLessons"
+import { Lesson, Exam, Grade, ClassRole, Absence } from '@/types/api'
+import { TransformedAbsence, TransformedClassRole, TransformedExam, TransformedGrade } from '@/types/transformed'
 
 function prepareRequest(url: string, user: FullUser) {
 	const request = new Request(url)
@@ -37,86 +45,6 @@ export async function fetchLessonsFor(user: FullUser, date: Date = new Date(), c
 	return transformedLessons
 }
 
-export async function fetchExamsFor(user: FullUser, from: Date, to: Date) {
-	const urlExams = `https://${user.server}.webuntis.com/WebUntis/api/exams?studentId=${
-		user.id
-	}&klasseId=-1&startDate=${formatDateForUntis(from)}&endDate=${formatDateForUntis(to)}`
-
-	const request = prepareRequest(urlExams, user)
-	const json = await request.loadJSON()
-
-	if (!json || !json.data || !json.data.exams) {
-		console.warn('⚠️ Could not fetch exams!')
-	}
-
-	const exams: Exam[] = json.data.exams
-	console.log(`📅 Fetched ${exams.length} exams`)
-
-	const transformedExams = transformExams(exams)
-	return transformedExams
-}
-
-export async function fetchGradesFor(user: FullUser, from: Date, to: Date) {
-	const urlGrades = `https://${user.server}.webuntis.com/WebUntis/api/classreg/grade/gradeList?personId=${
-		user.id
-	}&startDate=${formatDateForUntis(from)}&endDate=${formatDateForUntis(to)}`
-
-	const request = prepareRequest(urlGrades, user)
-	const json = await request.loadJSON()
-
-	if (!json || !json.data) {
-		console.warn('⚠️ Could not fetch grades!')
-	}
-
-	const grades: Grade[] = json.data
-	console.log(`📅 Fetched ${grades.length} grades`)
-
-	const transformedGrades = transformGrades(grades)
-	return transformedGrades
-}
-
-export async function fetchAbsencesFor(user: FullUser, from: Date, to: Date) {
-	const urlAbsences = `https://${user.server}.webuntis.com/WebUntis/api/classreg/absences/students?studentId=${
-		user.id
-	}&startDate=${formatDateForUntis(from)}&endDate=${formatDateForUntis(
-		to
-	)}&excuseStatusId=-3&includeTodaysAbsence=true`
-
-	const request = prepareRequest(urlAbsences, user)
-	const json = await request.loadJSON()
-
-	if (!json || !json.data || !json.data.absences) {
-		console.warn('⚠️ Could not fetch absences!')
-	}
-
-	const absences: Absence[] = json.data.absences
-	console.log(`📅 Fetched ${absences.length} absences`)
-
-	const transformedAbsences = transformAbsences(absences)
-	return transformedAbsences
-}
-
-export async function fetchClassRolesFor(user: FullUser, from: Date, to: Date) {
-	const urlClassRoles = `https://${
-		user.server
-	}.webuntis.com/WebUntis/api/classreg/classservices?startDate=${formatDateForUntis(
-		from
-	)}&endDate=${formatDateForUntis(to)}`
-
-	const request = prepareRequest(urlClassRoles, user)
-	const json = await request.loadJSON()
-
-	if (!json || !json.data || !json.data.classRoles) {
-		console.warn('⚠️ Could not fetch class roles!')
-	}
-
-	const classRoles: ClassRole[] = json.data.classRoles
-	console.log(`📅 Fetched ${classRoles.length} class roles`)
-
-	const transformedClassRoles = transformClassRoles(classRoles)
-	return transformedClassRoles
-}
-
 export async function fetchSchoolYears(user: FullUser) {
 	const url = 'https://arche.webuntis.com/WebUntis/api/rest/view/v1/schoolyears'
 
@@ -132,3 +60,59 @@ export async function fetchSchoolYears(user: FullUser) {
 	const transformedSchoolYears = transformSchoolYears(json)
 	return transformedSchoolYears
 }
+
+// #region Fetch data with same structure
+async function fetchData<T, TransformedT>(
+	user: FullUser,
+	url: string,
+	key: string,
+	transform: (data: T[]) => TransformedT[]
+) {
+	const request = prepareRequest(url, user)
+	const json = await request.loadJSON()
+	if (!json || !json.data || !json.data[key]) {
+		console.warn(`⚠️ Could not fetch ${key}!`)
+	}
+
+	const data: T[] = json.data[key]
+	console.log(`📅 Fetched ${data.length} ${key}`)
+
+	return transform(data)
+}
+
+export async function fetchExamsFor(user: FullUser, from: Date, to: Date) {
+	const urlExams = `https://${user.server}.webuntis.com/WebUntis/api/exams?studentId=${
+		user.id
+	}&klasseId=-1&startDate=${formatDateForUntis(from)}&endDate=${formatDateForUntis(to)}`
+
+	return fetchData<Exam, TransformedExam>(user, urlExams, 'exams', transformExams)
+}
+
+export async function fetchGradesFor(user: FullUser, from: Date, to: Date) {
+	const urlGrades = `https://${user.server}.webuntis.com/WebUntis/api/classreg/grade/gradeList?personId=${
+		user.id
+	}&startDate=${formatDateForUntis(from)}&endDate=${formatDateForUntis(to)}`
+
+	return fetchData<Grade, TransformedGrade>(user, urlGrades, 'grades', transformGrades)
+}
+
+export async function fetchAbsencesFor(user: FullUser, from: Date, to: Date) {
+	const urlAbsences = `https://${user.server}.webuntis.com/WebUntis/api/classreg/absences/students?studentId=${
+		user.id
+	}&startDate=${formatDateForUntis(from)}&endDate=${formatDateForUntis(
+		to
+	)}&excuseStatusId=-3&includeTodaysAbsence=true`
+
+	return fetchData<Absence, TransformedAbsence>(user, urlAbsences, 'absences', transformAbsences)
+}
+
+export async function fetchClassRolesFor(user: FullUser, from: Date, to: Date) {
+	const urlClassRoles = `https://${
+		user.server
+	}.webuntis.com/WebUntis/api/classreg/classservices?startDate=${formatDateForUntis(
+		from
+	)}&endDate=${formatDateForUntis(to)}`
+
+	return fetchData<ClassRole, TransformedClassRole>(user, urlClassRoles, 'classServices', transformClassRoles)
+}
+//#endregion

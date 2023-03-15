@@ -153,7 +153,7 @@ export async function getTimetable(user: FullUser, options: Options) {
 	}
 
 	// apply custom lesson configs
-	// NOTE: it seems more reasonable to NOT do this while transforming,
+	// TODO: it seems more reasonable to NOT do this while transforming,
 	// as these are different tasks and config changes would not behave as expected
 	applyLessonConfigs(timetable, options)
 

@@ -1,5 +1,5 @@
 import { CURRENT_DATETIME } from "@/constants"
-import { combineLessons } from "@/api/transform"
+import { combineLessons } from "@/api/transformLessons"
 import { LOCALE } from "@/constants"
 import { Config } from "@/preferences/config"
 import { TransformedLesson } from "@/types/transformed"
