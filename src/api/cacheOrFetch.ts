@@ -1,4 +1,4 @@
-import { CURRENT_DATETIME } from "@/../index"
+import { CURRENT_DATETIME } from "@/constants"
 import { readFromCache, writeToCache } from "@/api/cache"
 import { fetchLessonsFor, fetchExamsFor, fetchGradesFor, fetchAbsencesFor, fetchSchoolYears } from "@/api/fetch"
 import { NOTIFIABLE_TOPICS } from "@/constants"

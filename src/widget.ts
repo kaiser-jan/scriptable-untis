@@ -1,4 +1,4 @@
-import { CURRENT_DATETIME, scriptStartDatetime } from '..'
+import { CURRENT_DATETIME, SCRIPT_START_DATETIME } from '@/constants'
 import { getTimetable, getExamsFor, getGradesFor, getSchoolYears, getAbsencesFor } from './api/cacheOrFetch'
 import { fetchClassRolesFor } from './api/fetch'
 import { ViewName } from './layout'
@@ -329,7 +329,7 @@ function addFooter(container: WidgetStack | ListWidget, width: number, config: C
 	footerGroup.addSpacer()
 
 	// TODO: make more exact
-	const executionDuration = `${new Date().getTime() - scriptStartDatetime.getTime()}ms`
+	const executionDuration = `${new Date().getTime() - SCRIPT_START_DATETIME.getTime()}ms`
 	const executionDurationText = footerGroup.addText(executionDuration)
 	executionDurationText.textColor = colors.text.secondary
 	executionDurationText.font = Font.regularSystemFont(10)

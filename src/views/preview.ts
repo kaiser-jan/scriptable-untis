@@ -1,4 +1,4 @@
-import { CURRENT_DATETIME } from "@/../index"
+import { CURRENT_DATETIME } from "@/constants"
 import { combineLessons } from "@/api/transform"
 import { LOCALE } from "@/constants"
 import { Config } from "@/preferences/config"

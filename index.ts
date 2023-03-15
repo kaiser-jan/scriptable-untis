@@ -1,13 +1,11 @@
 import { clearCache, prepareUser } from '@/api/cache'
-import { PREVIEW_WIDGET_SIZE } from '@/constants'
+import { PREVIEW_WIDGET_SIZE, SCRIPT_START_DATETIME } from '@/constants'
 import { getLayout } from '@/layout'
 import { Options } from '@/preferences/config'
 import { selectOption, writeKeychain } from '@/setup'
 import { createErrorWidget, ExtendedError, ScriptableErrors } from '@/utils/errors'
 import { getFileManagerOptions, readConfig } from '@/utils/fileSystem'
 import { createWidget } from '@/widget'
-
-export const CURRENT_DATETIME = new Date() // '2022-09-15T14:00' or '2022-09-19T12:30'
 
 async function setupAndCreateWidget() {
 	const { useICloud, documentsDirectory } = getFileManagerOptions()
@@ -52,49 +50,39 @@ async function runInteractive() {
 			await writeKeychain()
 			break
 		case ScriptActions.CLEAR_CACHE:
-			await clearCache()
+			clearCache()
 	}
 }
 
-async function run() {
-	try {
-		if (config.runsInWidget) {
-			const widget = await setupAndCreateWidget()
-			Script.setWidget(widget)
-		} else {
-			await runInteractive()
-		}
-	} catch (error) {
-		console.log(error);
-		
-		let widget: ListWidget
-		const castedError = error as Error
-
-		if (castedError.message.toLowerCase() == ScriptableErrors.NO_INTERNET.toLowerCase()) {
-			widget = createErrorWidget('The internet connection seems to be offline!', '', 'wifi.exclamationmark')
-		} else {
-			const extendedError = error as ExtendedError
-			console.log(extendedError.stack)
-			console.log(extendedError.cause as string)
-			widget = createErrorWidget(extendedError.name, extendedError.message, extendedError.icon)
-		}
-
-		if (!config.runsInWidget) {
-			widget.presentLarge()
-		}
-
+try {
+	if (config.runsInWidget) {
+		const widget = await setupAndCreateWidget()
 		Script.setWidget(widget)
+	} else {
+		await runInteractive()
 	}
+} catch (error) {
+	console.log(error)
+
+	let widget: ListWidget
+	const castedError = error as Error
+
+	if (castedError.message.toLowerCase() == ScriptableErrors.NO_INTERNET.toLowerCase()) {
+		widget = createErrorWidget('The internet connection seems to be offline!', '', 'wifi.exclamationmark')
+	} else {
+		const extendedError = error as ExtendedError
+		console.log(extendedError.stack)
+		console.log(extendedError.cause as string)
+		widget = createErrorWidget(extendedError.name, extendedError.message, extendedError.icon)
+	}
+
+	if (!config.runsInWidget) {
+		widget.presentLarge()
+	}
+
+	Script.setWidget(widget)
 }
 
-export const scriptStartDatetime = new Date()
-
-// await run()
-
-run().then(() => {
-	console.log('done')
-})
-
-console.log(`Script finished in ${new Date().getTime() - scriptStartDatetime.getTime()}ms.`)
+console.log(`Script finished in ${new Date().getTime() - SCRIPT_START_DATETIME.getTime()}ms.`)
 
 Script.complete()

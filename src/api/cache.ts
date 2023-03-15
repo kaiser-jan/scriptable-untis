@@ -90,5 +90,6 @@ export function clearCache() {
 	const untisCacheDirectory = fileManager.joinPath(cacheDirectory, 'untis')
 	if (fileManager.fileExists(untisCacheDirectory)) {
 		fileManager.remove(untisCacheDirectory)
+		console.log('🗃️🧹 Cleared cache.')
 	}
 }

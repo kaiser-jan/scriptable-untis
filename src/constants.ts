@@ -1,3 +1,8 @@
+// runtime constants
+export const SCRIPT_START_DATETIME = new Date();
+
+// compile-time constants
+export const CURRENT_DATETIME = new Date() // '2022-09-15T14:00' or '2022-09-19T12:30'
 export const LOCALE = Device.locale().replace('_', '-')
 export const PREVIEW_WIDGET_SIZE: typeof config.widgetFamily = 'small'
 export const MAX_TIME_STRING = '10:00'
