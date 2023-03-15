@@ -1,13 +1,12 @@
-import { CURRENT_DATETIME, SCRIPT_START_DATETIME } from '@/constants'
+import { CURRENT_DATETIME } from '@/constants'
 import { FetchedData, fetchDataForViews } from './api/fetchManager'
 import { View } from './layout'
-import { colors } from './preferences/colors'
-import { Config, Options } from './preferences/config'
-import { addSymbol } from './utils/componentHelper'
+import { Options } from './preferences/config'
 import { getCharHeight } from './utils/helper'
 import { getWidgetSize, getWidgetSizes } from './utils/widgetSize'
 import { addViewAbsences } from './views/absences'
 import { addViewExams } from './views/exams'
+import { addFooter, getFooterHeight } from './views/footer'
 import { addViewGrades } from './views/grades'
 import { addViewLessons } from './views/lessons'
 import { addViewPreview } from './views/preview'
@@ -16,6 +15,7 @@ export interface ViewBuildData {
 	container: WidgetStack
 	width: number
 	height: number
+	options: Options
 }
 
 export function checkNewRefreshDate(newDate: Date, fetchedData: FetchedData) {
@@ -51,14 +51,13 @@ export async function createWidget(user: FullUser, layout: View[][], options: Op
 
 	const widgetContent = widget.addStack()
 	widgetContent.layoutHorizontally()
-	// widgetContent.layoutVertically()
 	widgetContent.topAlignContent()
 	widgetContent.spacing = options.appearance.spacing
 
-	// make a list of the shown views
+	// make a list of the shown views (without duplicates)
 	const shownViews = new Set<View>()
-	for (const row of layout) {
-		for (const view of row) {
+	for (const column of layout) {
+		for (const view of column) {
 			shownViews.add(view)
 		}
 	}
@@ -76,111 +75,7 @@ export async function createWidget(user: FullUser, layout: View[][], options: Op
 
 	// add all the columns with the views
 	for (const column of layout) {
-		// add the column
-		const columnStack = widgetContent.addStack()
-		columnStack.layoutVertically()
-		columnStack.topAlignContent()
-		columnStack.spacing = options.appearance.spacing
-
-		// calculate the real available height
-		let availableContentHeight = contentSize.height
-		if (options.footer.show) availableContentHeight -= getFooterHeight(options)
-
-		columnStack.size = new Size(columnWidth, availableContentHeight)
-
-		let remainingHeight = availableContentHeight
-
-		console.log(`Column has ${availableContentHeight} available height`)
-
-		for (const view of column) {
-			// exit if there is not enough space left
-			if (remainingHeight <= getCharHeight(options.appearance.fontSize)) continue
-
-			const viewData: ViewBuildData = {
-				container: columnStack,
-				width: columnWidth,
-				height: remainingHeight,
-			}
-
-			let viewHeight = 0
-
-			switch (view) {
-				case View.LESSONS:
-					if (!fetchedData.lessonsTodayRemaining || !fetchedData.lessonsNextDay || !fetchedData.nextDayKey) {
-						console.warn(`Tried to add lessons view, but no lessons data was fetched`)
-						continue
-					}
-					// show a preview if there are no lessons today anymore
-					if (fetchedData.lessonsTodayRemaining.length > 0) {
-						viewHeight = addViewLessons(
-							fetchedData.lessonsTodayRemaining,
-							options.views.lessons.maxCount,
-							viewData,
-							options
-						)
-					} else {
-						viewHeight = addViewPreview(
-							fetchedData.lessonsNextDay,
-							fetchedData.nextDayKey,
-							viewData,
-							options
-						)
-					}
-					break
-				case View.PREVIEW:
-					if (!fetchedData.lessonsNextDay || !fetchedData.nextDayKey) {
-						console.warn(`Tried to add preview view, but no lessons data was fetched`)
-						continue
-					}
-					// only show the day preview, if it is not already shown
-					if (shownViews.has(View.LESSONS) && fetchedData.lessonsTodayRemaining?.length === 0) break
-
-					viewHeight = addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData, options)
-					break
-				case View.EXAMS:
-					if (!fetchedData.exams) {
-						console.warn(`Tried to add exams view, but no exams data was fetched`)
-						continue
-					}
-					viewHeight = addViewExams(fetchedData.exams, options.views.exams.maxCount, viewData, options)
-					break
-				case View.GRADES:
-					if (!fetchedData.grades) {
-						console.warn(`Tried to add grades view, but no grades data was fetched`)
-						continue
-					}
-					viewHeight = addViewGrades(fetchedData.grades, options.views.grades.maxCount, viewData, options)
-					break
-				case View.ABSENCES:
-					if (!fetchedData.absences) {
-						console.warn(`Tried to add absences view, but no absences data was fetched`)
-						continue
-					}
-					viewHeight = addViewAbsences(
-						fetchedData.absences,
-						options.views.absences.maxCount,
-						viewData,
-						options
-					)
-					break
-			}
-
-			// add the spacing if necessary (view added and enough space left)
-			if (viewHeight > 0 && remainingHeight > options.appearance.spacing) {
-				remainingHeight -= options.appearance.spacing
-			}
-
-			remainingHeight -= viewHeight
-
-			console.log(`Added view ${view} with height ${viewHeight}, remaining height: ${remainingHeight}`)
-		}
-
-		if (remainingHeight > options.appearance.spacing) {
-			// add spacer to fill the remaining space
-			let space = remainingHeight - options.appearance.spacing
-			if (space < 0) space = 0
-			columnStack.addSpacer(space)
-		}
+		addColumn(fetchedData, widgetContent, column, contentSize.height, columnWidth, shownViews, options)
 	}
 
 	if (options.footer.show) {
@@ -190,48 +85,115 @@ export async function createWidget(user: FullUser, layout: View[][], options: Op
 	return widget
 }
 
-function getFooterHeight(config: Config) {
-	return getCharHeight(10) + 2 * 4
-}
+function addColumn(
+	fetchedData: FetchedData,
+	widgetContent: WidgetStack,
+	column: View[],
+	height: number,
+	width: number,
+	shownViews: Set<View>,
+	options: Options
+) {
+	// add the column
+	const columnStack = widgetContent.addStack()
+	columnStack.layoutVertically()
+	columnStack.topAlignContent()
+	columnStack.spacing = options.appearance.spacing
 
-function addFooter(container: WidgetStack | ListWidget, width: number, config: Config) {
-	const footerGroup = container.addStack()
+	// calculate the real available height
+	let availableContentHeight = height
+	if (options.footer.show) availableContentHeight -= getFooterHeight(options)
 
-	footerGroup.layoutHorizontally()
-	footerGroup.spacing = 4
-	footerGroup.bottomAlignContent()
-	footerGroup.centerAlignContent()
-	// avoid overflow when pushed to the bottom
-	footerGroup.setPadding(4, 6, 4, 6)
-	footerGroup.size = new Size(width, getFooterHeight(config))
+	columnStack.size = new Size(width, availableContentHeight)
 
-	// TODO: remove
-	const usingOldCache = false
+	let remainingHeight = availableContentHeight
 
-	addSymbol('arrow.clockwise', footerGroup, {
-		color: usingOldCache ? colors.text.red : colors.text.secondary,
-		size: 10,
-		outerSize: 10,
-	})
+	console.log(`Column has ${availableContentHeight} available height`)
 
-	// show the time of the last update (now) as HH:MM with leading zeros
-	const updateDateTime = footerGroup.addText(
-		`${new Date().toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })}`
-	)
-	updateDateTime.textColor = usingOldCache ? colors.text.red : colors.text.secondary
-	updateDateTime.font = Font.regularSystemFont(10)
+	for (const view of column) {
+		const viewData: ViewBuildData = {
+			container: columnStack,
+			width,
+			height: remainingHeight,
+			options,
+		}
 
-	if (usingOldCache) {
-		const updateInfo = footerGroup.addText(' (cache)')
-		updateInfo.textColor = colors.text.red
-		updateInfo.font = Font.regularSystemFont(10)
+		const viewHeight = addView(fetchedData, view, viewData, shownViews)
+		// add the spacing if necessary (view added and enough space left)
+		if (viewHeight > 0 && remainingHeight > options.appearance.spacing) {
+			remainingHeight -= options.appearance.spacing
+		}
+
+		remainingHeight -= viewHeight
+
+		console.log(`Added view ${view} with height ${viewHeight}, remaining height: ${remainingHeight}`)
 	}
 
-	footerGroup.addSpacer()
+	if (remainingHeight > options.appearance.spacing) {
+		// add spacer to fill the remaining space
+		let space = remainingHeight - options.appearance.spacing
+		if (space < 0) space = 0
+		columnStack.addSpacer(space)
+	}
+}
 
-	// TODO: make more exact
-	const executionDuration = `${new Date().getTime() - SCRIPT_START_DATETIME.getTime()}ms`
-	const executionDurationText = footerGroup.addText(executionDuration)
-	executionDurationText.textColor = colors.text.secondary
-	executionDurationText.font = Font.regularSystemFont(10)
+/**
+ *
+ * @param fetchedData
+ * @param view
+ * @param viewData
+ * @param shownViews
+ * @return the height of the added view
+ */
+function addView(fetchedData: FetchedData, view: View, viewData: ViewBuildData, shownViews: Set<View>): number | 0 {
+	const options = viewData.options
+	const remainingHeight = viewData.height
+	// exit if there is not enough space left
+	if (remainingHeight <= getCharHeight(options.appearance.fontSize)) return
+
+	switch (view) {
+		case View.LESSONS:
+			if (!fetchedData.lessonsTodayRemaining || !fetchedData.lessonsNextDay || !fetchedData.nextDayKey) {
+				console.warn(`Tried to add lessons view, but no lessons data was fetched`)
+				return
+			}
+			// show a preview if there are no lessons today anymore
+			if (fetchedData.lessonsTodayRemaining.length > 0) {
+				return addViewLessons(
+					fetchedData.lessonsTodayRemaining,
+					options.views.lessons.maxCount,
+					viewData,
+					options
+				)
+			} else {
+				return addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData, options)
+			}
+		case View.PREVIEW:
+			if (!fetchedData.lessonsNextDay || !fetchedData.nextDayKey) {
+				console.warn(`Tried to add preview view, but no lessons data was fetched`)
+				return
+			}
+			// only show the day preview, if it is not already shown
+			if (shownViews.has(View.LESSONS) && fetchedData.lessonsTodayRemaining?.length === 0) break
+
+			return addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData, options)
+		case View.EXAMS:
+			if (!fetchedData.exams) {
+				console.warn(`Tried to add exams view, but no exams data was fetched`)
+				return
+			}
+			return addViewExams(fetchedData.exams, options.views.exams.maxCount, viewData, options)
+		case View.GRADES:
+			if (!fetchedData.grades) {
+				console.warn(`Tried to add grades view, but no grades data was fetched`)
+				return
+			}
+			return addViewGrades(fetchedData.grades, options.views.grades.maxCount, viewData, options)
+		case View.ABSENCES:
+			if (!fetchedData.absences) {
+				console.warn(`Tried to add absences view, but no absences data was fetched`)
+				return
+			}
+			return addViewAbsences(fetchedData.absences, options.views.absences.maxCount, viewData, options)
+	}
 }
