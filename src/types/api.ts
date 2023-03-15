@@ -8,6 +8,7 @@ export enum ElementType {
 
 export type Element = ElementGroup | ElementTeacher | ElementSubject | ElementRoom
 
+/** An element as it comes from the api. */
 export interface UnresolvedElement {
 	type: ElementType
 	id: number

@@ -3,26 +3,20 @@ import { ElementState, LessonState } from "./api"
 /**
  * An element that does not have a state and can therefore not be substituted.
  */
-interface TransformedStatelessElement {
+export interface ExtendedTransformedElement {
 	id: number
 	name: string
-}
-
-// TODO: check if name makes sense
-export interface ExtendedTransformedElement extends TransformedStatelessElement {
 	longName: string
 }
 
-export interface Teacher extends TransformedStatelessElement {}
-export interface Group extends ExtendedTransformedElement {}
-export interface Subject extends ExtendedTransformedElement {}
+export type Teacher = Omit<ExtendedTransformedElement, "longName">
+export type Group = ExtendedTransformedElement
+export type Subject = ExtendedTransformedElement
 export interface Room extends ExtendedTransformedElement {
 	capacity: number
 }
 
 export type StatelessElement = Teacher | Group | Subject | Room
-
-export type StatefulElement = Stateful<StatelessElement>
 
 /**
  * An element that has a state and can therefore be substituted.
@@ -31,6 +25,8 @@ export type Stateful<T extends StatelessElement> = T & {
 	state: ElementState
 	original?: T
 }
+export type StatefulElement = Stateful<StatelessElement>
+
 
 export interface TransformedLesson {
 	id: number

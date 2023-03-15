@@ -2,7 +2,6 @@
 export const unparsedColors = {
 	background: {
 		primary: '#222629',
-
 		red: '#461E1E',
 		orange: '#4E2B03',
 		yellow: '#544318',

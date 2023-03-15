@@ -6,14 +6,6 @@ export function getFileManagerOptions() {
 
 	const documentsDirectory = fileManager.documentsDirectory()
 
-	// const appFolderName = 'untis'
-	// const appDirectory = fileManager.joinPath(documentsDirectory, appFolderName)
-
-	// if (!fileManager.fileExists(appDirectory)) {
-	// 	console.log('Created app directory.')
-	// 	fileManager.createDirectory(appDirectory, true)
-	// }
-
 	return { useICloud, documentsDirectory }
 }
 
