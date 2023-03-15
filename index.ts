@@ -2,9 +2,10 @@ import { clearCache, prepareUser } from '@/api/cache'
 import { PREVIEW_WIDGET_SIZE, SCRIPT_START_DATETIME } from '@/constants'
 import { getLayout } from '@/layout'
 import { Options } from '@/preferences/config'
-import { selectOption, writeKeychain } from '@/setup'
+import { writeKeychain } from '@/setup'
 import { createErrorWidget, ExtendedError, ScriptableErrors } from '@/utils/errors'
-import { getFileManagerOptions, readConfig } from '@/utils/fileSystem'
+import { getFileManagerOptions, readConfig } from '@/utils/scriptable/fileSystem'
+import { selectOption } from '@/utils/scriptable/input'
 import { createWidget } from '@/widget'
 
 async function setupAndCreateWidget() {

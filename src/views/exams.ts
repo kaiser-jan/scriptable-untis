@@ -3,7 +3,7 @@ import { LOCALE } from "@/constants"
 import { Config } from "@/preferences/config"
 import { TransformedExam } from "@/types/transformed"
 import { getCharHeight, getCharWidth } from "@/utils/helper"
-import { FlowLayoutRow } from "@/utils/layoutHelper"
+import { FlowLayoutRow } from "@/utils/scriptable/layoutHelper"
 import { ViewBuildData } from "@/widget"
 import { colors } from "@/preferences/colors"
 

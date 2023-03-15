@@ -1,5 +1,5 @@
 import { colors } from "@/preferences/colors"
-import { addSymbol } from "./componentHelper"
+import { addSymbol } from "./scriptable/componentHelper"
 
 
 type IErrorCodes = {

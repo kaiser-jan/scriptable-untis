@@ -1,7 +1,7 @@
 import { SCRIPT_START_DATETIME } from "@/constants"
 import { colors } from "@/preferences/colors"
 import { Config } from "@/preferences/config"
-import { addSymbol } from "@/utils/componentHelper"
+import { addSymbol } from "@/utils/scriptable/componentHelper"
 import { getCharHeight } from "@/utils/helper"
 
 export function getFooterHeight(config: Config) {

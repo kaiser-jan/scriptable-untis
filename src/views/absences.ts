@@ -3,7 +3,7 @@ import { colors } from "@/preferences/colors"
 import { Options } from "@/preferences/config"
 import { TransformedAbsence } from "@/types/transformed"
 import { getCharHeight } from "@/utils/helper"
-import { FlowLayoutRow } from "@/utils/layoutHelper"
+import { FlowLayoutRow } from "@/utils/scriptable/layoutHelper"
 import { ViewBuildData } from "@/widget"
 
 export function addViewAbsences(

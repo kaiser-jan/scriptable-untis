@@ -1,11 +1,11 @@
 import { MAX_SUBJECT_NAME_LENGTH, MAX_TIME_STRING, MAX_LONG_SUBJECT_NAME_LENGTH } from '@/constants'
 import { Config } from '@/preferences/config'
 import { TransformedLesson } from '@/types/transformed'
-import { addWidgetLesson } from '@/utils/componentHelper'
+import { addWidgetLesson } from '@/utils/scriptable/componentHelper'
 import { getCharHeight, getTextWidth, asNumericTime, getCharWidth } from '@/utils/helper'
 import { filterCanceledLessons } from '@/utils/lessonHelper'
 import { ViewBuildData } from '@/widget'
-import { addBreak } from '@/utils/componentHelper'
+import { addBreak } from '@/utils/scriptable/componentHelper'
 import { LessonState } from '@/types/api'
 import { colors } from '@/preferences/colors'
 

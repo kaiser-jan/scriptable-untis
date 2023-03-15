@@ -1,6 +1,6 @@
 import { MAX_TIME_STRING } from "@/constants";
-import { getCharHeight, getTextWidth, getCharWidth, asNumericTime } from "./helper";
-import { getSubjectTitle } from "./lessonHelper";
+import { getCharHeight, getTextWidth, getCharWidth, asNumericTime } from "../helper";
+import { getSubjectTitle } from "../lessonHelper";
 import { TransformedLesson } from "@/types/transformed";
 import { Config } from "@/preferences/config";
 import { LessonState } from "@/types/api";
