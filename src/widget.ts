@@ -1,30 +1,16 @@
 import { CURRENT_DATETIME, SCRIPT_START_DATETIME } from '@/constants'
-import { getTimetable, getExamsFor, getGradesFor, getSchoolYears, getAbsencesFor } from './api/cacheOrFetch'
-import { fetchClassRolesFor } from './api/fetch'
-import { ViewName } from './layout'
+import { FetchedData, fetchDataForViews } from './api/fetchManager'
+import { View } from './layout'
 import { colors } from './preferences/colors'
-import { Options, Config } from './preferences/config'
-import { TransformedLesson, TransformedExam, TransformedGrade, TransformedAbsence, TransformedClassRole } from './types/transformed'
+import { Config, Options } from './preferences/config'
 import { addSymbol } from './utils/componentHelper'
 import { getCharHeight } from './utils/helper'
-import { getRefreshDateForLessons } from './utils/refreshDate'
-import { getWidgetSizes, getWidgetSize } from './utils/widgetSize'
+import { getWidgetSize, getWidgetSizes } from './utils/widgetSize'
 import { addViewAbsences } from './views/absences'
 import { addViewExams } from './views/exams'
 import { addViewGrades } from './views/grades'
 import { addViewLessons } from './views/lessons'
 import { addViewPreview } from './views/preview'
-
-interface FetchedData {
-	lessonsTodayRemaining?: TransformedLesson[]
-	lessonsNextDay?: TransformedLesson[]
-	nextDayKey?: string
-	exams?: TransformedExam[]
-	grades?: TransformedGrade[]
-	absences?: TransformedAbsence[]
-	classRoles?: TransformedClassRole[]
-	refreshDate?: Date
-}
 
 export interface ViewBuildData {
 	container: WidgetStack
@@ -32,109 +18,24 @@ export interface ViewBuildData {
 	height: number
 }
 
-function checkNewRefreshDate(newDate: Date, fetchedData: FetchedData) {
+export function checkNewRefreshDate(newDate: Date, fetchedData: FetchedData) {
 	if (!fetchedData.refreshDate || newDate < fetchedData.refreshDate) {
 		fetchedData.refreshDate = newDate
 		return
 	}
 }
 
-type FetchableNames = 'timetable' | 'exams' | 'grades' | 'absences' | 'roles'
-
-/**
- * Fetches the data which is required for the given views.
- */
-export async function fetchDataForViews(viewNames: ViewName[], user: FullUser, options: Options) {
-	const fetchedData: FetchedData = {}
-	const itemsToFetch = new Set<FetchableNames>()
-
-	for (const viewName of viewNames) {
-		switch (viewName) {
-			case 'lessons':
-			case 'preview':
-				itemsToFetch.add('timetable')
-				break
-			case 'exams':
-				itemsToFetch.add('exams')
-				break
-			case 'grades':
-				itemsToFetch.add('grades')
-				break
-			case 'absences':
-				itemsToFetch.add('absences')
-				break
-			case 'roles':
-				itemsToFetch.add('roles')
-				break
-		}
-	}
-
-	const fetchPromises: Promise<any>[] = []
-
-	if (itemsToFetch.has('timetable')) {
-		const promise = getTimetable(user, options).then(({ lessonsTodayRemaining, lessonsNextDay, nextDayKey }) => {
-			fetchedData.lessonsTodayRemaining = lessonsTodayRemaining
-			fetchedData.lessonsNextDay = lessonsNextDay
-			fetchedData.nextDayKey = nextDayKey
-			checkNewRefreshDate(getRefreshDateForLessons(lessonsTodayRemaining, lessonsNextDay, options), fetchedData)
-		})
-		fetchPromises.push(promise)
-	}
-
-	if (itemsToFetch.has('exams')) {
-		const examsFrom = new Date(new Date().getTime() + options.views.exams.scopeDays * 24 * 60 * 60 * 1000)
-		const promise = getExamsFor(user, examsFrom, CURRENT_DATETIME, options).then((exams) => {
-			fetchedData.exams = exams
-		})
-		const refreshDate = new Date(Date.now() + (options.config.cacheHours.exams * 60 * 60 * 1000) / 2)
-		checkNewRefreshDate(refreshDate, fetchedData)
-		fetchPromises.push(promise)
-	}
-
-	if (itemsToFetch.has('grades')) {
-		const gradesFrom = new Date(CURRENT_DATETIME.getTime() - options.views.grades.scopeDays * 24 * 60 * 60 * 1000)
-		const promise = getGradesFor(user, gradesFrom, CURRENT_DATETIME, options).then((grades) => {
-			fetchedData.grades = grades
-		})
-		const refreshDate = new Date(Date.now() + (options.config.cacheHours.grades * 60 * 60 * 1000) / 2)
-		checkNewRefreshDate(refreshDate, fetchedData)
-		fetchPromises.push(promise)
-	}
-
-	if (itemsToFetch.has('absences')) {
-		const schoolYears = await getSchoolYears(user, options)
-		// get the current school year
-		const currentSchoolYear = schoolYears.find(
-			(schoolYear) => schoolYear.from <= CURRENT_DATETIME && schoolYear.to >= CURRENT_DATETIME
-		)
-		const promise = getAbsencesFor(user, currentSchoolYear.from, CURRENT_DATETIME, options).then((absences) => {
-			fetchedData.absences = absences
-		})
-		const refreshDate = new Date(Date.now() + (options.config.cacheHours.absences * 60 * 60 * 1000) / 2)
-		checkNewRefreshDate(refreshDate, fetchedData)
-		fetchPromises.push(promise)
-	}
-
-	if (itemsToFetch.has('roles')) {
-		const promise = fetchClassRolesFor(user, CURRENT_DATETIME, CURRENT_DATETIME).then((roles) => {
-			fetchedData.classRoles = roles
-		})
-		// tomorrow midnight
-		const refreshDate = new Date(new Date().setHours(24, 0, 0, 0))
-		checkNewRefreshDate(refreshDate, fetchedData)
-		fetchPromises.push(promise)
-	}
-
-	await Promise.all(fetchPromises)
-
-	return fetchedData
+export function proposeRefreshInXHours(hours: number, fetchedData: FetchedData) {
+	const newDate = new Date(CURRENT_DATETIME)
+	newDate.setHours(newDate.getHours() + hours)
+	checkNewRefreshDate(newDate, fetchedData)
 }
 
 /**
  * Creates the widget by adding as many views to it as fit.
  * Also adds the footer.
  */
-export async function createWidget(user: FullUser, layout: ViewName[][], options: Options) {
+export async function createWidget(user: FullUser, layout: View[][], options: Options) {
 	const widget = new ListWidget()
 
 	const widgetSizes = getWidgetSizes()
@@ -155,7 +56,7 @@ export async function createWidget(user: FullUser, layout: ViewName[][], options
 	widgetContent.spacing = options.appearance.spacing
 
 	// make a list of the shown views
-	const shownViews = new Set<ViewName>()
+	const shownViews = new Set<View>()
 	for (const row of layout) {
 		for (const view of row) {
 			shownViews.add(view)
@@ -204,7 +105,7 @@ export async function createWidget(user: FullUser, layout: ViewName[][], options
 			let viewHeight = 0
 
 			switch (view) {
-				case 'lessons':
+				case View.LESSONS:
 					if (!fetchedData.lessonsTodayRemaining || !fetchedData.lessonsNextDay || !fetchedData.nextDayKey) {
 						console.warn(`Tried to add lessons view, but no lessons data was fetched`)
 						continue
@@ -226,31 +127,31 @@ export async function createWidget(user: FullUser, layout: ViewName[][], options
 						)
 					}
 					break
-				case 'preview':
+				case View.PREVIEW:
 					if (!fetchedData.lessonsNextDay || !fetchedData.nextDayKey) {
 						console.warn(`Tried to add preview view, but no lessons data was fetched`)
 						continue
 					}
 					// only show the day preview, if it is not already shown
-					if (shownViews.has('lessons') && fetchedData.lessonsTodayRemaining?.length === 0) break
+					if (shownViews.has(View.LESSONS) && fetchedData.lessonsTodayRemaining?.length === 0) break
 
 					viewHeight = addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData, options)
 					break
-				case 'exams':
+				case View.EXAMS:
 					if (!fetchedData.exams) {
 						console.warn(`Tried to add exams view, but no exams data was fetched`)
 						continue
 					}
 					viewHeight = addViewExams(fetchedData.exams, options.views.exams.maxCount, viewData, options)
 					break
-				case 'grades':
+				case View.GRADES:
 					if (!fetchedData.grades) {
 						console.warn(`Tried to add grades view, but no grades data was fetched`)
 						continue
 					}
 					viewHeight = addViewGrades(fetchedData.grades, options.views.grades.maxCount, viewData, options)
 					break
-				case 'absences':
+				case View.ABSENCES:
 					if (!fetchedData.absences) {
 						console.warn(`Tried to add absences view, but no absences data was fetched`)
 						continue

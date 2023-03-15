@@ -1,17 +1,25 @@
 import { defaultLayout } from './constants'
+import { getKeyByValue } from './utils/helper'
 
-const viewNames = ['lessons', 'preview', 'exams', 'grades', 'absences', 'roles'] as const
-export type ViewName = typeof viewNames[number]
+export enum View {
+	LESSONS = 'lessons',
+	PREVIEW = 'preview',
+	EXAMS = 'exams',
+	GRADES = 'grades',
+	ABSENCES = 'absences',
+}
 
 function parseLayoutString(layoutString: string) {
-	let layout: ViewName[][] = []
+	let layout: View[][] = []
 	for (const column of layoutString.split('|')) {
-		let columnViews: ViewName[] = []
-		for (const view of column.split(',')) {
-			if (viewNames.includes(view as ViewName)) {
-				columnViews.push(view as ViewName)
+		let columnViews: View[] = []
+
+		for (const viewKey of column.split(',')) {
+			if (Object.values(View).includes(viewKey as View)) {
+				const viewItem = View[getKeyByValue(View, viewKey)]
+				columnViews.push(viewItem)
 			} else {
-				console.warn(`⚠️ Invalid view name: ${view}`)
+				console.warn(`⚠️ Invalid view name: ${viewKey}`)
 			}
 		}
 		layout.push(columnViews)
@@ -23,7 +31,7 @@ function parseLayoutString(layoutString: string) {
 /**
  * Adapts the number of columns in the layout to the widget size.
  */
-function adaptLayoutForSize(layout: ViewName[][]) {
+function adaptLayoutForSize(layout: View[][]) {
 	switch (config.widgetFamily) {
 		case 'small':
 			return layout.slice(0, 1)

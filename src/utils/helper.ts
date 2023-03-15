@@ -1,4 +1,4 @@
-import { LOCALE } from "@/constants"
+import { CURRENT_DATETIME, LOCALE } from "@/constants"
 import { TransformedLessonWeek } from "@/types/transformed"
 
 export function formatDateForUntis(date: Date) {
@@ -13,6 +13,12 @@ export function asNumericTime(date: Date) {
 
 export function asWeekday(date: Date) {
 	return date.toLocaleDateString(LOCALE, { weekday: 'long' })
+}
+
+export function getDateInXDays(days: number) {
+	const newDate = new Date(CURRENT_DATETIME)
+	newDate.setDate(newDate.getDate() + days)
+	return newDate
 }
 
 export function sortKeysByDate(timetable: TransformedLessonWeek) {
@@ -90,4 +96,8 @@ export function scheduleNotification(
 	notification.deliveryDate = date
 
 	notification.schedule()
+}
+
+export function getKeyByValue(object: Object, value: any) {
+	return Object.keys(object).find((key) => object[key] === value)
 }
