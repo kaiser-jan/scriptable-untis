@@ -1,12 +1,9 @@
-import { Config, deepMerge, defaultConfig } from "@/preferences/config"
+import { Config, deepMerge, defaultConfig } from '@/preferences/config'
 
-export function getFileManagerOptions() {
+export function getModuleFileManager() {
 	const useICloud = FileManager.local().isFileStoredIniCloud(globalThis.module.filename)
 	const fileManager = useICloud ? FileManager.iCloud() : FileManager.local()
-
-	const documentsDirectory = fileManager.documentsDirectory()
-
-	return { useICloud, documentsDirectory }
+	return { useICloud, fileManager }
 }
 
 /**
@@ -15,10 +12,9 @@ export function getFileManagerOptions() {
  * @param useICloud
  * @returns
  */
-export async function readConfig(documentsDirectory: string, useICloud: boolean) {
-	const fileManager = useICloud ? FileManager.iCloud() : FileManager.local()
+export async function readConfig(useICloud: boolean, fileManager: FileManager) {
 	const configFileName = 'untis-config.json'
-	const configPath = fileManager.joinPath(documentsDirectory, configFileName)
+	const configPath = fileManager.joinPath(fileManager.documentsDirectory(), configFileName)
 
 	if (!fileManager.fileExists(configPath)) {
 		console.log('Created config file with default config.')

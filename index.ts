@@ -4,14 +4,19 @@ import { getLayout } from '@/layout'
 import { Options } from '@/preferences/config'
 import { writeKeychain } from '@/setup'
 import { createErrorWidget, ExtendedError, ScriptableErrors } from '@/utils/errors'
-import { getFileManagerOptions, readConfig } from '@/utils/scriptable/fileSystem'
+import { getModuleFileManager as getFileManagerOptions, readConfig } from '@/utils/scriptable/fileSystem'
 import { selectOption } from '@/utils/scriptable/input'
 import { createWidget } from '@/widget'
 
+// TODO: Auto-Update
+// store the last update date in the keychain
+// check every day (store the last check date in the keychain)
+// compare the last update date with the date from the github api
+
 async function setupAndCreateWidget() {
-	const { useICloud, documentsDirectory } = getFileManagerOptions()
-	const untisConfig = await readConfig(documentsDirectory, useICloud)
-	const options: Options = { ...untisConfig, documentsDirectory, useICloud }
+	const { useICloud, fileManager } = getFileManagerOptions()
+	const untisConfig = await readConfig(useICloud, fileManager)
+	const options: Options = { ...untisConfig, useICloud, fileManager }
 	const user = await prepareUser(options)
 	const widget = await createWidget(user, getLayout(), options)
 	return widget

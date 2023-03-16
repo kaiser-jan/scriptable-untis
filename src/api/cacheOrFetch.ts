@@ -1,10 +1,10 @@
-import { CURRENT_DATETIME } from "@/constants"
-import { readFromCache, writeToCache } from "@/api/cache"
-import { fetchLessonsFor, fetchExamsFor, fetchGradesFor, fetchAbsencesFor, fetchSchoolYears } from "@/api/fetch"
-import { NOTIFIABLE_TOPICS } from "@/constants"
-import { compareCachedLessons, compareCachedExams, compareCachedGrades, compareCachedAbsences } from "@/features/notify"
-import { Options, applyLessonConfigs } from "@/preferences/config"
-import { sortKeysByDate } from "@/utils/helper"
+import { CURRENT_DATETIME } from '@/constants'
+import { readFromCache, writeToCache } from '@/api/cache'
+import { fetchLessonsFor, fetchExamsFor, fetchGradesFor, fetchAbsencesFor, fetchSchoolYears } from '@/api/fetch'
+import { NOTIFIABLE_TOPICS } from '@/constants'
+import { compareCachedLessons, compareCachedExams, compareCachedGrades, compareCachedAbsences } from '@/features/notify'
+import { Options, applyLessonConfigs } from '@/preferences/config'
+import { sortKeysByDate } from '@/utils/helper'
 
 /**
  * Transforms a json date string back to a Date object.
@@ -54,8 +54,12 @@ async function getCachedOrFetch<T>(
 
 	const areNotificationsEnabled = options.notifications.enabled[key]
 
-	if (!areNotificationsEnabled && NOTIFIABLE_TOPICS.includes(key)) {
-		console.log(`Notifications for ${key} are disabled.`)
+	if (!areNotificationsEnabled) {
+		if (NOTIFIABLE_TOPICS.includes(key)) {
+			console.log(`Notifications for ${key} are disabled.`)
+		} else {
+			console.log(`Notifications for ${key} are not supported.`)
+		}
 	}
 
 	if (cachedJson && fetchedData && compareData && areNotificationsEnabled) {

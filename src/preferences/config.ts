@@ -18,7 +18,7 @@ type LessonOptions = {
 
 export interface Options extends Config {
 	useICloud: boolean
-	documentsDirectory: string
+	fileManager: FileManager
 }
 
 export const defaultConfig = {
