@@ -26,6 +26,7 @@ enum ScriptActions {
 	VIEW = '💻 Show Widget',
 	CHANGE_CREDENTIALS = '🔑 Change Credentials',
 	CLEAR_CACHE = '🗑️ Clear Cache',
+	SHOW_DOCUMENTATION = '📖 Open Documentation',
 }
 
 async function runInteractive() {
@@ -57,6 +58,10 @@ async function runInteractive() {
 			break
 		case ScriptActions.CLEAR_CACHE:
 			clearCache()
+			break
+		case ScriptActions.SHOW_DOCUMENTATION:
+			Safari.openInApp('https://github.com/JFK-05/scriptable-untis#readme')
+			break
 	}
 }
 
@@ -68,7 +73,6 @@ try {
 		await runInteractive()
 	}
 } catch (error) {
-
 	// throw the error if it runs in the app
 	if (config.runsInApp) {
 		// throw error
