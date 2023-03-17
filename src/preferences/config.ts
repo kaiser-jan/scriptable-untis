@@ -55,7 +55,7 @@ export const defaultConfig = {
 			lessons: 0.5,
 			exams: 24,
 			grades: 8,
-			absences: 24,
+			absences: 12,
 			schoolYears: 24,
 		},
 	},
@@ -73,8 +73,8 @@ export const defaultConfig = {
 			scopeDays: 7,
 		},
 		grades: {
-			maxCount: 1,
-			scopeDays: 7,
+			maxCount: 2,
+			scopeDays: 3,
 		},
 		absences: {
 			maxCount: 3,
@@ -92,7 +92,7 @@ export const defaultConfig = {
 
 	appearance: {
 		cornerRadius: 4,
-		spacing: 6,
+		spacing: 4,
 		padding: 8,
 		fontSize: 14,
 	},

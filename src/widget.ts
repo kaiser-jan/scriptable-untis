@@ -119,14 +119,16 @@ function addColumn(
 		}
 
 		const viewHeight = addView(fetchedData, view, viewData, shownViews)
-		// add the spacing if necessary (view added and enough space left)
-		if (viewHeight > 0 && remainingHeight > options.appearance.spacing) {
-			remainingHeight -= options.appearance.spacing
-		}
-
 		remainingHeight -= viewHeight
 
 		console.log(`Added view ${view} with height ${viewHeight}, remaining height: ${remainingHeight}`)
+
+		// subtract the spacing if necessary (view added and enough space left)
+		if (viewHeight > 0 && remainingHeight > options.appearance.spacing) {
+			remainingHeight -= options.appearance.spacing
+		} else if (remainingHeight <= options.appearance.spacing) {
+			break
+		}
 	}
 
 	if (remainingHeight > options.appearance.spacing) {
