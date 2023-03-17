@@ -46,7 +46,7 @@ export function compareCachedLessons(
 				// only notify here if the lesson was not rescheduled
 				if (!lesson.isRescheduled) {
 					console.log(`Lesson ${lesson.id} is new.`)
-					scheduleNotification(`${subjectTitle} was added`, `${subjectTitle} was added on ${dayString}`)
+					scheduleNotification(`➕ ${subjectTitle} was added`, `${subjectTitle} was added on ${dayString}`)
 				}
 				continue
 			}
@@ -57,17 +57,17 @@ export function compareCachedLessons(
 			}
 
 			if (lesson.info !== cachedLesson.info) {
-				scheduleNotification(`Info for ${subjectTitle} changed`, `on ${dayString}: "${lesson.info}"`)
+				scheduleNotification(`ℹ️ Info for ${subjectTitle} changed`, `on ${dayString}: "${lesson.info}"`)
 				continue
 			}
 
 			if (lesson.note !== cachedLesson.note) {
-				scheduleNotification(`Note for ${subjectTitle} changed`, `on ${dayString}: "${lesson.note}"`)
+				scheduleNotification(`📝 Note for ${subjectTitle} changed`, `on ${dayString}: "${lesson.note}"`)
 				continue
 			}
 
 			if (lesson.text !== cachedLesson.text) {
-				scheduleNotification(`Text for ${subjectTitle} changed`, `on ${dayString}: "${lesson.text}"`)
+				scheduleNotification(`🔤 Text for ${subjectTitle} changed`, `on ${dayString}: "${lesson.text}"`)
 				continue
 			}
 
@@ -78,14 +78,14 @@ export function compareCachedLessons(
 				// if the day is the same
 				if (lesson.rescheduleInfo.otherFrom.getDate() === lesson.rescheduleInfo.otherTo.getDate()) {
 					scheduleNotification(
-						`${dayString}: ${subjectTitle} was shifted`,
+						`⏫${dayString}: ${subjectTitle} was shifted`,
 						`from ${asNumericTime(lesson.from)} to ${asNumericTime(lesson.rescheduleInfo.otherFrom)}`
 					)
 					continue
 				}
 
 				scheduleNotification(
-					`${dayString}: ${subjectTitle} was rescheduled`,
+					`⌚ ${dayString}: ${subjectTitle} was rescheduled`,
 					`from ${asWeekday(lesson.rescheduleInfo.otherFrom)} to ${asWeekday(lesson.rescheduleInfo.otherTo)}`
 				)
 				continue
@@ -94,7 +94,7 @@ export function compareCachedLessons(
 			if (lesson.exam !== cachedLesson.exam) {
 				if (lesson.exam) {
 					scheduleNotification(
-						`Exam for ${subjectTitle} was added`,
+						`🎓 Exam for ${subjectTitle} was added`,
 						`on ${dayString} at ${asNumericTime(lesson.from)}`
 					)
 					continue
@@ -109,14 +109,14 @@ export function compareCachedLessons(
 					case LessonState.CANCELED:
 					case LessonState.FREE:
 						scheduleNotification(
-							`${dayString}: ${subjectTitle} was cancelled`,
+							`❌ ${dayString}: ${subjectTitle} was cancelled`,
 							`${subjectTitle} at ${asNumericTime(lesson.from)} was cancelled`
 						)
 						break
 					case LessonState.ROOM_SUBSTITUTED:
 						for (const room of changedRooms) {
 							scheduleNotification(
-								`${dayString}: ${subjectTitle} - room changed`,
+								`🧭 ${dayString}: ${subjectTitle} - room changed`,
 								`from ${room.original?.name} to ${room.name}`
 							)
 						}
@@ -125,21 +125,21 @@ export function compareCachedLessons(
 						for (const teacher of changedTeachers) {
 							if (NO_VALUE_PLACEHOLDERS.includes(teacher.name)) {
 								scheduleNotification(
-									`${dayString}: ${subjectTitle} - teacher cancelled`,
+									`🧑‍🏫 ${dayString}: ${subjectTitle} - teacher cancelled`,
 									`teacher ${teacher.original?.name} cancelled`
 								)
 								return
 							}
 
 							scheduleNotification(
-								`${dayString}: ${subjectTitle} - teacher substituted`,
+								`🧑‍🏫 ${dayString}: ${subjectTitle} - teacher substituted`,
 								`from ${teacher.original.name} to ${teacher.name}`
 							)
 						}
 						break
 					case LessonState.SUBSTITUTED:
 						scheduleNotification(
-							`${dayString}: ${subjectTitle} substituted`,
+							`🔄 ${dayString}: ${subjectTitle} substituted`,
 							`${getSubjectTitle(lesson)} at ${asNumericTime(lesson.from)} with ${lesson.teachers.join(
 								', '
 							)} in ${lesson.rooms.join(', ')}`
@@ -161,7 +161,7 @@ export function compareCachedExams(exams: TransformedExam[], cachedExams: Transf
 
 		if (!cachedExam) {
 			scheduleNotification(
-				`Exam ${exam.subject} on ${exam.from.toLocaleDateString(LOCALE)}`,
+				`🎓 Exam ${exam.subject} on ${exam.from.toLocaleDateString(LOCALE)}`,
 				`The ${exam.type} takes place @ ${exam.from.toLocaleTimeString(LOCALE)} in ${
 					exam.roomNames.join(', ') || 'an unkonwn room'
 				}.`
@@ -178,7 +178,7 @@ export function compareCachedGrades(grades: TransformedGrade[], cachedExams: Tra
 
 		if (!cachedGrade) {
 			scheduleNotification(
-				`You received a grade in ${grade.subject}`,
+				`💯 Received a grade in ${grade.subject}`,
 				`you got a "${grade.mark.displayValue}" (${grade.text}) on a ${grade.examType.name}`
 			)
 			continue
@@ -195,7 +195,7 @@ export function compareCachedAbsences(absences: TransformedAbsence[], cachedAbse
 
 		if (!cachedAbsence) {
 			scheduleNotification(
-				`An absence was added by ${absence.createdBy}`,
+				`🚷 Absence was added by ${absence.createdBy}`,
 				`you were absent from ${absence.from.toLocaleString(LOCALE)} to ${absence.to.toLocaleString(LOCALE)}`
 			)
 			continue
