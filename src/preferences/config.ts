@@ -21,6 +21,7 @@ export interface Options extends Config {
 	fileManager: FileManager
 }
 
+// consider splitting the lesson options to a separate "class-config"
 export const defaultConfig = {
 	lessonOptions: {
 		SubjectShortName: {
