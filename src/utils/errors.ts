@@ -1,6 +1,5 @@
-import { colors } from "@/preferences/colors"
-import { addSymbol } from "./scriptable/componentHelper"
-
+import { colors } from '@/preferences/colors'
+import { addSymbol } from './scriptable/componentHelper'
 
 type IErrorCodes = {
 	[Property in ErrorCodes]: IErrorCode
@@ -42,8 +41,15 @@ export const ErrorCode: IErrorCodes = {
 	SELECTION_CANCELLED: { title: 'Selection cancelled', description: 'Please try again!', icon: 'xmark.octagon' },
 }
 
-export const ScriptableErrors = {
-	NO_INTERNET: 'The internet connection appears to be offline.',
+/**
+ * Contains the ErrorCode object for some (lowercase) scriptable error messages
+ */
+export const SCRIPTABLE_ERROR_MAP: Record<string, typeof ErrorCode[keyof typeof ErrorCode]> = {
+	'the internet connection appears to be offline.': ErrorCode.NO_INTERNET,
+	// TODO: find the correct wording
+	'the request timed out.': ErrorCode.NO_INTERNET,
+	'the network connection was lost.': ErrorCode.NO_INTERNET,
+	'a data connection is not currently allowed.': ErrorCode.NO_INTERNET,
 }
 
 export interface ExtendedError extends Error {
@@ -84,7 +90,7 @@ export function createErrorWidget(title: string, description: string, icon?: str
 	errorTitle.font = Font.mediumSystemFont(18)
 	errorTitle.textColor = colors.text.red
 
-	if (description !== '') {
+	if (description && description !== '') {
 		const errorDescription = widget.addText(description)
 		errorDescription.font = Font.regularSystemFont(14)
 		errorDescription.textColor = colors.text.red
