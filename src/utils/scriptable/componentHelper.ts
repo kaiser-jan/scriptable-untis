@@ -161,8 +161,7 @@ export function addWidgetLesson(
 		useSubjectLongName: false,
 	}
 ) {
-	const isCanceledOrFree = lesson.state === LessonState.CANCELED || lesson.state === LessonState.FREE
-
+	// get the colors for the lesson based on its state (red, disabled, normal)
 	const { backgroundColor, textColor, secondaryTextColor } = getLessonColors(lesson)
 
 	// consider breaks during the combined lesson
@@ -212,8 +211,8 @@ export function addWidgetLesson(
 	// add icons for the lesson state
 	if (lesson.isEvent) {
 		iconName = 'calendar.circle'
-	} else if (isCanceledOrFree && !lesson.isRescheduled) {
-		iconName = 'xmark.circle'
+	} else if (lesson.rescheduleInfo?.isSource) {
+		// do not add an icon, as the lesson already has the reschedule info
 	} else if (STATE_ICON_MAP[lesson.state]) {
 		iconName = STATE_ICON_MAP[lesson.state]
 	} else if (lesson.text || lesson.info || lesson.note) {
@@ -231,11 +230,11 @@ export function addWidgetLesson(
 			size: config.appearance.fontSize * 0.8,
 		})
 		// manually correct the arrow box
-		// TODO(proof): does this really center the arrow?
 		iconShift.imageSize = new Size(
 			getCharWidth(config.appearance.fontSize * 0.8),
 			getCharHeight(config.appearance.fontSize)
 		)
+
 		// display the time it was rescheduled to
 		const rescheduledTime = lessonContainer.addText(asNumericTime(lesson.rescheduleInfo?.otherFrom))
 		rescheduledTime.font = Font.mediumSystemFont(config.appearance.fontSize)

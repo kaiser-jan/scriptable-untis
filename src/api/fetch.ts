@@ -75,7 +75,9 @@ async function fetchData<T, TransformedT>(
 	}
 
 	const data: T[] = json.data[key]
-	console.log(`📅 Fetched ${data.length} ${key}`)
+	console.log(`📅 Fetched ${data?.length} ${key}`)
+
+	if (!data) return undefined
 
 	return transform(data)
 }

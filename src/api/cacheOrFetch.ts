@@ -31,10 +31,10 @@ async function getCachedOrFetch<T>(
 	options: Options,
 	fetchData: () => Promise<T>,
 	compareData?: (fetchedData: T, cachedData: T, options: Options) => void
-): Promise<T> {
+): Promise<T | undefined> {
 	const { json: cachedJson, cacheAge, cacheDate } = await readFromCache(key)
 
-	let cachedData = {} as T
+	let cachedData: T | undefined = undefined 
 
 	if (cachedJson) {
 		cachedData = JSON.parse(cachedJson, jsonDateReviver)
@@ -49,7 +49,11 @@ async function getCachedOrFetch<T>(
 		// we cannot fall back to the cached data if there is no internet,
 		// as the script will already have failed when fetching the user
 		fetchedData = await fetchData()
-		writeToCache(fetchedData, key)
+		if (fetchedData) {
+			writeToCache(fetchedData, key)
+		} else {
+			console.warn(`Could not fetch data ${key}!`)
+		}
 	}
 
 	const areNotificationsEnabled = options.notifications.enabled[key]
