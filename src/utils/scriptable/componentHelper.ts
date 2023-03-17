@@ -115,26 +115,25 @@ function makeTimelineEntry(
 }
 
 function getLessonColors(lesson: TransformedLesson) {
-	const isCanceledOrFree = lesson.state === LessonState.CANCELED || lesson.state === LessonState.FREE
-	/** Whether the lesson was rescheduled away from here. (isSource) */
-	const isRescheduledAway = lesson.state === LessonState.RESCHEDULED && lesson.rescheduleInfo?.isSource
+	/** Whether the lesson was rescheduled away from here. (isSource)
+	 * The lesson state seems to be CANCELED? */
+	const isRescheduledAway = lesson.rescheduleInfo?.isSource
 
 	// define the colors
 	let backgroundColor = getColor(lesson.backgroundColor)
 	let textColor = colors.text.primary
 	let secondaryTextColor = colors.text.secondary
 
-	// adjust the colors for canceled lessons and similar
-	if (isCanceledOrFree || isRescheduledAway) {
+	if (lesson.state === LessonState.FREE || isRescheduledAway) {
 		backgroundColor = colors.background.primary
 		textColor = colors.text.disabled
 		secondaryTextColor = colors.text.disabled
-
-		// only make it red if it's canceled
-		if (lesson.state === LessonState.CANCELED) {
-			textColor = colors.text.red
-			secondaryTextColor = colors.text.red
-		}
+	}
+	// only make it red if it's canceled
+	else if (lesson.state === LessonState.CANCELED) {
+		backgroundColor = colors.background.primary
+		textColor = colors.text.red
+		secondaryTextColor = colors.text.red
 	}
 
 	return { backgroundColor, textColor, secondaryTextColor }
@@ -197,6 +196,7 @@ export function addWidgetLesson(
 
 	let iconName: string | undefined = undefined
 
+	// TODO: consider adding another icon for rescheduled source lessons, as they have state canceled
 	const STATE_ICON_MAP: Record<LessonState, string> = {
 		[LessonState.NORMAL]: undefined,
 		[LessonState.CANCELED]: 'xmark.circle',
