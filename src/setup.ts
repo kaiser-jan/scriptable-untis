@@ -1,5 +1,5 @@
-import { ErrorCode, createError } from "./utils/errors"
-import { askForInput } from "./utils/scriptable/input"
+import { ErrorCode, createError } from './utils/errors'
+import { askForInput } from './utils/scriptable/input'
 
 const keychainRequestStrings = {
 	school: {
@@ -27,37 +27,37 @@ const usernamePlaceholders: Record<string, string> = {
 }
 
 export async function readKeychain(requestMissing: boolean = false) {
-	if (requestMissing) {
-		const server = await getFromKeychain('server')
-		const school = await getFromKeychain('school')
-		const username = await getFromKeychain('username', usernamePlaceholders[school ?? ''] ?? '')
-		const password = await getFromKeychain('password')
+	const server = await getFromKeychain('server', requestMissing)
+	const school = await getFromKeychain('school', requestMissing)
+	const username = await getFromKeychain('username', requestMissing, usernamePlaceholders[school ?? ''] ?? '')
+	const password = await getFromKeychain('password', requestMissing)
 
-		return { server, school, username, password }
-	} else {
-		return {
-			server: Keychain.get('webuntis-server'),
-			school: Keychain.get('webuntis-school'),
-			username: Keychain.get('webuntis-username'),
-			password: Keychain.get('webuntis-password'),
-		}
-	}
+	return { server, school, username, password }
 }
 
 export async function writeKeychain() {
 	const initialUser = await readKeychain(false)
-
 	await requestKeychainEntry('school', initialUser.school)
-	await requestKeychainEntry('username', initialUser.username ?? usernamePlaceholders[initialUser.school ?? ''] ?? '')
+	let defaultUsername = initialUser.username
+	if (!defaultUsername && initialUser.school) {
+		defaultUsername = usernamePlaceholders[initialUser.school]
+	}
+	await requestKeychainEntry('username', defaultUsername)
 	await requestKeychainEntry('password')
 }
 
-async function getFromKeychain(key: AvailableKeychainEntries, defaultValue: string = '') {
+async function getFromKeychain(
+	key: AvailableKeychainEntries,
+	requestMissing: boolean = false,
+	defaultValue: string = ''
+): Promise<string | undefined> {
 	const keychainKey = `webuntis-${key}`
 	if (Keychain.contains(keychainKey)) {
 		return Keychain.get(keychainKey)
-	} else {
+	} else if (requestMissing) {
 		return requestKeychainEntry(key, defaultValue)
+	} else {
+		return defaultValue
 	}
 }
 
@@ -78,7 +78,11 @@ async function requestKeychainEntry(key: AvailableKeychainEntries, defaultValue 
 			throw createError(ErrorCode.INVALID_WEBUNTIS_URL)
 		case 'username':
 		case 'password':
-			const input = await askForInput({ ...keychainRequestStrings[key], defaultValue, isSecure: key === 'password' })
+			const input = await askForInput({
+				...keychainRequestStrings[key],
+				defaultValue,
+				isSecure: key === 'password',
+			})
 			Keychain.set(`webuntis-${key}`, input)
 			return input
 	}

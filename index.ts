@@ -68,7 +68,11 @@ try {
 		await runInteractive()
 	}
 } catch (error) {
-	console.log(error)
+
+	// throw the error if it runs in the app
+	if (config.runsInApp) {
+		throw error
+	}
 
 	let widget: ListWidget
 	const castedError = error as Error
