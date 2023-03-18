@@ -12,3 +12,5 @@ export const NO_VALUE_PLACEHOLDERS = ['---']
 export const NOTIFIABLE_TOPICS = ['lessons', 'exams', 'grades', 'absences']
 // the layout is a list of views separated by commas, the columns are separated by pipes "|"
 export const defaultLayout = 'lessons,exams'
+
+export const CONFIG_FILE_NAME = 'untis-config.json'

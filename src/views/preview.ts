@@ -14,30 +14,29 @@ import { colors } from "@/preferences/colors"
 export function addViewPreview(
 	lessons: TransformedLesson[],
 	nextDayKey: string,
-	{ container, width, height }: ViewBuildData,
-	config: Config
+	{ container, width, height, widgetConfig }: ViewBuildData,
 ) {
-	const titleHeight = getCharHeight(config.appearance.fontSize)
-	const subjectHeight = getCharHeight(config.appearance.fontSize) + 8
+	const titleHeight = getCharHeight(widgetConfig.appearance.fontSize)
+	const subjectHeight = getCharHeight(widgetConfig.appearance.fontSize) + 8
 	let currentHeight = 0
 
 	// if the next lesson is more than 3 days away, don't show the preview
 	if (lessons[0].from.getTime() > CURRENT_DATETIME.getTime() + 3 * 24 * 60 * 60 * 1000) {
 		console.log('Not showing preview because the next lesson is more than 3 days away')
 		const padding = 4
-		const containerHeight = 2 * getCharHeight(config.appearance.fontSize) + 2 * padding
+		const containerHeight = 2 * getCharHeight(widgetConfig.appearance.fontSize) + 2 * padding
 
 		const messageContainer = container.addStack()
 		messageContainer.layoutHorizontally()
 		messageContainer.setPadding(padding, padding, padding, padding)
-		messageContainer.spacing = config.appearance.spacing
+		messageContainer.spacing = widgetConfig.appearance.spacing
 		messageContainer.backgroundColor = colors.background.primary
-		messageContainer.cornerRadius = config.appearance.cornerRadius
+		messageContainer.cornerRadius = widgetConfig.appearance.cornerRadius
 		messageContainer.size = new Size(width, containerHeight)
 
 		const text = messageContainer.addText('No lessons in the next 3 days! 🥳')
 		text.textColor = colors.text.event
-		text.font = Font.semiboldRoundedSystemFont(config.appearance.fontSize)
+		text.font = Font.semiboldRoundedSystemFont(widgetConfig.appearance.fontSize)
 		text.leftAlignText()
 
 		messageContainer.addSpacer()
@@ -47,14 +46,14 @@ export function addViewPreview(
 
 	// add information about the next day if there is enough space
 	if (lessons && height > titleHeight) {
-		addPreviewTitle(container, lessons, nextDayKey, width, config)
-		currentHeight += titleHeight + config.appearance.spacing
+		addPreviewTitle(container, lessons, nextDayKey, width, widgetConfig)
+		currentHeight += titleHeight + widgetConfig.appearance.spacing
 
 		// TODO: might cause overflow, as the height is not checked
 		if (height - currentHeight > subjectHeight) {
 			currentHeight +=
-				addPreviewList(container, lessons, config, width, height - currentHeight).resultingHeight +
-				config.appearance.spacing
+				addPreviewList(container, lessons, widgetConfig, width, height - currentHeight).resultingHeight +
+				widgetConfig.appearance.spacing
 		}
 	}
 	return currentHeight
@@ -69,7 +68,7 @@ function addPreviewTitle(
 	lessons: TransformedLesson[],
 	nextDayKey: string,
 	width: number,
-	config: Config
+	widgetConfig: Config
 ) {
 	const nextDayHeader = container.addStack()
 	nextDayHeader.layoutHorizontally()
@@ -77,12 +76,12 @@ function addPreviewTitle(
 	nextDayHeader.bottomAlignContent()
 
 	// get the weekday string
-	const useLongName = width > 22 * getCharWidth(config.appearance.fontSize)
+	const useLongName = width > 22 * getCharWidth(widgetConfig.appearance.fontSize)
 	const weekdayFormat = useLongName ? 'long' : 'short'
 	const title = nextDayHeader.addText(
 		new Date(nextDayKey).toLocaleDateString(LOCALE, { weekday: weekdayFormat }) + ':'
 	)
-	title.font = Font.semiboldSystemFont(config.appearance.fontSize)
+	title.font = Font.semiboldSystemFont(widgetConfig.appearance.fontSize)
 	title.textColor = colors.text.primary
 	title.lineLimit = 1
 
@@ -94,7 +93,7 @@ function addPreviewTitle(
 	const dayToString = asNumericTime(realLessons[realLessons.length - 1].to)
 
 	const fromToText = nextDayHeader.addText(`${dayFromString} - ${dayToString}`)
-	fromToText.font = Font.mediumSystemFont(config.appearance.fontSize)
+	fromToText.font = Font.mediumSystemFont(widgetConfig.appearance.fontSize)
 	fromToText.textColor = colors.text.primary
 }
 
@@ -104,12 +103,12 @@ function addPreviewTitle(
 function addPreviewList(
 	container: WidgetStack,
 	lessons: TransformedLesson[],
-	config: Config,
+	widgetConfig: Config,
 	width: number,
 	height: number
 ) {
 	// combine lessons if they have the same subject and are after each other
-	const combinedLessonsNextDay = combineLessons(lessons, config, true, true)
+	const combinedLessonsNextDay = combineLessons(lessons, widgetConfig, true, true)
 
 	const spacing = 4
 
@@ -120,25 +119,25 @@ function addPreviewList(
 
 	const padding = 4
 
-	const flowLayoutRow = new FlowLayoutRow(width, height, config.appearance.spacing, 0, subjectListContainer)
+	const flowLayoutRow = new FlowLayoutRow(width, height, widgetConfig.appearance.spacing, 0, subjectListContainer)
 
 	for (const lesson of combinedLessonsNextDay) {
 		// skip the subject if it is 'free'
 		if (lesson.state === LessonState.FREE) continue
 
-		let subjectWidth = getTextWidth(getSubjectTitle(lesson), config.appearance.fontSize) + 2 * padding
-		if (config.summary.showMultiplier && lesson.duration > 1) {
-			subjectWidth += getTextWidth('x2', config.appearance.fontSize) + spacing
+		let subjectWidth = getTextWidth(getSubjectTitle(lesson), widgetConfig.appearance.fontSize) + 2 * padding
+		if (widgetConfig.summary.showMultiplier && lesson.duration > 1) {
+			subjectWidth += getTextWidth('x2', widgetConfig.appearance.fontSize) + spacing
 		}
 
 		const subjectContainer = flowLayoutRow.addContainer(
 			subjectWidth,
-			getCharHeight(config.appearance.fontSize) + 8,
+			getCharHeight(widgetConfig.appearance.fontSize) + 8,
 			true
 		)
 
 		if (subjectContainer) {
-			fillContainerWithSubject(lesson, subjectContainer, config)
+			fillContainerWithSubject(lesson, subjectContainer, widgetConfig)
 		}
 	}
 

@@ -32,16 +32,16 @@ export function addBreak(
 	breakFrom: Date,
 	breakTo: Date,
 	showToTime: boolean,
-	config: Config
+	widgetConfig: Config
 ) {
-	const breakContainer = makeTimelineEntry(to, breakFrom, config, {
+	const breakContainer = makeTimelineEntry(to, breakFrom, widgetConfig, {
 		backgroundColor: colors.background.primary,
 		showTime: true,
 		showToTime: showToTime,
 		toTime: breakTo,
 	})
 	const breakTitle = breakContainer.addText('Break')
-	breakTitle.font = Font.mediumSystemFont(config.appearance.fontSize)
+	breakTitle.font = Font.mediumSystemFont(widgetConfig.appearance.fontSize)
 	breakTitle.textColor = colors.text.secondary
 	breakContainer.addSpacer()
 }
@@ -50,14 +50,14 @@ export function addBreak(
  * Creates a "timeline entry" which is a container (you can add content to) with the time on the left.
  * @param to the container to add the entry to
  * @param time the from time of the entry
- * @param config
- * @param options additional options
+ * @param widgetConfig
+ * @param options additional widgetConfig
  * @returns the first stack of the entry, which can be used to add content
  */
 function makeTimelineEntry(
 	to: WidgetStack | ListWidget,
 	time: Date,
-	config: Config,
+	widgetConfig: Config,
 	options: {
 		showTime?: boolean
 		showToTime?: boolean
@@ -69,26 +69,26 @@ function makeTimelineEntry(
 
 	const lessonWrapper = to.addStack()
 	lessonWrapper.layoutHorizontally()
-	lessonWrapper.spacing = config.appearance.spacing
+	lessonWrapper.spacing = widgetConfig.appearance.spacing
 
 	const lessonContainer = lessonWrapper.addStack()
 	lessonContainer.backgroundColor = options.backgroundColor
 	lessonContainer.layoutHorizontally()
 	lessonContainer.setPadding(padding, padding, padding, padding)
-	lessonContainer.cornerRadius = config.appearance.cornerRadius
+	lessonContainer.cornerRadius = widgetConfig.appearance.cornerRadius
 
 	if (options.showTime) {
 		const timeWrapper = lessonWrapper.addStack()
 		timeWrapper.backgroundColor = options.backgroundColor
 		timeWrapper.setPadding(padding, padding, padding, padding)
-		timeWrapper.cornerRadius = config.appearance.cornerRadius
+		timeWrapper.cornerRadius = widgetConfig.appearance.cornerRadius
 		timeWrapper.size = new Size(
-			getTextWidth(MAX_TIME_STRING, config.appearance.fontSize) + 2 * padding,
-			getCharHeight(config.appearance.fontSize) + 2 * padding
+			getTextWidth(MAX_TIME_STRING, widgetConfig.appearance.fontSize) + 2 * padding,
+			getCharHeight(widgetConfig.appearance.fontSize) + 2 * padding
 		)
 
 		const timeText = timeWrapper.addDate(new Date(time))
-		timeText.font = Font.mediumSystemFont(config.appearance.fontSize)
+		timeText.font = Font.mediumSystemFont(widgetConfig.appearance.fontSize)
 		timeText.textColor = colors.text.primary
 		timeText.rightAlignText()
 		timeText.applyTimeStyle()
@@ -97,14 +97,14 @@ function makeTimelineEntry(
 			const timeToWrapper = lessonWrapper.addStack()
 			timeToWrapper.backgroundColor = options.backgroundColor
 			timeToWrapper.setPadding(padding, padding, padding, padding)
-			timeToWrapper.cornerRadius = config.appearance.cornerRadius
+			timeToWrapper.cornerRadius = widgetConfig.appearance.cornerRadius
 			timeToWrapper.size = new Size(
-				getTextWidth(MAX_TIME_STRING, config.appearance.fontSize) + 2 * padding,
-				getCharHeight(config.appearance.fontSize) + 2 * padding
+				getTextWidth(MAX_TIME_STRING, widgetConfig.appearance.fontSize) + 2 * padding,
+				getCharHeight(widgetConfig.appearance.fontSize) + 2 * padding
 			)
 
 			const timeToText = timeToWrapper.addDate(new Date(options.toTime))
-			timeToText.font = Font.mediumSystemFont(config.appearance.fontSize)
+			timeToText.font = Font.mediumSystemFont(widgetConfig.appearance.fontSize)
 			timeToText.textColor = colors.text.primary
 			timeToText.rightAlignText()
 			timeToText.applyTimeStyle()
@@ -144,13 +144,13 @@ function getLessonColors(lesson: TransformedLesson) {
  * The state is also shown as through colors. (canceled, event)
  * @param lesson the lesson to add
  * @param to the container to add the lesson to
- * @param config
+ * @param widgetConfig
  * @param options
  */
 export function addWidgetLesson(
 	lesson: TransformedLesson,
 	to: ListWidget | WidgetStack,
-	config: Config,
+	widgetConfig: Config,
 	options: {
 		showTime: boolean
 		showToTime: boolean
@@ -166,22 +166,22 @@ export function addWidgetLesson(
 
 	// consider breaks during the combined lesson
 	let toTime = lesson.to
-	if (config.views.lessons.skipShortBreaks && lesson.break) {
+	if (widgetConfig.views.lessons.skipShortBreaks && lesson.break) {
 		toTime = new Date(lesson.to.getTime() - lesson.break)
 	}
 
 	// add the entry with the time
-	const lessonContainer = makeTimelineEntry(to, lesson.from, config, {
+	const lessonContainer = makeTimelineEntry(to, lesson.from, widgetConfig, {
 		showTime: options.showTime,
 		showToTime: options.showToTime,
 		toTime: toTime,
 		backgroundColor: backgroundColor,
 	})
-	lessonContainer.spacing = config.appearance.spacing
+	lessonContainer.spacing = widgetConfig.appearance.spacing
 
 	// add the name of the subject
 	const lessonText = lessonContainer.addText(getSubjectTitle(lesson, options.useSubjectLongName))
-	lessonText.font = Font.semiboldSystemFont(config.appearance.fontSize)
+	lessonText.font = Font.semiboldSystemFont(widgetConfig.appearance.fontSize)
 	lessonText.textColor = textColor
 	lessonText.leftAlignText()
 	lessonText.lineLimit = 1
@@ -189,7 +189,7 @@ export function addWidgetLesson(
 	// add a x2 for double lessons etc.
 	if (lesson.duration > 1) {
 		const durationText = lessonContainer.addText(`x${lesson.duration}`)
-		durationText.font = Font.mediumSystemFont(config.appearance.fontSize)
+		durationText.font = Font.mediumSystemFont(widgetConfig.appearance.fontSize)
 		durationText.textColor = secondaryTextColor
 	}
 
@@ -227,23 +227,23 @@ export function addWidgetLesson(
 	if (lesson.isRescheduled && lesson.rescheduleInfo?.isSource) {
 		const iconShift = addSymbol('arrow.right', lessonContainer, {
 			color: colors.text.disabled,
-			size: config.appearance.fontSize * 0.8,
+			size: widgetConfig.appearance.fontSize * 0.8,
 		})
 		// manually correct the arrow box
 		iconShift.imageSize = new Size(
-			getCharWidth(config.appearance.fontSize * 0.8),
-			getCharHeight(config.appearance.fontSize)
+			getCharWidth(widgetConfig.appearance.fontSize * 0.8),
+			getCharHeight(widgetConfig.appearance.fontSize)
 		)
 
 		// display the time it was rescheduled to
 		const rescheduledTime = lessonContainer.addText(asNumericTime(lesson.rescheduleInfo?.otherFrom))
-		rescheduledTime.font = Font.mediumSystemFont(config.appearance.fontSize)
+		rescheduledTime.font = Font.mediumSystemFont(widgetConfig.appearance.fontSize)
 		rescheduledTime.textColor = colors.text.disabled
 	}
 
 	if (iconName) {
 		lessonContainer.addSpacer()
-		addSymbol(iconName, lessonContainer, { color: secondaryTextColor, size: config.appearance.fontSize })
+		addSymbol(iconName, lessonContainer, { color: secondaryTextColor, size: widgetConfig.appearance.fontSize })
 	}
 }
 
@@ -251,29 +251,29 @@ export function addWidgetLesson(
  * Fills/transforms the given container with the given lesson information.
  * @param lesson
  * @param container
- * @param config
+ * @param widgetConfig
  */
-export function fillContainerWithSubject(lesson: TransformedLesson, container: WidgetStack, config: Config) {
+export function fillContainerWithSubject(lesson: TransformedLesson, container: WidgetStack, widgetConfig: Config) {
 	const { backgroundColor, textColor, secondaryTextColor } = getLessonColors(lesson)
 
 	container.backgroundColor = backgroundColor
 	container.layoutHorizontally()
 	container.setPadding(4, 4, 4, 4)
-	container.cornerRadius = config.appearance.cornerRadius
-	container.spacing = config.appearance.spacing
+	container.cornerRadius = widgetConfig.appearance.cornerRadius
+	container.spacing = widgetConfig.appearance.spacing
 
 	// add the name of the subject
 	const subjectText = container.addText(getSubjectTitle(lesson))
-	subjectText.font = Font.mediumSystemFont(config.appearance.fontSize)
+	subjectText.font = Font.mediumSystemFont(widgetConfig.appearance.fontSize)
 	subjectText.textColor = textColor
 	subjectText.leftAlignText()
 	subjectText.minimumScaleFactor = 1
 	subjectText.lineLimit = 1
 
 	// add a x2 for double lessons etc.
-	if (config.summary.showMultiplier && lesson.duration > 1) {
+	if (widgetConfig.summary.showMultiplier && lesson.duration > 1) {
 		const durationText = container.addText(`x${lesson.duration}`)
-		durationText.font = Font.mediumSystemFont(config.appearance.fontSize)
+		durationText.font = Font.mediumSystemFont(widgetConfig.appearance.fontSize)
 		durationText.textColor = colors.text.secondary
 	}
 }

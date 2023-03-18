@@ -1,5 +1,5 @@
 import { LOCALE, NO_VALUE_PLACEHOLDERS } from "@/constants"
-import { Options } from "@/preferences/config"
+import { Config } from "@/preferences/config"
 import { LessonState } from "@/types/api"
 import { TransformedLessonWeek, TransformedExam, TransformedGrade, TransformedAbsence } from "@/types/transformed"
 import { scheduleNotification, asNumericTime, asWeekday } from "@/utils/helper"
@@ -9,13 +9,13 @@ import { getSubjectTitle } from "@/utils/lessonHelper"
  * Compares the fetched lessons with the cached lessons and sends notifications for most changes.
  * @param lessonWeek
  * @param cachedLessonWeek
- * @param options
+ * @param widgetConfig
  * @returns
  */
 export function compareCachedLessons(
 	lessonWeek: TransformedLessonWeek,
 	cachedLessonWeek: TransformedLessonWeek,
-	options: Options
+	widgetConfig: Config
 ) {
 	console.log('Comparing cached lessons with fetched lessons.')
 
@@ -152,7 +152,7 @@ export function compareCachedLessons(
 	}
 }
 
-export function compareCachedExams(exams: TransformedExam[], cachedExams: TransformedExam[], options: Options) {
+export function compareCachedExams(exams: TransformedExam[], cachedExams: TransformedExam[], widgetConfig: Config) {
 	// find any exams that were added
 	for (const exam of exams) {
 		const cachedExam = cachedExams.find((cachedExam) => {
@@ -171,7 +171,7 @@ export function compareCachedExams(exams: TransformedExam[], cachedExams: Transf
 	}
 }
 
-export function compareCachedGrades(grades: TransformedGrade[], cachedExams: TransformedGrade[], options: Options) {
+export function compareCachedGrades(grades: TransformedGrade[], cachedExams: TransformedGrade[], widgetConfig: Config) {
 	// find any grades that were added
 	for (const grade of grades) {
 		const cachedGrade = cachedExams.find((cachedGrade) => JSON.stringify(cachedGrade) === JSON.stringify(grade))
@@ -186,7 +186,7 @@ export function compareCachedGrades(grades: TransformedGrade[], cachedExams: Tra
 	}
 }
 
-export function compareCachedAbsences(absences: TransformedAbsence[], cachedAbsences: TransformedAbsence[], options: Options) {
+export function compareCachedAbsences(absences: TransformedAbsence[], cachedAbsences: TransformedAbsence[], widgetConfig: Config) {
 	// find any absences that were added
 	for (const absence of absences) {
 		const cachedAbsence = cachedAbsences.find(

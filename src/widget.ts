@@ -1,7 +1,6 @@
 import { CURRENT_DATETIME } from '@/constants'
 import { FetchedData, fetchDataForViews } from './api/fetchManager'
 import { View } from './layout'
-import { Options } from './preferences/config'
 import { getCharHeight } from './utils/helper'
 import { getWidgetSize, getWidgetSizes } from './utils/scriptable/widgetSize'
 import { addViewAbsences } from './views/absences'
@@ -10,12 +9,14 @@ import { addFooter, getFooterHeight } from './views/footer'
 import { addViewGrades } from './views/grades'
 import { addViewLessons } from './views/lessons'
 import { addViewPreview } from './views/preview'
+import { Config } from './preferences/config'
+import { getModuleFileManager } from './utils/scriptable/fileSystem'
 
 export interface ViewBuildData {
 	container: WidgetStack
 	width: number
 	height: number
-	options: Options
+	widgetConfig: Config
 }
 
 export function checkNewRefreshDate(newDate: Date, fetchedData: FetchedData) {
@@ -35,13 +36,13 @@ export function proposeRefreshInXHours(hours: number, fetchedData: FetchedData) 
  * Creates the widget by adding as many views to it as fit.
  * Also adds the footer.
  */
-export async function createWidget(user: FullUser, layout: View[][], options: Options) {
+export async function createWidget(user: FullUser, layout: View[][], widgetConfig: Config) {
 	const widget = new ListWidget()
 
 	const widgetSizes = getWidgetSizes()
 
-	const paddingHorizontal = Math.max(options.appearance.padding, 4)
-	const paddingVertical = Math.max(options.appearance.padding, 6)
+	const paddingHorizontal = Math.max(widgetConfig.appearance.padding, 4)
+	const paddingVertical = Math.max(widgetConfig.appearance.padding, 6)
 
 	const widgetSize = getWidgetSize(widgetSizes, config.widgetFamily)
 	const contentSize = new Size(widgetSize.width - paddingHorizontal * 2, widgetSize.height - paddingVertical * 2)
@@ -52,7 +53,7 @@ export async function createWidget(user: FullUser, layout: View[][], options: Op
 	const widgetContent = widget.addStack()
 	widgetContent.layoutHorizontally()
 	widgetContent.topAlignContent()
-	widgetContent.spacing = options.appearance.spacing
+	widgetContent.spacing = widgetConfig.appearance.spacing
 
 	// make a list of the shown views (without duplicates)
 	const shownViews = new Set<View>()
@@ -63,7 +64,7 @@ export async function createWidget(user: FullUser, layout: View[][], options: Op
 	}
 
 	// fetch the data for the shown views
-	const fetchedData = await fetchDataForViews(Array.from(shownViews), user, options)
+	const fetchedData = await fetchDataForViews(Array.from(shownViews), user, widgetConfig)
 
 	if (fetchedData.refreshDate) {
 		console.log(`Refresh date: ${fetchedData.refreshDate}`)
@@ -75,11 +76,19 @@ export async function createWidget(user: FullUser, layout: View[][], options: Op
 
 	// add all the columns with the views
 	for (const column of layout) {
-		addColumn(fetchedData, widgetContent, column, contentSize.height, columnWidth, shownViews, options)
+		addColumn(
+			fetchedData,
+			widgetContent,
+			column,
+			contentSize.height,
+			columnWidth,
+			shownViews,
+			widgetConfig,
+		)
 	}
 
-	if (options.footer.show) {
-		addFooter(widget, contentSize.width, options)
+	if (widgetConfig.footer.show) {
+		addFooter(widget, contentSize.width, widgetConfig)
 	}
 
 	return widget
@@ -92,17 +101,17 @@ function addColumn(
 	height: number,
 	width: number,
 	shownViews: Set<View>,
-	options: Options
+	widgetConfig: Config,
 ) {
 	// add the column
 	const columnStack = widgetContent.addStack()
 	columnStack.layoutVertically()
 	columnStack.topAlignContent()
-	columnStack.spacing = options.appearance.spacing
+	columnStack.spacing = widgetConfig.appearance.spacing
 
 	// calculate the real available height
 	let availableContentHeight = height
-	if (options.footer.show) availableContentHeight -= getFooterHeight(options)
+	if (widgetConfig.footer.show) availableContentHeight -= getFooterHeight(widgetConfig)
 
 	columnStack.size = new Size(width, availableContentHeight)
 
@@ -115,7 +124,7 @@ function addColumn(
 			container: columnStack,
 			width,
 			height: remainingHeight,
-			options,
+			widgetConfig,
 		}
 
 		const viewHeight = addView(fetchedData, view, viewData, shownViews)
@@ -124,16 +133,16 @@ function addColumn(
 		console.log(`Added view ${view} with height ${viewHeight}, remaining height: ${remainingHeight}`)
 
 		// subtract the spacing if necessary (view added and enough space left)
-		if (viewHeight > 0 && remainingHeight > options.appearance.spacing) {
-			remainingHeight -= options.appearance.spacing
-		} else if (remainingHeight <= options.appearance.spacing) {
+		if (viewHeight > 0 && remainingHeight > widgetConfig.appearance.spacing) {
+			remainingHeight -= widgetConfig.appearance.spacing
+		} else if (remainingHeight <= widgetConfig.appearance.spacing) {
 			break
 		}
 	}
 
-	if (remainingHeight > options.appearance.spacing) {
+	if (remainingHeight > widgetConfig.appearance.spacing) {
 		// add spacer to fill the remaining space
-		let space = remainingHeight - options.appearance.spacing
+		let space = remainingHeight - widgetConfig.appearance.spacing
 		if (space < 0) space = 0
 		columnStack.addSpacer(space)
 	}
@@ -148,10 +157,10 @@ function addColumn(
  * @return the height of the added view
  */
 function addView(fetchedData: FetchedData, view: View, viewData: ViewBuildData, shownViews: Set<View>): number | 0 {
-	const options = viewData.options
+	const widgetConfig = viewData.widgetConfig
 	const remainingHeight = viewData.height
 	// exit if there is not enough space left
-	if (remainingHeight <= getCharHeight(options.appearance.fontSize)) return
+	if (remainingHeight <= getCharHeight(widgetConfig.appearance.fontSize)) return
 
 	switch (view) {
 		case View.LESSONS:
@@ -163,12 +172,12 @@ function addView(fetchedData: FetchedData, view: View, viewData: ViewBuildData, 
 			if (fetchedData.lessonsTodayRemaining.length > 0) {
 				return addViewLessons(
 					fetchedData.lessonsTodayRemaining,
-					options.views.lessons.maxCount,
+					widgetConfig.views.lessons.maxCount,
 					viewData,
-					options
+					widgetConfig
 				)
 			} else {
-				return addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData, options)
+				return addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData)
 			}
 		case View.PREVIEW:
 			if (!fetchedData.lessonsNextDay || !fetchedData.nextDayKey) {
@@ -178,24 +187,24 @@ function addView(fetchedData: FetchedData, view: View, viewData: ViewBuildData, 
 			// only show the day preview, if it is not already shown
 			if (shownViews.has(View.LESSONS) && fetchedData.lessonsTodayRemaining?.length === 0) break
 
-			return addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData, options)
+			return addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData)
 		case View.EXAMS:
 			if (!fetchedData.exams) {
 				console.warn(`Tried to add exams view, but no exams data was fetched`)
 				return
 			}
-			return addViewExams(fetchedData.exams, options.views.exams.maxCount, viewData, options)
+			return addViewExams(fetchedData.exams, widgetConfig.views.exams.maxCount, viewData)
 		case View.GRADES:
 			if (!fetchedData.grades) {
 				console.warn(`Tried to add grades view, but no grades data was fetched`)
 				return
 			}
-			return addViewGrades(fetchedData.grades, options.views.grades.maxCount, viewData, options)
+			return addViewGrades(fetchedData.grades, widgetConfig.views.grades.maxCount, viewData)
 		case View.ABSENCES:
 			if (!fetchedData.absences) {
 				console.warn(`Tried to add absences view, but no absences data was fetched`)
 				return
 			}
-			return addViewAbsences(fetchedData.absences, options.views.absences.maxCount, viewData, options)
+			return addViewAbsences(fetchedData.absences, widgetConfig.views.absences.maxCount, viewData)
 	}
 }

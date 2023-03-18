@@ -10,11 +10,11 @@ import { combineDateAndTime } from "./transform";
  * Also tries to correct the state.
  * @param lessons the lessons to transform returned from the API
  * @param elements the elements to link to the lessons
- * @param config the config to use for the transformation
+ * @param widgetConfig the config to use for the transformation
  * @returns a transformed lesson week
  */
 
-export function transformLessons(lessons: Lesson[], elements: Element[], config: Config): TransformedLessonWeek {
+export function transformLessons(lessons: Lesson[], elements: Element[], widgetConfig: Config): TransformedLessonWeek {
 	const transformedLessonWeek: TransformedLessonWeek = {};
 
 	// transform each lesson
@@ -107,7 +107,7 @@ export function transformLessons(lessons: Lesson[], elements: Element[], config:
 	let combinedLessonWeek: TransformedLessonWeek = {};
 	// combine lessons which are equal and are directly after each other
 	for (const dateKey in transformedLessonWeek) {
-		combinedLessonWeek[dateKey] = combineLessons(transformedLessonWeek[dateKey], config);
+		combinedLessonWeek[dateKey] = combineLessons(transformedLessonWeek[dateKey], widgetConfig);
 	}
 
 	return combinedLessonWeek;
@@ -215,14 +215,14 @@ function resolveElements(lesson: Lesson, elements: Element[]) {
  * @param ignoreDetails if true, only the subject and time will be considered
  */
 
-export function combineLessons(lessons: TransformedLesson[], config: Config, ignoreDetails = false, ignoreBreaks = false) {
+export function combineLessons(lessons: TransformedLesson[], widgetConfig: Config, ignoreDetails = false, ignoreBreaks = false) {
 	const combinedLessonsNextDay: TransformedLesson[] = [];
 	for (const [index, lesson] of lessons.entries()) {
 		const previousLesson = combinedLessonsNextDay[combinedLessonsNextDay.length - 1];
 
 		if (index !== 0 &&
 			previousLesson &&
-			shouldCombineLessons(previousLesson, lesson, config, ignoreDetails, ignoreBreaks)) {
+			shouldCombineLessons(previousLesson, lesson, widgetConfig, ignoreDetails, ignoreBreaks)) {
 			// update the break duration
 			if (!previousLesson.break)
 				previousLesson.break = 0;

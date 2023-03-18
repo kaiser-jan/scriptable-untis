@@ -1,7 +1,6 @@
 import { clearCache, prepareUser } from '@/api/cache'
 import { PREVIEW_WIDGET_SIZE, SCRIPT_START_DATETIME } from '@/constants'
 import { getLayout } from '@/layout'
-import { Options } from '@/preferences/config'
 import { writeKeychain } from '@/setup'
 import { createErrorWidget, ExtendedError, SCRIPTABLE_ERROR_MAP } from '@/utils/errors'
 import { getModuleFileManager as getFileManagerOptions, readConfig } from '@/utils/scriptable/fileSystem'
@@ -15,10 +14,9 @@ import { createWidget } from '@/widget'
 
 async function setupAndCreateWidget() {
 	const { useICloud, fileManager } = getFileManagerOptions()
-	const untisConfig = await readConfig(useICloud, fileManager)
-	const options: Options = { ...untisConfig, useICloud, fileManager }
-	const user = await prepareUser(options)
-	const widget = await createWidget(user, getLayout(), options)
+	const widgetConfig = await readConfig(useICloud)
+	const user = await prepareUser(widgetConfig)
+	const widget = await createWidget(user, getLayout(), widgetConfig)
 	return widget
 }
 

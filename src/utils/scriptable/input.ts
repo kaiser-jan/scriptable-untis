@@ -1,4 +1,4 @@
-import { createError, ErrorCode } from "../errors"
+import { createError, ErrorCode } from '../errors'
 
 export async function askForInput(options: {
 	title: string
@@ -28,15 +28,15 @@ export async function askForInput(options: {
 
 export async function selectOption(
 	availableOptions: string[],
-	options: {
+	widgetConfig: {
 		title?: string
 		description?: string
 	}
 ): Promise<string> {
 	let alert = new Alert()
 
-	alert.title = options.title ?? 'Select an Option'
-	alert.message = options.description ?? 'Choose one of the following options:'
+	alert.title = widgetConfig.title ?? 'Select an Option'
+	alert.message = widgetConfig.description ?? 'Choose one of the following widgetConfig:'
 
 	for (let option of availableOptions) {
 		alert.addAction(option)

@@ -4,10 +4,10 @@ import { Config } from "@/preferences/config"
 import { addSymbol } from "@/utils/scriptable/componentHelper"
 import { getCharHeight } from "@/utils/helper"
 
-export function getFooterHeight(config: Config) {
+export function getFooterHeight(widgetConfig: Config) {
 	return getCharHeight(10) + 2 * 4
 }
-export function addFooter(container: WidgetStack | ListWidget, width: number, config: Config) {
+export function addFooter(container: WidgetStack | ListWidget, width: number, widgetConfig: Config) {
 	const footerGroup = container.addStack()
 
 	footerGroup.layoutHorizontally()
@@ -16,7 +16,7 @@ export function addFooter(container: WidgetStack | ListWidget, width: number, co
 	footerGroup.centerAlignContent()
 	// avoid overflow when pushed to the bottom
 	footerGroup.setPadding(4, 6, 4, 6)
-	footerGroup.size = new Size(width, getFooterHeight(config))
+	footerGroup.size = new Size(width, getFooterHeight(widgetConfig))
 
 	// TODO: remove
 	const usingOldCache = false

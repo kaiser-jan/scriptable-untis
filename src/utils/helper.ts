@@ -101,3 +101,18 @@ export function scheduleNotification(
 export function getKeyByValue(object: Object, value: any) {
 	return Object.keys(object).find((key) => object[key] === value)
 }
+
+/**
+ * Merges the properties of the source object (may be incomplete) into the target object.
+ */
+export function deepMerge(target: any, source: any) {
+	for (const key in source) {
+		if (source[key] instanceof Object && key in target) {
+			deepMerge(target[key], source[key])
+		} else {
+			target[key] = source[key]
+		}
+	}
+
+	return target
+}

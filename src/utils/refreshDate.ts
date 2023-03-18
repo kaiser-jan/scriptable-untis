@@ -8,7 +8,7 @@ import { TransformedLesson } from "@/types/transformed"
 export function getRefreshDateForLessons(
 	lessonsTodayRemaining: TransformedLesson[],
 	lessonsTomorrow: TransformedLesson[],
-	config: Config
+	widgetConfig: Config
 ) {
 	let nextRefreshDate: Date
 
@@ -27,7 +27,7 @@ export function getRefreshDateForLessons(
 			// if the break is too short
 			if (
 				secondLesson &&
-				secondLesson.from.getTime() - firstLesson.to.getTime() < config.config.breakMaxMinutes * 60 * 1000
+				secondLesson.from.getTime() - firstLesson.to.getTime() < widgetConfig.config.breakMaxMinutes * 60 * 1000
 			) {
 				nextRefreshDate = secondLesson.from
 				console.log(
@@ -46,19 +46,19 @@ export function getRefreshDateForLessons(
 		// if the next lesson (on the next day) is in the scope of the frequent updates
 		if (lessonsTomorrow && lessonsTomorrow.length > 1) {
 			const timeUntilNextLesson = lessonsTomorrow[0].from.getTime() - CURRENT_DATETIME.getTime()
-			shouldLazyUpdate = timeUntilNextLesson > config.config.refreshing.normalScopeHours * 60 * 60 * 1000
+			shouldLazyUpdate = timeUntilNextLesson > widgetConfig.config.refreshing.normalScopeHours * 60 * 60 * 1000
 		}
 
 		// refresh based on normal/lazy refreshing
 		if (shouldLazyUpdate) {
-			console.log(`Would refresh in ${config.config.refreshing.lazyIntervalMinutes} minutes (lazy updating).`)
+			console.log(`Would refresh in ${widgetConfig.config.refreshing.lazyIntervalMinutes} minutes (lazy updating).`)
 			nextRefreshDate = new Date(
-				CURRENT_DATETIME.getTime() + config.config.refreshing.lazyIntervalMinutes * 60 * 1000
+				CURRENT_DATETIME.getTime() + widgetConfig.config.refreshing.lazyIntervalMinutes * 60 * 1000
 			)
 		} else {
-			console.log(`Would refresh in ${config.config.refreshing.normalIntervalMinutes} minutes (normal updating).`)
+			console.log(`Would refresh in ${widgetConfig.config.refreshing.normalIntervalMinutes} minutes (normal updating).`)
 			nextRefreshDate = new Date(
-				CURRENT_DATETIME.getTime() + config.config.refreshing.normalIntervalMinutes * 60 * 1000
+				CURRENT_DATETIME.getTime() + widgetConfig.config.refreshing.normalIntervalMinutes * 60 * 1000
 			)
 		}
 	}

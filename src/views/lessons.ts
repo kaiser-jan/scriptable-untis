@@ -13,30 +13,30 @@ export function addViewLessons(
 	lessons: TransformedLesson[],
 	count: number | undefined,
 	{ container, width, height }: ViewBuildData,
-	config: Config
+	widgetConfig: Config
 ) {
 	// only allow up to x items to avoid overflow
 	let itemCount = 0
 
 	const padding = 4
-	const lessonHeight = getCharHeight(config.appearance.fontSize) + 2 * padding
+	const lessonHeight = getCharHeight(widgetConfig.appearance.fontSize) + 2 * padding
 
-	const innerSpacing = config.appearance.spacing
+	const innerSpacing = widgetConfig.appearance.spacing
 	// the width including: padding, subject, spacing and icon
 	const lessonWidth =
 		2 * padding +
-		getCharWidth(config.appearance.fontSize) * MAX_SUBJECT_NAME_LENGTH +
+		getCharWidth(widgetConfig.appearance.fontSize) * MAX_SUBJECT_NAME_LENGTH +
 		innerSpacing +
-		getCharHeight(config.appearance.fontSize)
-	const timeWidth = getTextWidth(MAX_TIME_STRING, config.appearance.fontSize) + 2 * padding
-	let currentWidth = lessonWidth + config.appearance.spacing + timeWidth
+		getCharHeight(widgetConfig.appearance.fontSize)
+	const timeWidth = getTextWidth(MAX_TIME_STRING, widgetConfig.appearance.fontSize) + 2 * padding
+	let currentWidth = lessonWidth + widgetConfig.appearance.spacing + timeWidth
 
 	let showToTime = false
 
 	// check if there is space for a "to" time
-	if (currentWidth + config.appearance.spacing + timeWidth <= width) {
-		showToTime = config.views.lessons.showEndTimes
-		currentWidth += config.appearance.spacing + timeWidth
+	if (currentWidth + widgetConfig.appearance.spacing + timeWidth <= width) {
+		showToTime = widgetConfig.views.lessons.showEndTimes
+		currentWidth += widgetConfig.appearance.spacing + timeWidth
 	}
 
 	let remainingHeight = height
@@ -48,7 +48,7 @@ export function addViewLessons(
 
 		// take into account the spacing between the lessons
 		if (i > 0) {
-			remainingHeight -= config.appearance.spacing
+			remainingHeight -= widgetConfig.appearance.spacing
 		}
 
 		// check for a break if the previous lesson exists
@@ -57,27 +57,27 @@ export function addViewLessons(
 			const gapDuration = lesson.from.getTime() - previousLesson.to.getTime()
 			if (
 				previousLesson &&
-				config.views.lessons.showLongBreaks &&
-				gapDuration > config.config.breakMaxMinutes * 60 * 1000
+				widgetConfig.views.lessons.showLongBreaks &&
+				gapDuration > widgetConfig.config.breakMaxMinutes * 60 * 1000
 			) {
-				addBreak(container, previousLesson.to, lesson.from, showToTime, config)
+				addBreak(container, previousLesson.to, lesson.from, showToTime, widgetConfig)
 				itemCount++
-				remainingHeight -= config.appearance.spacing + lessonHeight
-				if ((count && itemCount >= count) || remainingHeight < lessonHeight + config.appearance.spacing) break
+				remainingHeight -= widgetConfig.appearance.spacing + lessonHeight
+				if ((count && itemCount >= count) || remainingHeight < lessonHeight + widgetConfig.appearance.spacing) break
 			}
 		}
 
 		// check if the user wants to show canceled lessons
 		const isRescheduled = lesson.isRescheduled && lesson.rescheduleInfo.isSource
 		const istCancelled = lesson.state === LessonState.CANCELED || lesson.state === LessonState.FREE || isRescheduled
-		if (!config.views.lessons.showCanceled && istCancelled) continue
+		if (!widgetConfig.views.lessons.showCanceled && istCancelled) continue
 
 		// only show the time if the previous lesson didn't start at the same time
 		const showTime = !previousLesson || previousLesson.from.getTime() !== lesson.from.getTime()
 		// if there is space for more text (longer subject name)
 		const useSubjectLongName =
-			currentWidth + MAX_LONG_SUBJECT_NAME_LENGTH + getCharWidth(config.appearance.fontSize) <= width
-		addWidgetLesson(lesson, container, config, { showTime, showToTime, useSubjectLongName })
+			currentWidth + MAX_LONG_SUBJECT_NAME_LENGTH + getCharWidth(widgetConfig.appearance.fontSize) <= width
+		addWidgetLesson(lesson, container, widgetConfig, { showTime, showToTime, useSubjectLongName })
 
 		itemCount++
 		remainingHeight -= lessonHeight
@@ -85,12 +85,12 @@ export function addViewLessons(
 		// exit if the max item count is reached
 		if (count && itemCount >= count) break
 		// exit if it would get too big
-		if (remainingHeight < lessonHeight + config.appearance.spacing) break
+		if (remainingHeight < lessonHeight + widgetConfig.appearance.spacing) break
 	}
 
-	const remainingFontSize = config.appearance.fontSize * 0.8
+	const remainingFontSize = widgetConfig.appearance.fontSize * 0.8
 	// add a "+ x more" if there are more lessons and there is enough space
-	if (lessons.length > itemCount && remainingHeight > getCharHeight(remainingFontSize) + config.appearance.spacing) {
+	if (lessons.length > itemCount && remainingHeight > getCharHeight(remainingFontSize) + widgetConfig.appearance.spacing) {
 		const realLessons = filterCanceledLessons(lessons.slice(itemCount - 1))
 		const dayToString = asNumericTime(realLessons[realLessons.length - 1].to)
 		// count the number of remaining lessons including the duration
@@ -101,7 +101,7 @@ export function addViewLessons(
 		console.log(`Added label for ${lessonCount} more lessons until ${dayToString}`)
 		andMoreText.font = Font.regularSystemFont(remainingFontSize)
 		andMoreText.textColor = colors.text.secondary
-		remainingHeight -= getCharHeight(remainingFontSize) + config.appearance.spacing
+		remainingHeight -= getCharHeight(remainingFontSize) + widgetConfig.appearance.spacing
 	}
 
 	return height - remainingHeight

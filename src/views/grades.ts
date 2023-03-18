@@ -1,5 +1,5 @@
 import { colors } from "@/preferences/colors"
-import { Options } from "@/preferences/config"
+import { Config } from "@/preferences/config"
 import { TransformedGrade } from "@/types/transformed"
 import { getCharHeight } from "@/utils/helper"
 import { FlowLayoutRow } from "@/utils/scriptable/layoutHelper"
@@ -8,11 +8,10 @@ import { ViewBuildData } from "@/widget"
 export function addViewGrades(
 	grades: TransformedGrade[],
 	maxCount: number,
-	{ container, width, height }: ViewBuildData,
-	config: Options
+	{ container, width, height, widgetConfig }: ViewBuildData,
 ) {
 	let remainingHeight = height
-	const lineHeight = getCharHeight(config.appearance.fontSize)
+	const lineHeight = getCharHeight(widgetConfig.appearance.fontSize)
 	const padding = 4
 
 	if (height < lineHeight + 2 * padding) return 0
@@ -27,18 +26,18 @@ export function addViewGrades(
 		const grade = sortedGrades[i]
 
 		// subtract the spacing between the items
-		if (i > 0) remainingHeight -= config.appearance.spacing
+		if (i > 0) remainingHeight -= widgetConfig.appearance.spacing
 
 		const gradeContainer = container.addStack()
 		gradeContainer.layoutHorizontally()
-		gradeContainer.spacing = config.appearance.spacing
+		gradeContainer.spacing = widgetConfig.appearance.spacing
 		gradeContainer.backgroundColor = colors.background.primary
-		gradeContainer.cornerRadius = config.appearance.cornerRadius
+		gradeContainer.cornerRadius = widgetConfig.appearance.cornerRadius
 
 		const flowLayoutRow = new FlowLayoutRow(
 			width,
 			remainingHeight,
-			config.appearance.spacing,
+			widgetConfig.appearance.spacing,
 			padding,
 			gradeContainer
 		)
@@ -65,27 +64,27 @@ export function addViewGrades(
 		}
 
 		if (usingIcon) {
-			flowLayoutRow.addIcon(symbolName, config.appearance.fontSize, colors.text.primary)
+			flowLayoutRow.addIcon(symbolName, widgetConfig.appearance.fontSize, colors.text.primary)
 		} else {
 			flowLayoutRow.addText(
 				grade.mark.name,
-				Font.mediumSystemFont(config.appearance.fontSize),
-				config.appearance.fontSize,
+				Font.mediumSystemFont(widgetConfig.appearance.fontSize),
+				widgetConfig.appearance.fontSize,
 				colors.text.primary
 			)
 		}
 
 		flowLayoutRow.addText(
 			grade.subject,
-			Font.mediumSystemFont(config.appearance.fontSize),
-			config.appearance.fontSize,
+			Font.mediumSystemFont(widgetConfig.appearance.fontSize),
+			widgetConfig.appearance.fontSize,
 			colors.text.primary
 		)
 
 		flowLayoutRow.addText(
 			grade.examType.name,
-			Font.regularSystemFont(config.appearance.fontSize),
-			config.appearance.fontSize,
+			Font.regularSystemFont(widgetConfig.appearance.fontSize),
+			widgetConfig.appearance.fontSize,
 			colors.text.secondary
 		)
 
@@ -98,7 +97,7 @@ export function addViewGrades(
 		if (maxCount && gradeCount >= maxCount) break
 
 		// exit if it would get too big, use the maximum height
-		if (remainingHeight - 3 * lineHeight + 2 * config.appearance.spacing < 0) break
+		if (remainingHeight - 3 * lineHeight + 2 * widgetConfig.appearance.spacing < 0) break
 	}
 
 	return height - remainingHeight

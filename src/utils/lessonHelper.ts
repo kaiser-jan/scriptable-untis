@@ -20,12 +20,12 @@ export function filterCanceledLessons(lessons: TransformedLesson[]) {
 export function shouldCombineLessons(
 	a: TransformedLesson,
 	b: TransformedLesson,
-	config: Config,
+	widgetConfig: Config,
 	ignoreDetails = false,
 	ignoreBreaks = false
 ) {
 	if (a.subject?.name !== b.subject?.name) return false
-	if (!ignoreBreaks && b.from.getTime() - a.to.getTime() > config.config.breakMinMinutes * 60 * 1000) return false
+	if (!ignoreBreaks && b.from.getTime() - a.to.getTime() > widgetConfig.config.breakMinMinutes * 60 * 1000) return false
 
 	if (ignoreDetails) return true
 

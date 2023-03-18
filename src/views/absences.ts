@@ -1,6 +1,6 @@
 import { LOCALE } from "@/constants"
 import { colors } from "@/preferences/colors"
-import { Options } from "@/preferences/config"
+import { Config } from "@/preferences/config"
 import { TransformedAbsence } from "@/types/transformed"
 import { getCharHeight } from "@/utils/helper"
 import { FlowLayoutRow } from "@/utils/scriptable/layoutHelper"
@@ -9,11 +9,10 @@ import { ViewBuildData } from "@/widget"
 export function addViewAbsences(
 	absences: TransformedAbsence[],
 	maxCount: number,
-	{ container, width, height }: ViewBuildData,
-	options: Options
+	{ container, width, height, widgetConfig }: ViewBuildData,
 ) {
 	let remainingHeight = height
-	const lineHeight = getCharHeight(options.appearance.fontSize)
+	const lineHeight = getCharHeight(widgetConfig.appearance.fontSize)
 	const padding = 4
 
 	if (height < lineHeight + 2 * padding) return 0
@@ -27,31 +26,31 @@ export function addViewAbsences(
 		if (absence.isExcused) continue
 
 		// subtract the spacing between the items
-		if (i > 0) remainingHeight -= options.appearance.spacing
+		if (i > 0) remainingHeight -= widgetConfig.appearance.spacing
 
 		const absenceContainer = container.addStack()
 		absenceContainer.layoutHorizontally()
-		absenceContainer.spacing = options.appearance.spacing
+		absenceContainer.spacing = widgetConfig.appearance.spacing
 		absenceContainer.backgroundColor = colors.background.primary
-		absenceContainer.cornerRadius = options.appearance.cornerRadius
+		absenceContainer.cornerRadius = widgetConfig.appearance.cornerRadius
 
 		const flowLayoutRow = new FlowLayoutRow(
 			width,
 			remainingHeight,
-			options.appearance.cornerRadius,
+			widgetConfig.appearance.cornerRadius,
 			padding,
 			absenceContainer
 		)
 
-		flowLayoutRow.addIcon('pills.circle', options.appearance.fontSize, colors.text.secondary)
+		flowLayoutRow.addIcon('pills.circle', widgetConfig.appearance.fontSize, colors.text.secondary)
 
 		// if the absence is not longer than one day, show the date and duration
 		if (absence.to.getDate() === absence.from.getDate() && absence.to.getMonth() === absence.from.getMonth()) {
 			const fromDate = absence.from.toLocaleDateString(LOCALE, { day: '2-digit', month: 'short' })
 			flowLayoutRow.addText(
 				fromDate,
-				Font.mediumSystemFont(options.appearance.fontSize),
-				options.appearance.fontSize,
+				Font.mediumSystemFont(widgetConfig.appearance.fontSize),
+				widgetConfig.appearance.fontSize,
 				colors.text.primary
 			)
 
@@ -65,8 +64,8 @@ export function addViewAbsences(
 			const durationString = `${hours}h${minutes}`
 			flowLayoutRow.addText(
 				durationString,
-				Font.mediumSystemFont(options.appearance.fontSize),
-				options.appearance.fontSize,
+				Font.mediumSystemFont(widgetConfig.appearance.fontSize),
+				widgetConfig.appearance.fontSize,
 				colors.text.secondary
 			)
 		}
@@ -76,20 +75,20 @@ export function addViewAbsences(
 			const to = absence.to.toLocaleString(LOCALE, { day: 'numeric', month: 'short' })
 			flowLayoutRow.addText(
 				from,
-				Font.mediumSystemFont(options.appearance.fontSize),
-				options.appearance.fontSize,
+				Font.mediumSystemFont(widgetConfig.appearance.fontSize),
+				widgetConfig.appearance.fontSize,
 				colors.text.primary
 			)
 			flowLayoutRow.addText(
 				'-',
-				Font.mediumSystemFont(options.appearance.fontSize),
-				options.appearance.fontSize,
+				Font.mediumSystemFont(widgetConfig.appearance.fontSize),
+				widgetConfig.appearance.fontSize,
 				colors.text.secondary
 			)
 			flowLayoutRow.addText(
 				to,
-				Font.mediumSystemFont(options.appearance.fontSize),
-				options.appearance.fontSize,
+				Font.mediumSystemFont(widgetConfig.appearance.fontSize),
+				widgetConfig.appearance.fontSize,
 				colors.text.primary
 			)
 		}
@@ -103,7 +102,7 @@ export function addViewAbsences(
 		if (absenceCount >= maxCount) break
 
 		// exit if it would get too big, use the maximum height
-		if (remainingHeight - 2 * lineHeight + options.appearance.spacing < 0) break
+		if (remainingHeight - 2 * lineHeight + widgetConfig.appearance.spacing < 0) break
 	}
 
 	return height - remainingHeight

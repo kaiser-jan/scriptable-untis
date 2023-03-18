@@ -3,8 +3,9 @@ import { readFromCache, writeToCache } from '@/api/cache'
 import { fetchLessonsFor, fetchExamsFor, fetchGradesFor, fetchAbsencesFor, fetchSchoolYears } from '@/api/fetch'
 import { NOTIFIABLE_TOPICS } from '@/constants'
 import { compareCachedLessons, compareCachedExams, compareCachedGrades, compareCachedAbsences } from '@/features/notify'
-import { Options, applyLessonConfigs } from '@/preferences/config'
+import { Config } from '@/preferences/config'
 import { sortKeysByDate } from '@/utils/helper'
+import { applyLessonConfigs } from '@/preferences/lessonConfig'
 
 /**
  * Transforms a json date string back to a Date object.
@@ -20,7 +21,7 @@ function jsonDateReviver(key: string, value: any) {
  * Tries to read the given cache, or fetches the data if the cache is too old.
  * @param key the key of the cache
  * @param maxAge the maximum age of the cache in milliseconds
- * @param options
+ * @param widgetConfig
  * @param fetchData a function which fetches the fresh data
  * @param compareData a function which compares the fetched data with the cached data for sending notifications
  * @returns the cached or fetched data
@@ -28,9 +29,9 @@ function jsonDateReviver(key: string, value: any) {
 async function getCachedOrFetch<T>(
 	key: string,
 	maxAge: number,
-	options: Options,
+	widgetConfig: Config,
 	fetchData: () => Promise<T>,
-	compareData?: (fetchedData: T, cachedData: T, options: Options) => void
+	compareData?: (fetchedData: T, cachedData: T, widgetConfig: Config) => void
 ): Promise<T | undefined> {
 	const { json: cachedJson, cacheAge, cacheDate } = await readFromCache(key)
 
@@ -56,7 +57,7 @@ async function getCachedOrFetch<T>(
 		}
 	}
 
-	const areNotificationsEnabled = options.notifications.enabled[key]
+	const areNotificationsEnabled = widgetConfig.notifications.enabled[key]
 
 	if (!areNotificationsEnabled) {
 		if (NOTIFIABLE_TOPICS.includes(key)) {
@@ -71,56 +72,56 @@ async function getCachedOrFetch<T>(
 		if (cachedJson === JSON.stringify(fetchedData)) {
 			console.log('Data did not change, not comparing.')
 		} else {
-			compareData(fetchedData, cachedData, options)
+			compareData(fetchedData, cachedData, widgetConfig)
 		}
 	}
 
 	return fetchedData ?? cachedData
 }
 
-export async function getLessonsFor(user: FullUser, date: Date, isNext: boolean, options: Options) {
+export async function getLessonsFor(user: FullUser, date: Date, isNext: boolean, widgetConfig: Config) {
 	const key = isNext ? 'lessons_next' : 'lessons'
 	return getCachedOrFetch(
 		key,
-		options.config.cacheHours.lessons * 60 * 60 * 1000,
-		options,
-		() => fetchLessonsFor(user, date, options),
+		widgetConfig.config.cacheHours.lessons * 60 * 60 * 1000,
+		widgetConfig,
+		() => fetchLessonsFor(user, date, widgetConfig),
 		compareCachedLessons
 	)
 }
 
-export async function getExamsFor(user: FullUser, from: Date, to: Date, options: Options) {
+export async function getExamsFor(user: FullUser, from: Date, to: Date, widgetConfig: Config) {
 	return getCachedOrFetch(
 		'exams',
-		options.config.cacheHours.exams * 60 * 60 * 1000,
-		options,
+		widgetConfig.config.cacheHours.exams * 60 * 60 * 1000,
+		widgetConfig,
 		() => fetchExamsFor(user, from, to),
 		compareCachedExams
 	)
 }
 
-export async function getGradesFor(user: FullUser, from: Date, to: Date, options: Options) {
+export async function getGradesFor(user: FullUser, from: Date, to: Date, widgetConfig: Config) {
 	return getCachedOrFetch(
 		'grades',
-		options.config.cacheHours.grades * 60 * 60 * 1000,
-		options,
+		widgetConfig.config.cacheHours.grades * 60 * 60 * 1000,
+		widgetConfig,
 		() => fetchGradesFor(user, from, to),
 		compareCachedGrades
 	)
 }
 
-export async function getAbsencesFor(user: FullUser, from: Date, to: Date, options: Options) {
+export async function getAbsencesFor(user: FullUser, from: Date, to: Date, widgetConfig: Config) {
 	return getCachedOrFetch(
 		'absences',
-		options.config.cacheHours.absences * 60 * 60 * 1000,
-		options,
+		widgetConfig.config.cacheHours.absences * 60 * 60 * 1000,
+		widgetConfig,
 		() => fetchAbsencesFor(user, from, to),
 		compareCachedAbsences
 	)
 }
 
-export async function getSchoolYears(user: FullUser, options: Options) {
-	return getCachedOrFetch('school_years', options.config.cacheHours.schoolYears * 60 * 60 * 1000, options, () =>
+export async function getSchoolYears(user: FullUser, widgetConfig: Config) {
+	return getCachedOrFetch('school_years', widgetConfig.config.cacheHours.schoolYears * 60 * 60 * 1000, widgetConfig, () =>
 		fetchSchoolYears(user)
 	)
 }
@@ -128,12 +129,12 @@ export async function getSchoolYears(user: FullUser, options: Options) {
 /**
  * Fetches the timetable for the current week (and for the next week if necessary) and filters which lessons remain for today.
  * @param user the user to fetch for
- * @param options
+ * @param widgetConfig
  * @returns the remaining lessons for today, the lessons tomorrow and the key (date) of the next day
  */
-export async function getTimetable(user: FullUser, options: Options) {
+export async function getTimetable(user: FullUser, widgetConfig: Config) {
 	// fetch this weeks lessons
-	let timetable = await getLessonsFor(user, CURRENT_DATETIME, false, options)
+	let timetable = await getLessonsFor(user, CURRENT_DATETIME, false, widgetConfig)
 
 	// get the current day as YYYY-MM-DD
 	const todayKey = CURRENT_DATETIME.toISOString().split('T')[0]
@@ -153,7 +154,7 @@ export async function getTimetable(user: FullUser, options: Options) {
 		const nextWeekFirstDate = new Date(firstDate.getTime() + 7 * 24 * 60 * 60 * 1000)
 		console.log(`No lessons for today/tomorrow -> fetching next week. (${nextWeekFirstDate.toISOString()})`)
 		// fetch the next week
-		const nextWeekTimetable = await getLessonsFor(user, nextWeekFirstDate, true, options)
+		const nextWeekTimetable = await getLessonsFor(user, nextWeekFirstDate, true, widgetConfig)
 		// merge the next week timetable into the current one
 		Object.assign(timetable, nextWeekTimetable)
 		// set the next day key to the first day of the next week
@@ -163,7 +164,7 @@ export async function getTimetable(user: FullUser, options: Options) {
 	// apply custom lesson configs
 	// TODO: it seems more reasonable to NOT do this while transforming,
 	// as these are different tasks and config changes would not behave as expected
-	applyLessonConfigs(timetable, options)
+	applyLessonConfigs(timetable, widgetConfig)
 
 	console.log(`Next day: ${nextDayKey}`)
 	// the timetable for the next day in the timetable (ignore weekends)
@@ -176,7 +177,7 @@ export async function getTimetable(user: FullUser, options: Options) {
 	// check the teacher selection from the config
 	lessonsTodayRemaining.filter((lesson) => {
 		if (!lesson.subject) return true
-		const lessonOption = options.lessonOptions[lesson.subject.name]
+		const lessonOption = widgetConfig.subjects[lesson.subject.name]
 		if (!lessonOption) return true
 		if (Array.isArray(lessonOption)) {
 			// check if the teacher is in the lesson

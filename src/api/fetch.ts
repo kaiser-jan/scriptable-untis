@@ -20,7 +20,7 @@ function prepareRequest(url: string, user: FullUser) {
 	return request
 }
 
-export async function fetchLessonsFor(user: FullUser, date: Date = new Date(), config: Config) {
+export async function fetchLessonsFor(user: FullUser, date: Date = new Date(), widgetConfig: Config) {
 	const urlTimetable = `https://${
 		user.server
 	}.webuntis.com/WebUntis/api/public/timetable/weekly/data?elementType=5&elementId=${user.id}&date=${
@@ -38,7 +38,7 @@ export async function fetchLessonsFor(user: FullUser, date: Date = new Date(), c
 
 	console.log(`📅 Fetched timetable with ${lessons.length} lessons and ${timetableData.elements.length} elements`)
 
-	const transformedLessons = transformLessons(lessons, timetableData.elements, config)
+	const transformedLessons = transformLessons(lessons, timetableData.elements, widgetConfig)
 
 	console.log(`🧬 Transformed ${Object.keys(transformedLessons).length} lessons`)
 

@@ -1,19 +1,19 @@
-import { Options } from "@/preferences/config"
-import { login } from "./login"
-import { readKeychain } from "@/setup"
+import { Config } from '@/preferences/config'
+import { readKeychain } from '@/setup'
+import { login } from './login'
 
 /**
  * Tries to read user data from the cache, or logs in if the cache is too old.
- * @param options
+ * @param widgetConfig
  * @returns
  */
-export async function prepareUser(options: Options): Promise<FullUser> {
+export async function prepareUser(widgetConfig: Config): Promise<FullUser> {
 	const CACHE_KEY = 'user'
 
 	const { json, cacheAge, cacheDate } = await readFromCache(CACHE_KEY)
 
 	// if the cache is not too old, return the cached user
-	if (json && cacheAge < options.config.cacheHours.user * 60 * 60 * 1000) {
+	if (json && cacheAge < widgetConfig.config.cacheHours.user * 60 * 60 * 1000) {
 		return JSON.parse(json)
 	}
 

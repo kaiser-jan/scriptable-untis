@@ -1,6 +1,6 @@
 import { CURRENT_DATETIME } from "@/constants"
 import { View } from "@/layout"
-import { Options } from "@/preferences/config"
+import { Config } from "@/preferences/config"
 import { getDateInXDays } from "@/utils/helper"
 import { getRefreshDateForLessons } from "@/utils/refreshDate"
 import { getTimetable, getExamsFor, getGradesFor, getSchoolYears, getAbsencesFor } from "./cacheOrFetch"
@@ -38,7 +38,7 @@ const VIEW_FETCH_MAP = new Map<View, FetchableItems>([
 /**
  * Fetches the data which is required for the given views.
  */
-export async function fetchDataForViews(viewNames: View[], user: FullUser, options: Options) {
+export async function fetchDataForViews(viewNames: View[], user: FullUser, widgetConfig: Config) {
 	let fetchedData: FetchedData = {}
 	const itemsToFetch = new Set<FetchableItems>()
 
@@ -49,41 +49,41 @@ export async function fetchDataForViews(viewNames: View[], user: FullUser, optio
 	const fetchPromises: Promise<any>[] = []
 
 	if (itemsToFetch.has(FetchableItems.TIMETABLE)) {
-		const promise = getTimetable(user, options).then(({ lessonsTodayRemaining, lessonsNextDay, nextDayKey }) => {
+		const promise = getTimetable(user, widgetConfig).then(({ lessonsTodayRemaining, lessonsNextDay, nextDayKey }) => {
 			fetchedData = { ...fetchedData, lessonsTodayRemaining, lessonsNextDay, nextDayKey }
-			checkNewRefreshDate(getRefreshDateForLessons(lessonsTodayRemaining, lessonsNextDay, options), fetchedData)
+			checkNewRefreshDate(getRefreshDateForLessons(lessonsTodayRemaining, lessonsNextDay, widgetConfig), fetchedData)
 		})
 		fetchPromises.push(promise)
 	}
 
 	if (itemsToFetch.has(FetchableItems.EXAMS)) {
-		const examsFrom = getDateInXDays(options.views.exams.scopeDays)
-		const promise = getExamsFor(user, examsFrom, CURRENT_DATETIME, options).then((exams) => {
+		const examsFrom = getDateInXDays(widgetConfig.views.exams.scopeDays)
+		const promise = getExamsFor(user, examsFrom, CURRENT_DATETIME, widgetConfig).then((exams) => {
 			fetchedData.exams = exams
 		})
-		proposeRefreshInXHours(options.config.cacheHours.exams, fetchedData)
+		proposeRefreshInXHours(widgetConfig.config.cacheHours.exams, fetchedData)
 		fetchPromises.push(promise)
 	}
 
 	if (itemsToFetch.has(FetchableItems.GRADES)) {
-		const gradesFrom = getDateInXDays(options.views.grades.scopeDays)
-		const promise = getGradesFor(user, gradesFrom, CURRENT_DATETIME, options).then((grades) => {
+		const gradesFrom = getDateInXDays(widgetConfig.views.grades.scopeDays)
+		const promise = getGradesFor(user, gradesFrom, CURRENT_DATETIME, widgetConfig).then((grades) => {
 			fetchedData.grades = grades
 		})
-		proposeRefreshInXHours(options.config.cacheHours.grades, fetchedData)
+		proposeRefreshInXHours(widgetConfig.config.cacheHours.grades, fetchedData)
 		fetchPromises.push(promise)
 	}
 
 	if (itemsToFetch.has(FetchableItems.ABSENCES)) {
-		const schoolYears = await getSchoolYears(user, options)
+		const schoolYears = await getSchoolYears(user, widgetConfig)
 		// get the current school year
 		const currentSchoolYear = schoolYears.find(
 			(schoolYear) => schoolYear.from <= CURRENT_DATETIME && schoolYear.to >= CURRENT_DATETIME
 		)
-		const promise = getAbsencesFor(user, currentSchoolYear.from, CURRENT_DATETIME, options).then((absences) => {
+		const promise = getAbsencesFor(user, currentSchoolYear.from, CURRENT_DATETIME, widgetConfig).then((absences) => {
 			fetchedData.absences = absences
 		})
-		proposeRefreshInXHours(options.config.cacheHours.absences, fetchedData)
+		proposeRefreshInXHours(widgetConfig.config.cacheHours.absences, fetchedData)
 		fetchPromises.push(promise)
 	}
 
