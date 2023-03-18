@@ -200,7 +200,7 @@ async function openValueEditor(configPart: ConfigValue, defaultConfigPart: Confi
 				showInfoPopup('❌ Invalid number', `The value you entered (${value}) is not a number.`)
 				return null
 			}
-			return value
+			return parseFloat(value)
 		case 'boolean':
 			return openBooleanEditor(Boolean(configPart), defaultConfigPart, description)
 		default:
@@ -225,6 +225,6 @@ async function openBooleanEditor(value: boolean, defaultValue: boolean, descript
 		})
 		return response === 'true'
 	} catch {
-		return undefined
+		return null
 	}
 }
