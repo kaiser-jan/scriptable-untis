@@ -86,4 +86,4 @@ export const defaultConfig = {
 
 export type Config = typeof defaultConfig
 
-export type ConfigDescription = ObjectDescription<ReplaceKeyType<Config, 'subjects', any>>
+export type ConfigDescription = ObjectDescription<ReplaceKeyType<Config, 'subjects', any>> & Description

@@ -26,8 +26,8 @@ interface TeacherSpecificSubjectConfig extends SubjectConfig {
 export type SubjectConfigs = Record<string, SubjectConfig | TeacherSpecificSubjectConfig[]>
 
 export type Description = {
-	title: string
-	description: string
+	_title: string
+	_description: string
 }
 
 /**

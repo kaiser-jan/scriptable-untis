@@ -1,196 +1,199 @@
 import { ConfigDescription } from './config'
 
 export const configDescription: ConfigDescription = {
+	_title: '🔧️ Config Editor',
+	_description: 'Click a category below to open it.',
+	
 	subjects: {
-		title: '📚 Subjects',
-		description: 'Colors, names etc. for the subjects.',
+		_title: '📚 Subjects',
+		_description: 'Colors, names etc. for the subjects.',
 	},
 	config: {
-		title: '⚙️ Config',
-		description: 'General configuration options like the locale.',
+		_title: '⚙️ Config',
+		_description: 'General configuration options like the locale.',
 
 		locale: {
-			title: '🌐 Locale',
-			description: 'The locale to use for the widget.',
+			_title: '🌐 Locale',
+			_description: 'The locale to use for the widget.',
 		},
 		breakMinMinutes: {
-			title: '🕐️ Minimum break duration (minutes)',
-			description: 'How many minutes a gap needs to be to separate two lessons.',
+			_title: '🕐️ Minimum break duration (minutes)',
+			_description: 'How many minutes a gap needs to be to separate two lessons.',
 		},
 		breakMaxMinutes: {
-			title: '🕑️ Maximum break duration (minutes)',
-			description: 'Up to how many minutes a gap should be considered a break and not a free period.',
+			_title: '🕑️ Maximum break duration (minutes)',
+			_description: 'Up to how many minutes a gap should be considered a break and not a free period.',
 		},
 	},
 	cacheHours: {
-		title: '🗃️ Cache',
-		description: 'How long the data should be cached. (saved and re-used instead of re-downloaded)',
+		_title: '🗃️ Cache',
+		_description: 'How long the data should be cached. (saved and re-used instead of re-downloaded)',
 
 		user: {
-			title: '👤 User',
-			description: 'How long the user login data should be cached.',
+			_title: '👤 User',
+			_description: 'How long the user login data should be cached.',
 		},
 		lessons: {
-			title: '📚 Lessons',
-			description: 'How long the lessons should be cached. This should be rather frequent.',
+			_title: '📚 Lessons',
+			_description: 'How long the lessons should be cached. This should be rather frequent.',
 		},
 		exams: {
-			title: '📝 Exams',
-			description: 'How long the exams should be cached.',
+			_title: '📝 Exams',
+			_description: 'How long the exams should be cached.',
 		},
 		grades: {
-			title: '🎓 Grades',
-			description: 'How long the grades should be cached.',
+			_title: '🎓 Grades',
+			_description: 'How long the grades should be cached.',
 		},
 		absences: {
-			title: '🚫 Absences',
-			description: 'How long the absences should be cached.',
+			_title: '🚫 Absences',
+			_description: 'How long the absences should be cached.',
 		},
 		schoolYears: {
-			title: '📅 School Years',
-			description: 'How long the school years should be cached This can be quite long.',
+			_title: '📅 School Years',
+			_description: 'How long the school years should be cached This can be quite long.',
 		},
 	},
 	refresh: {
-		title: '🔄️ Refresh',
-		description: 'How often the data should be refreshed.',
+		_title: '🔄️ Refresh',
+		_description: 'How often the data should be refreshed.',
 
 		normalScopeHours: {
-			title: '🕐️ Normal Scope (Hours)',
-			description: 'How many hours before the next lesson the widget should start updating regularly.',
+			_title: '🕐️ Normal Scope (Hours)',
+			_description: 'How many hours before the next lesson the widget should start updating regularly.',
 		},
 		normalIntervalMinutes: {
-			title: '🕑️ Normal Interval (Minutes)',
-			description: 'How often the widget should update regularly.',
+			_title: '🕑️ Normal Interval (Minutes)',
+			_description: 'How often the widget should update regularly.',
 		},
 		lazyIntervalMinutes: {
-			title: '🕒️ Lazy Interval (Minutes)',
-			description: 'How often the widget should update when there are no lessons in the normal scope.',
+			_title: '🕒️ Lazy Interval (Minutes)',
+			_description: 'How often the widget should update when there are no lessons in the normal scope.',
 		},
 	},
 	views: {
-		title: '🖼️ Views',
-		description: 'Configuration for the different views.',
+		_title: '🖼️ Views',
+		_description: 'Configuration for the different views.',
 
 		lessons: {
-			title: '📚 Lessons',
-			description: 'Configuration for the lessons view.',
+			_title: '📚 Lessons',
+			_description: 'Configuration for the lessons view.',
 
 			maxCount: {
-				title: '📝 Maximum Count',
-				description: 'How many lessons should be shown.',
+				_title: '📝 Maximum Count',
+				_description: 'How many lessons should be shown.',
 			},
 			showCanceled: {
-				title: '🚫 Show Canceled',
-				description: 'Whether canceled lessons should be shown.',
+				_title: '🚫 Show Canceled',
+				_description: 'Whether canceled lessons should be shown.',
 			},
 			showLongBreaks: {
-				title: '🕐️ Show Long Breaks',
-				description: 'Whether long breaks should be displayed.',
+				_title: '🕐️ Show Long Breaks',
+				_description: 'Whether long breaks should be displayed.',
 			},
 			showEndTimes: {
-				title: '🕒️ Show End Times',
-				description: 'Whether the end times should be displayed. (if there is enough space)',
+				_title: '🕒️ Show End Times',
+				_description: 'Whether the end times should be displayed. (if there is enough space)',
 			},
 			showMultiplier: {
-				title: '🔢 Show Multiplier',
-				description: 'Whether a multiplier (x2) should be displayed for longer lessons.',
+				_title: '🔢 Show Multiplier',
+				_description: 'Whether a multiplier (x2) should be displayed for longer lessons.',
 			},
 			skipShortBreaks: {
-				title: '🕑️ Skip Short Breaks',
-				description: 'Whether short breaks should be skipped and subtracted from the end time of a lesson.',
+				_title: '🕑️ Skip Short Breaks',
+				_description: 'Whether short breaks should be skipped and subtracted from the end time of a lesson.',
 			},
 		},
 
 		exams: {
-			title: '📝 Exams',
-			description: 'Configuration for the exams view.',
+			_title: '📝 Exams',
+			_description: 'Configuration for the exams view.',
 
 			maxCount: {
-				title: '🔢 Maximum Count',
-				description: 'How many exams should be shown.',
+				_title: '🔢 Maximum Count',
+				_description: 'How many exams should be shown.',
 			},
 			scopeDays: {
-				title: '📅 Scope (Days)',
-				description: 'How many days in the future the exams should be shown.',
+				_title: '📅 Scope (Days)',
+				_description: 'How many days in the future the exams should be shown.',
 			},
 		},
 
 		grades: {
-			title: '🎓 Grades',
-			description: 'Configuration for the grades view.',
+			_title: '🎓 Grades',
+			_description: 'Configuration for the grades view.',
 
 			maxCount: {
-				title: '🔢 Maximum Count',
-				description: 'How many grades should be shown.',
+				_title: '🔢 Maximum Count',
+				_description: 'How many grades should be shown.',
 			},
 			scopeDays: {
-				title: '📅 Scope (Days)',
-				description: 'How many days in the past the grades should be shown.',
+				_title: '📅 Scope (Days)',
+				_description: 'How many days in the past the grades should be shown.',
 			},
 		},
 
 		absences: {
-			title: '🚫 Absences',
-			description: 'Configuration for the absences view.',
+			_title: '🚫 Absences',
+			_description: 'Configuration for the absences view.',
 
 			maxCount: {
-				title: '🔢 Maximum Count',
-				description: 'How many absences should be shown.',
+				_title: '🔢 Maximum Count',
+				_description: 'How many absences should be shown.',
 			},
 		},
 	},
 	notifications: {
-		title: '🔔 Notifications',
-		description: 'Which notifications to deliver.',
+		_title: '🔔 Notifications',
+		_description: 'Which notifications to deliver.',
 
 		enabled: {
-			title: '🔔 Notifications Enabled',
-			description: 'Which notifications should be enabled.',
+			_title: '🔔 Enabled Notifications',
+			_description: 'Which notifications should be enabled.',
 			lessons: {
-				title: '📚 Lesson Notifications',
-				description: 'Whether lesson notifications should be enabled. (added/canceled/shifted lessons etc.)',
+				_title: '📚 Lesson Notifications',
+				_description: 'Whether lesson notifications should be enabled. (added/canceled/shifted lessons etc.)',
 			},
 			exams: {
-				title: '📝 Exam Notifications',
-				description: 'Whether exam notifications should be enabled.',
+				_title: '📝 Exam Notifications',
+				_description: 'Whether exam notifications should be enabled.',
 			},
 			grades: {
-				title: '🎓 Grade Notifications',
-				description: 'Whether grade notifications should be enabled. (added grades)',
+				_title: '🎓 Grade Notifications',
+				_description: 'Whether grade notifications should be enabled. (added grades)',
 			},
 			absences: {
-				title: '🚫 Absence Notifications',
-				description: 'Whether absence notifications should be enabled. (added absences)',
+				_title: '🚫 Absence Notifications',
+				_description: 'Whether absence notifications should be enabled. (added absences)',
 			},
 		},
 	},
 	appearance: {
-		title: '🎨 Appearance',
-		description: 'Configuration for the appearance of the widget.',
+		_title: '🎨 Appearance',
+		_description: 'Configuration for the appearance of the widget.',
 		cornerRadius: {
-			title: '🔲️ Corner Radius',
-			description: 'The corner radius of the items within the widget.',
+			_title: '🔲️ Corner Radius',
+			_description: 'The corner radius of the items within the widget.',
 		},
 		fontSize: {
-			title: '🔤 Font Size',
-			description: 'The font size of the items within the widget.',
+			_title: '🔤 Font Size',
+			_description: 'The font size of the items within the widget.',
 		},
 		padding: {
-			title: '📏 Padding',
-			description: 'The padding (space inside) of the items within the widget.',
+			_title: '📏 Padding',
+			_description: 'The padding (space inside) of the items within the widget.',
 		},
 		spacing: {
-			title: '📏 Spacing',
-			description: 'The spacing (space between) of the items within the widget.',
+			_title: '📏 Spacing',
+			_description: 'The spacing (space between) of the items within the widget.',
 		},
 	},
 	footer: {
-		title: '📝 Footer',
-		description: 'Configuration for the footer.',
+		_title: '📝 Footer',
+		_description: 'Configuration for the footer.',
 		show: {
-			title: '🎚️ Footer Enabled',
-			description: 'Whether the footer should be enabled.',
+			_title: '🎚️ Footer Enabled',
+			_description: 'Whether the footer should be enabled.',
 		},
 	},
 }
