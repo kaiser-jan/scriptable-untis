@@ -1,15 +1,15 @@
-import { SubjectConfigs } from "@/types/config"
+import { Description, ObjectDescription, ReplaceKeyType, SubjectConfigs } from '@/types/config'
 
 // consider splitting the lesson widgetConfig to a separate "class-config"
 export const defaultConfig = {
 	subjects: {
-		'SubjectShortName': {
+		SubjectShortName: {
 			color: 'orange',
 			nameOverride: 'CustomSubjectName',
 			longNameOverride: 'SubjectLongName',
 			ignoreInfos: ['InfoTagWhichShouldBeIgnored'],
 		},
-		'SubjectShortName2': [
+		SubjectShortName2: [
 			{
 				teacher: 'TeacherForWhichThisShouldBeApplied',
 				color: 'blue',
@@ -24,19 +24,21 @@ export const defaultConfig = {
 		locale: 'de-AT',
 		breakMinMinutes: 7,
 		breakMaxMinutes: 45,
-		refreshing: {
-			normalScopeHours: 12,
-			normalIntervalMinutes: 60,
-			lazyIntervalMinutes: 4 * 60,
-		},
-		cacheHours: {
-			user: 0.25,
-			lessons: 0.5,
-			exams: 24,
-			grades: 8,
-			absences: 12,
-			schoolYears: 24,
-		},
+	},
+
+	cacheHours: {
+		user: 0.25,
+		lessons: 0.5,
+		exams: 24,
+		grades: 8,
+		absences: 12,
+		schoolYears: 24,
+	},
+
+	refresh: {
+		normalScopeHours: 12,
+		normalIntervalMinutes: 60,
+		lazyIntervalMinutes: 4 * 60,
 	},
 
 	views: {
@@ -46,6 +48,7 @@ export const defaultConfig = {
 			showLongBreaks: true,
 			skipShortBreaks: true,
 			showEndTimes: true,
+			showMultiplier: true,
 		},
 		exams: {
 			maxCount: 3,
@@ -75,12 +78,12 @@ export const defaultConfig = {
 		padding: 8,
 		fontSize: 14,
 	},
-	summary: {
-		showMultiplier: true,
-	},
+
 	footer: {
 		show: true,
 	},
 }
 
 export type Config = typeof defaultConfig
+
+export type ConfigDescription = ObjectDescription<ReplaceKeyType<Config, 'subjects', any>>

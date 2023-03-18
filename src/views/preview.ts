@@ -126,7 +126,7 @@ function addPreviewList(
 		if (lesson.state === LessonState.FREE) continue
 
 		let subjectWidth = getTextWidth(getSubjectTitle(lesson), widgetConfig.appearance.fontSize) + 2 * padding
-		if (widgetConfig.summary.showMultiplier && lesson.duration > 1) {
+		if (widgetConfig.views.lessons.showMultiplier && lesson.duration > 1) {
 			subjectWidth += getTextWidth('x2', widgetConfig.appearance.fontSize) + spacing
 		}
 

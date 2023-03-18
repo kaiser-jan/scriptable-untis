@@ -13,7 +13,7 @@ export async function prepareUser(widgetConfig: Config): Promise<FullUser> {
 	const { json, cacheAge, cacheDate } = await readFromCache(CACHE_KEY)
 
 	// if the cache is not too old, return the cached user
-	if (json && cacheAge < widgetConfig.config.cacheHours.user * 60 * 60 * 1000) {
+	if (json && cacheAge < widgetConfig.cacheHours.user * 60 * 60 * 1000) {
 		return JSON.parse(json)
 	}
 

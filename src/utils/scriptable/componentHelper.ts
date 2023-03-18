@@ -271,7 +271,7 @@ export function fillContainerWithSubject(lesson: TransformedLesson, container: W
 	subjectText.lineLimit = 1
 
 	// add a x2 for double lessons etc.
-	if (widgetConfig.summary.showMultiplier && lesson.duration > 1) {
+	if (widgetConfig.views.lessons.showMultiplier && lesson.duration > 1) {
 		const durationText = container.addText(`x${lesson.duration}`)
 		durationText.font = Font.mediumSystemFont(widgetConfig.appearance.fontSize)
 		durationText.textColor = colors.text.secondary

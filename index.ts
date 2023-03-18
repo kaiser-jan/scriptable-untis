@@ -1,6 +1,7 @@
 import { clearCache, prepareUser } from '@/api/cache'
 import { PREVIEW_WIDGET_SIZE, SCRIPT_START_DATETIME } from '@/constants'
 import { getLayout } from '@/layout'
+import { openConfigEditor } from '@/preferences/configEditor'
 import { writeKeychain } from '@/setup'
 import { createErrorWidget, ExtendedError, SCRIPTABLE_ERROR_MAP } from '@/utils/errors'
 import { getModuleFileManager as getFileManagerOptions, readConfig } from '@/utils/scriptable/fileSystem'
@@ -23,6 +24,7 @@ async function setupAndCreateWidget() {
 enum ScriptActions {
 	VIEW = '💻 Show Widget',
 	CHANGE_CREDENTIALS = '🔑 Change Credentials',
+	EDIT_CONFIG = '🛠️ Edit Config',
 	CLEAR_CACHE = '🗑️ Clear Cache',
 	SHOW_DOCUMENTATION = '📖 Open Documentation',
 }
@@ -54,6 +56,9 @@ async function runInteractive() {
 		case ScriptActions.CHANGE_CREDENTIALS:
 			await writeKeychain()
 			break
+		case ScriptActions.EDIT_CONFIG:
+			await openConfigEditor()
+			break
 		case ScriptActions.CLEAR_CACHE:
 			clearCache()
 			break
@@ -73,7 +78,7 @@ try {
 } catch (error) {
 	// throw the error if it runs in the app
 	if (config.runsInApp) {
-		// throw error
+		throw error
 	}
 
 	let widget: ListWidget

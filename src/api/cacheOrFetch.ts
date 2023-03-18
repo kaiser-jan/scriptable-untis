@@ -83,7 +83,7 @@ export async function getLessonsFor(user: FullUser, date: Date, isNext: boolean,
 	const key = isNext ? 'lessons_next' : 'lessons'
 	return getCachedOrFetch(
 		key,
-		widgetConfig.config.cacheHours.lessons * 60 * 60 * 1000,
+		widgetConfig.cacheHours.lessons * 60 * 60 * 1000,
 		widgetConfig,
 		() => fetchLessonsFor(user, date, widgetConfig),
 		compareCachedLessons
@@ -93,7 +93,7 @@ export async function getLessonsFor(user: FullUser, date: Date, isNext: boolean,
 export async function getExamsFor(user: FullUser, from: Date, to: Date, widgetConfig: Config) {
 	return getCachedOrFetch(
 		'exams',
-		widgetConfig.config.cacheHours.exams * 60 * 60 * 1000,
+		widgetConfig.cacheHours.exams * 60 * 60 * 1000,
 		widgetConfig,
 		() => fetchExamsFor(user, from, to),
 		compareCachedExams
@@ -103,7 +103,7 @@ export async function getExamsFor(user: FullUser, from: Date, to: Date, widgetCo
 export async function getGradesFor(user: FullUser, from: Date, to: Date, widgetConfig: Config) {
 	return getCachedOrFetch(
 		'grades',
-		widgetConfig.config.cacheHours.grades * 60 * 60 * 1000,
+		widgetConfig.cacheHours.grades * 60 * 60 * 1000,
 		widgetConfig,
 		() => fetchGradesFor(user, from, to),
 		compareCachedGrades
@@ -113,7 +113,7 @@ export async function getGradesFor(user: FullUser, from: Date, to: Date, widgetC
 export async function getAbsencesFor(user: FullUser, from: Date, to: Date, widgetConfig: Config) {
 	return getCachedOrFetch(
 		'absences',
-		widgetConfig.config.cacheHours.absences * 60 * 60 * 1000,
+		widgetConfig.cacheHours.absences * 60 * 60 * 1000,
 		widgetConfig,
 		() => fetchAbsencesFor(user, from, to),
 		compareCachedAbsences
@@ -121,7 +121,7 @@ export async function getAbsencesFor(user: FullUser, from: Date, to: Date, widge
 }
 
 export async function getSchoolYears(user: FullUser, widgetConfig: Config) {
-	return getCachedOrFetch('school_years', widgetConfig.config.cacheHours.schoolYears * 60 * 60 * 1000, widgetConfig, () =>
+	return getCachedOrFetch('school_years', widgetConfig.cacheHours.schoolYears * 60 * 60 * 1000, widgetConfig, () =>
 		fetchSchoolYears(user)
 	)
 }

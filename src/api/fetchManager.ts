@@ -61,7 +61,7 @@ export async function fetchDataForViews(viewNames: View[], user: FullUser, widge
 		const promise = getExamsFor(user, examsFrom, CURRENT_DATETIME, widgetConfig).then((exams) => {
 			fetchedData.exams = exams
 		})
-		proposeRefreshInXHours(widgetConfig.config.cacheHours.exams, fetchedData)
+		proposeRefreshInXHours(widgetConfig.cacheHours.exams, fetchedData)
 		fetchPromises.push(promise)
 	}
 
@@ -70,7 +70,7 @@ export async function fetchDataForViews(viewNames: View[], user: FullUser, widge
 		const promise = getGradesFor(user, gradesFrom, CURRENT_DATETIME, widgetConfig).then((grades) => {
 			fetchedData.grades = grades
 		})
-		proposeRefreshInXHours(widgetConfig.config.cacheHours.grades, fetchedData)
+		proposeRefreshInXHours(widgetConfig.cacheHours.grades, fetchedData)
 		fetchPromises.push(promise)
 	}
 
@@ -83,7 +83,7 @@ export async function fetchDataForViews(viewNames: View[], user: FullUser, widge
 		const promise = getAbsencesFor(user, currentSchoolYear.from, CURRENT_DATETIME, widgetConfig).then((absences) => {
 			fetchedData.absences = absences
 		})
-		proposeRefreshInXHours(widgetConfig.config.cacheHours.absences, fetchedData)
+		proposeRefreshInXHours(widgetConfig.cacheHours.absences, fetchedData)
 		fetchPromises.push(promise)
 	}
 

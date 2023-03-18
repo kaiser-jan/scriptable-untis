@@ -1,3 +1,5 @@
+import { Config } from "@/preferences/config"
+
 /**
  * A configuration for a single subject.
  * @property color The color of the subject as one of the Colors or a hex value.
@@ -22,3 +24,17 @@ interface TeacherSpecificSubjectConfig extends SubjectConfig {
 }
 
 export type SubjectConfigs = Record<string, SubjectConfig | TeacherSpecificSubjectConfig[]>
+
+export type Description = {
+	title: string
+	description: string
+}
+
+/**
+ * A title and description for each config option (nested).
+ */
+export type ObjectDescription<T> = {
+	[key in keyof T]: T[key] extends object ? ObjectDescription<T[key]> & Description : Description
+}
+
+export type ReplaceKeyType<T, K extends keyof T, R> = Omit<T, K> & Record<K, R>

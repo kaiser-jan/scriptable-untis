@@ -28,15 +28,15 @@ export async function askForInput(options: {
 
 export async function selectOption(
 	availableOptions: string[],
-	widgetConfig: {
+	options: {
 		title?: string
 		description?: string
 	}
 ): Promise<string> {
 	let alert = new Alert()
 
-	alert.title = widgetConfig.title ?? 'Select an Option'
-	alert.message = widgetConfig.description ?? 'Choose one of the following widgetConfig:'
+	alert.title = options.title ?? 'Select an Option'
+	alert.message = options.description ?? 'Choose one of the following widgetConfig:'
 
 	for (let option of availableOptions) {
 		alert.addAction(option)
@@ -51,4 +51,12 @@ export async function selectOption(
 	}
 
 	return availableOptions[responseIndex]
+}
+
+export async function showInfoPopup(title: string, description: string) {
+	let alert = new Alert()
+	alert.title = title
+	alert.message = description
+	alert.addAction('OK')
+	await alert.presentAlert()
 }

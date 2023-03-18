@@ -23,8 +23,21 @@ export async function readConfig(useICloud: boolean) {
 
 	const fileConfig: Config = JSON.parse(configJson)
 
+	// create a copy of the default config to avoid modifying it
+	const defaultConfigCopy = JSON.parse(JSON.stringify(defaultConfig))
+
 	// combine the defaultConfig and read config and write it to config
-	return deepMerge(defaultConfig, fileConfig) as Config
+	return deepMerge(defaultConfigCopy, fileConfig) as Config
+}
+
+export async function writeConfig(useICloud: boolean, config: Config) {
+	const fileManager = useICloud ? FileManager.iCloud() : FileManager.local()
+
+	const path = fileManager.joinPath(fileManager.documentsDirectory(), CONFIG_FILE_NAME)
+
+	fileManager.writeString(path, JSON.stringify(config))
+
+	console.log('Config written to file system')
 }
 
 /**

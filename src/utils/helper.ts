@@ -104,6 +104,7 @@ export function getKeyByValue(object: Object, value: any) {
 
 /**
  * Merges the properties of the source object (may be incomplete) into the target object.
+ * This will modify the target object.
  */
 export function deepMerge(target: any, source: any) {
 	for (const key in source) {
