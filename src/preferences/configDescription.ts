@@ -10,11 +10,11 @@ export const configDescription: ConfigDescription = {
 	},
 	config: {
 		_title: '⚙️ Config',
-		_description: 'General configuration options like the locale.',
+		_description: 'General configuration options (e.g. locale).',
 
 		locale: {
 			_title: '🌐 Locale',
-			_description: 'The locale to use for the widget.',
+			_description: 'Affects date formats.',
 		},
 		breakMinMinutes: {
 			_title: '🕐️ Minimum break duration (minutes)',
@@ -27,31 +27,31 @@ export const configDescription: ConfigDescription = {
 	},
 	cacheHours: {
 		_title: '🗃️ Cache',
-		_description: 'How long the data should be cached. (saved and re-used instead of re-downloaded)',
+		_description: 'How long data should be reused instead of re-downloaded.',
 
 		user: {
 			_title: '👤 User',
-			_description: 'How long the user login data should be cached.',
+			_description: 'How long login data should be cached.',
 		},
 		lessons: {
 			_title: '📚 Lessons',
-			_description: 'How long the lessons should be cached. This should be rather frequent.',
+			_description: 'How long lessons should be cached. This should be rather frequent.',
 		},
 		exams: {
 			_title: '📝 Exams',
-			_description: 'How long the exams should be cached.',
+			_description: 'How long exams should be cached.',
 		},
 		grades: {
 			_title: '🎓 Grades',
-			_description: 'How long the grades should be cached.',
+			_description: 'How long grades should be cached.',
 		},
 		absences: {
 			_title: '🚫 Absences',
-			_description: 'How long the absences should be cached.',
+			_description: 'How long absences should be cached.',
 		},
 		schoolYears: {
 			_title: '📅 School Years',
-			_description: 'How long the school years should be cached This can be quite long.',
+			_description: 'How long school years should be cached. This can be quite long.',
 		},
 	},
 	refresh: {
@@ -129,7 +129,7 @@ export const configDescription: ConfigDescription = {
 			},
 			scopeDays: {
 				_title: '📅 Scope (Days)',
-				_description: 'How many days in the past the grades should be shown.',
+				_description: 'How many days grades should be shown.',
 			},
 		},
 
@@ -152,19 +152,19 @@ export const configDescription: ConfigDescription = {
 			_description: 'Which notifications should be enabled.',
 			lessons: {
 				_title: '📚 Lesson Notifications',
-				_description: 'Whether lesson notifications should be enabled. (added/canceled/shifted lessons etc.)',
+				_description: 'Enable lesson notifications? (added/canceled/shifted lessons etc.)',
 			},
 			exams: {
 				_title: '📝 Exam Notifications',
-				_description: 'Whether exam notifications should be enabled.',
+				_description: 'Enable exam notifications? (added exams)',
 			},
 			grades: {
 				_title: '🎓 Grade Notifications',
-				_description: 'Whether grade notifications should be enabled. (added grades)',
+				_description: 'Enable grade notifications? (added grades)',
 			},
 			absences: {
 				_title: '🚫 Absence Notifications',
-				_description: 'Whether absence notifications should be enabled. (added absences)',
+				_description: 'Enable absence notifications? (added absences)',
 			},
 		},
 	},
@@ -177,15 +177,15 @@ export const configDescription: ConfigDescription = {
 		},
 		fontSize: {
 			_title: '🔤 Font Size',
-			_description: 'The font size of the items within the widget.',
+			_description: 'The font size of texts items within the widget.',
 		},
 		padding: {
 			_title: '📏 Padding',
-			_description: 'The padding (space inside) of the items within the widget.',
+			_description: 'The around the widget content.',
 		},
 		spacing: {
 			_title: '📏 Spacing',
-			_description: 'The spacing (space between) of the items within the widget.',
+			_description: 'The space between items within the widget.',
 		},
 	},
 	footer: {
@@ -193,7 +193,7 @@ export const configDescription: ConfigDescription = {
 		_description: 'Configuration for the footer.',
 		show: {
 			_title: '🎚️ Footer Enabled',
-			_description: 'Whether the footer should be enabled.',
+			_description: 'Whether the footer should be shown.',
 		},
 	},
 }
