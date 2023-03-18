@@ -67,8 +67,11 @@ function fillConfigEditorFor(table: UITable, options: ConfigEditorOptions, saveF
 	const { config, defaultConfig, descriptions } = options
 
 	const headerRow = new UITableRow()
+	headerRow.height = 60
 	headerRow.isHeader = true
-	headerRow.addText(descriptions._title)
+	const titleCell = headerRow.addText(descriptions._title)
+	titleCell.titleFont = Font.semiboldSystemFont(28)
+
 	// TODO: add a reset all button
 	table.addRow(headerRow)
 
@@ -115,6 +118,7 @@ function addCategoryRow(
 ) {
 	const row = new UITableRow()
 	row.dismissOnSelect = false
+	row.height = 60
 
 	const textCell = row.addText(description._title, description._description)
 	textCell.subtitleColor = Color.gray()
@@ -151,6 +155,7 @@ function addValueRow(
 
 	const row = new UITableRow()
 	row.dismissOnSelect = false
+	row.height = 60
 	const titleCell = row.addText(description._title, description._description)
 	titleCell.widthWeight = 76
 	titleCell.titleFont = Font.mediumSystemFont(16)
@@ -159,6 +164,7 @@ function addValueRow(
 
 	// show the current value and the default value
 	const valueCell = row.addText(configPart.toString(), isDefaultValue ? '' : defaultConfigPart.toString())
+	valueCell.centerAligned()
 	valueCell.widthWeight = 18
 	valueCell.titleFont = Font.mediumSystemFont(16)
 	valueCell.subtitleFont = Font.systemFont(12)
