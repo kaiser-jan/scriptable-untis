@@ -15,7 +15,7 @@ The script allows you to display data for one WebUntis account in a widget, and 
 You can set what information (views) should be displayed for each widget.\
 To safe battery and bandwidth, the data is updated at the start of every lesson and every few hours outside of school-hours.\
 The fetched data is cached for some time, so the script takes less time, bandwidth and battery to run.\
-Many things can be configured via the configuration file `untis-config.json` in the scriptable folder.
+Many things can be configured via the configuration file `untis-config.json` in the scriptable folder, check the [configuration section](#⚙️-configuration) for details.
 
 
 
@@ -58,7 +58,7 @@ This will add the script to the list.
 4. Open Scriptable, click the script to run it.
 You will be asked what you want to do.
 Select `🔑 Change Credentials` and enter your WebUntis credentials as prompted.\
-You will be asked for the url, which you can find when selecting you school [here](https://arche.webuntis.com/WebUntis/?school=litec#/basic/login). You might have to click the "switch school" button to get to the correct page. The url should look something like this: `https://<server>.webuntis.com/WebUntis/?school=<schoolname>#/basic/login`. (with `<server>` and `<schoolame>` replaced)
+You will be asked for the url, which you can find when selecting you school [here](https://arche.webuntis.com/WebUntis/?school=litec#/basic/login). You might have to click the "switch school" button to get to the correct page. The url should look something like this: `https://<server>.webuntis.com/WebUntis/?school=<schoolname>#/basic/login`. (with `<server>` and `<schoolname>` replaced)
 
 5. Now you can add an IOS widget for Scriptable and select the script in the options.
 
