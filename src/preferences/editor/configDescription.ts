@@ -1,4 +1,4 @@
-import { ConfigDescription } from './config'
+import { ConfigDescription } from '../config'
 
 export const configDescription: ConfigDescription = {
 	_title: '🔧️ Config Editor',

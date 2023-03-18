@@ -1,7 +1,7 @@
 import { clearCache, prepareUser } from '@/api/cache'
 import { PREVIEW_WIDGET_SIZE, SCRIPT_START_DATETIME } from '@/constants'
 import { getLayout } from '@/layout'
-import { openConfigEditor } from '@/preferences/configEditor'
+import { openConfigEditor } from '@/preferences/editor/configEditor'
 import { writeKeychain } from '@/setup'
 import { createErrorWidget, ExtendedError, SCRIPTABLE_ERROR_MAP } from '@/utils/errors'
 import { getModuleFileManager as getFileManagerOptions, readConfig } from '@/utils/scriptable/fileSystem'

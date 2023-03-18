@@ -14,3 +14,4 @@ export const NOTIFIABLE_TOPICS = ['lessons', 'exams', 'grades', 'absences']
 export const defaultLayout = 'lessons,exams'
 
 export const CONFIG_FILE_NAME = 'untis-config.json'
+export const CUSTOM_CONFIG_KEYS = ['subjects']

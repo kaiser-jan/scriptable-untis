@@ -38,3 +38,29 @@ export type ObjectDescription<T> = {
 }
 
 export type ReplaceKeyType<T, K extends keyof T, R> = Omit<T, K> & Record<K, R>
+
+//#region Config Editor Types
+
+// TODO: rework the types
+
+export type ConfigValue = string | number | boolean
+
+export type GeneralizedConfigEntry = GeneralizedConfig | ConfigValue | SubjectConfigs
+
+export type GeneralizedConfig = {
+	[key: string]: GeneralizedConfigEntry
+}
+
+export type GeneralizedConfigDescription = {
+	_title: string
+	_description: string
+	[key: string]: Description | (GeneralizedConfigDescription & Description) | string
+}
+
+export interface ConfigEditorOptions {
+	config: GeneralizedConfig
+	defaultConfig: GeneralizedConfig
+	descriptions: GeneralizedConfigDescription
+}
+
+//#endregion
