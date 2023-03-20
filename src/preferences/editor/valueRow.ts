@@ -40,7 +40,6 @@ export function addValueRow(
 	}
 
 	row.onSelect = async () => {
-		// TODO: open modal to edit value
 		const newValue = await openValueEditor(configPart, defaultConfigPart, description)
 		if (newValue === null) return
 		changeValue(newValue)

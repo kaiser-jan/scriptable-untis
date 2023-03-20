@@ -1,7 +1,11 @@
-import { ConfigValue, Description } from "@/types/config"
-import { showInfoPopup, askForInput, selectOption } from "@/utils/scriptable/input"
+import { ConfigValue, Description } from '@/types/config'
+import { askForSingleInput, selectOption, showInfoPopup } from '@/utils/scriptable/input'
 
-export async function openValueEditor(configPart: ConfigValue, defaultConfigPart: ConfigValue, description: Description) {
+export async function openValueEditor(
+	configPart: ConfigValue,
+	defaultConfigPart: ConfigValue,
+	description: Description
+) {
 	switch (typeof defaultConfigPart) {
 		case 'string':
 			return openTextValueEditor(configPart as string, defaultConfigPart, description)
@@ -14,14 +18,18 @@ export async function openValueEditor(configPart: ConfigValue, defaultConfigPart
 			}
 			return parseFloat(value)
 		case 'boolean':
-			return openBooleanEditor(Boolean(configPart), defaultConfigPart, description)
+			return openBooleanEditor(description)
 		default:
 			throw new Error(`Cannot open value editor for unknown type ${typeof configPart}`)
 	}
 }
 
-export async function openTextValueEditor(value: string | number, defaultValue: string | number, description: Description) {
-	return await askForInput({
+export async function openTextValueEditor(
+	value: string | number,
+	defaultValue: string | number,
+	description: Description
+) {
+	return await askForSingleInput({
 		title: description._title,
 		description: description._description,
 		placeholder: defaultValue.toString(),
@@ -29,7 +37,7 @@ export async function openTextValueEditor(value: string | number, defaultValue: 
 	})
 }
 
-export async function openBooleanEditor(value: boolean, defaultValue: boolean, description: Description) {
+export async function openBooleanEditor(description: Description) {
 	try {
 		const response = await selectOption(['true', 'false'], {
 			title: description._title,

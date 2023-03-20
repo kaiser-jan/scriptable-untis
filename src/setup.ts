@@ -1,5 +1,5 @@
 import { ErrorCode, createError } from './utils/errors'
-import { askForInput } from './utils/scriptable/input'
+import { askForInput, askForSingleInput } from './utils/scriptable/input'
 
 const keychainRequestStrings = {
 	school: {
@@ -65,7 +65,7 @@ async function requestKeychainEntry(key: AvailableKeychainEntries, defaultValue 
 	switch (key) {
 		case 'school':
 		case 'server':
-			const webuntisUrl = await askForInput({ ...keychainRequestStrings['school'], defaultValue })
+			const webuntisUrl = await askForSingleInput({ ...keychainRequestStrings['school'], defaultValue })
 			// get the server and school from the input
 			const regex = /https:\/\/(.+?)\.webuntis\.com\/WebUntis\/\?school=(\w+).*/
 			const match = webuntisUrl.match(regex)
@@ -78,7 +78,7 @@ async function requestKeychainEntry(key: AvailableKeychainEntries, defaultValue 
 			throw createError(ErrorCode.INVALID_WEBUNTIS_URL)
 		case 'username':
 		case 'password':
-			const input = await askForInput({
+			const input = await askForSingleInput({
 				...keychainRequestStrings[key],
 				defaultValue,
 				isSecure: key === 'password',

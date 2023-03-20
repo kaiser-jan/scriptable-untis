@@ -3,8 +3,8 @@ import { getModuleFileManager, readConfig, writeConfig } from '@/utils/scriptabl
 import { defaultConfig } from '../config'
 import { configDescription } from './configDescription'
 import { CUSTOM_CONFIG_KEYS } from '@/constants'
-import { addCategoryRow } from './categoryRow'
-import { addValueRow } from './valueRow'
+import { addCategoryRow as addConfigCategoryRow } from './categoryRow'
+import { addValueRow as addConfigValueRow } from './valueRow'
 
 /**
  * Opens the config editor as a UITable.
@@ -18,8 +18,9 @@ export async function openConfigEditor() {
 
 	createConfigEditorFor(
 		{
-			config: widgetConfig,
+			configPart: widgetConfig,
 			defaultConfig,
+			fullConfig: widgetConfig,
 			descriptions: configDescription,
 		},
 		() => writeConfig(useICloud, widgetConfig)
@@ -27,21 +28,24 @@ export async function openConfigEditor() {
 }
 
 /**
- * Creates the UITable for the config editor at the current nested level.
+ * Creates and presents the UITable for the config editor at the current nested level.
  */
 export function createConfigEditorFor(options: ConfigEditorOptions, saveFullConfig: () => void) {
 	const table = new UITable()
 	table.showSeparators = true
 
-	fillConfigEditorFor(table, options, saveFullConfig)
+	updateConfigEditor(table, options, saveFullConfig)
 
 	table.present()
 }
 
-export function fillConfigEditorFor(table: UITable, options: ConfigEditorOptions, saveFullConfig: () => void) {
+/**
+ * Updates the UITable with the config editor for the current nested level.
+ */
+export function updateConfigEditor(table: UITable, options: ConfigEditorOptions, saveFullConfig: () => void) {
 	table.removeAllRows()
 
-	const { config, defaultConfig, descriptions } = options
+	const { configPart: config, defaultConfig, descriptions } = options
 
 	const headerRow = new UITableRow()
 	headerRow.height = 60
@@ -52,6 +56,7 @@ export function fillConfigEditorFor(table: UITable, options: ConfigEditorOptions
 	// TODO: add a reset all button
 	table.addRow(headerRow)
 
+	// add a row for each category and setting
 	for (const key of Object.keys(defaultConfig)) {
 		const configPart = config[key]
 		const defaultConfigPart = defaultConfig[key]
@@ -60,24 +65,28 @@ export function fillConfigEditorFor(table: UITable, options: ConfigEditorOptions
 		// this can't happen, as only _title and _description are strings, and are not used as keys
 		if (typeof descriptionsPart === 'string') continue
 
+		// if this is a category, add a row for it
 		if (typeof configPart === 'object' || typeof defaultConfigPart === 'object') {
-			addCategoryRow(
+			addConfigCategoryRow(
 				table,
 				key,
 				configPart as GeneralizedConfig,
 				defaultConfigPart as GeneralizedConfig,
+				options.fullConfig,
 				descriptionsPart,
 				saveFullConfig
 			)
 		} else if (CUSTOM_CONFIG_KEYS.includes(key)) {
+			// exclude custom config keys from the list of settings (like subjects)
 			continue
 		} else {
-			addValueRow(table, key, configPart, defaultConfigPart, descriptionsPart, (newValue: ConfigValue) => {
+			// add a row for this setting
+			addConfigValueRow(table, key, configPart, defaultConfigPart, descriptionsPart, (newValue: ConfigValue) => {
 				// modify this value in the config
 				config[key] = newValue
 				console.log(`Config Editor: Set "${key}" to "${newValue}".`)
 				saveFullConfig()
-				fillConfigEditorFor(table, options, saveFullConfig)
+				updateConfigEditor(table, options, saveFullConfig)
 			})
 		}
 	}

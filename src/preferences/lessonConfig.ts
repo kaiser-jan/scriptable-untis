@@ -1,7 +1,7 @@
-import { SubjectConfig } from "@/types/config"
-import { TransformedLesson, TransformedLessonWeek } from "@/types/transformed"
-import { unparsedColors } from "./colors"
-import { Config } from "./config"
+import { SubjectConfig } from '@/types/config'
+import { TransformedLesson, TransformedLessonWeek } from '@/types/transformed'
+import { unparsedColors } from './colors'
+import { Config } from './config'
 
 /**
  * Applies the custom lesson config to a timetable.
@@ -29,15 +29,14 @@ function applyCustomLessonConfig(lesson: TransformedLesson, widgetConfig: Config
 	}
 
 	const unparsedSubjectConfig = widgetConfig.subjects[lesson.subject?.name]
-	let subjectConfig: SubjectConfig | undefined
+	let subjectConfig: SubjectConfig = unparsedSubjectConfig
 
 	// unwrap the option, as there can be teacher specific widgetConfig
-	if (Array.isArray(unparsedSubjectConfig)) {
-		subjectConfig = unparsedSubjectConfig.find((option) => {
-			return lesson.teachers.some((teacher) => teacher.name === option.teacher)
+	if (unparsedSubjectConfig.teachers) {
+		const foundTeacher = unparsedSubjectConfig.teachers.find((teacherConfig) => {
+			return lesson.teachers.some((teacher) => teacherConfig.teacher === teacher.name)
 		})
-	} else {
-		subjectConfig = unparsedSubjectConfig
+		if (foundTeacher) subjectConfig = foundTeacher
 	}
 
 	if (!subjectConfig) {

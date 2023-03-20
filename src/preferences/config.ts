@@ -2,23 +2,7 @@ import { Description, ObjectDescription, ReplaceKeyType, SubjectConfigs } from '
 
 // consider splitting the lesson widgetConfig to a separate "class-config"
 export const defaultConfig = {
-	subjects: {
-		SubjectShortName: {
-			color: 'orange',
-			nameOverride: 'CustomSubjectName',
-			longNameOverride: 'SubjectLongName',
-			ignoreInfos: ['InfoTagWhichShouldBeIgnored'],
-		},
-		SubjectShortName2: [
-			{
-				teacher: 'TeacherForWhichThisShouldBeApplied',
-				color: 'blue',
-				nameOverride: 'CustomSubjectName',
-				longNameOverride: 'SubjectLongName',
-				ignoreInfos: ['InfoTagWhichShouldBeIgnored'],
-			},
-		],
-	} as SubjectConfigs,
+	subjects: {} as SubjectConfigs,
 
 	config: {
 		locale: 'de-AT',

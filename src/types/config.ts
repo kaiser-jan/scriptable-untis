@@ -1,29 +1,24 @@
-import { Config } from "@/preferences/config"
+import { Config } from '@/preferences/config'
 
 /**
  * A configuration for a single subject.
  * @property color The color of the subject as one of the Colors or a hex value.
+ * @property nameOverride A custom subject name, which will be displayed in the timetable.
  * @property longNameOverride A custom long name for the subject, which will be displayed in the timetable if there is enough space.
  * @property ignoreInfo An array of strings which will be ignored in the info field of the lesson.
- * @property subjectOverride A custom subject name, which will be displayed in the timetable.
+ * @property teachers A map of teachers to their own subject configuration.
  */
 export interface SubjectConfig {
-	color: string
+	color?: string
 	nameOverride?: string
 	longNameOverride?: string
 	ignoreInfos?: string[]
+	teachers?: TeacherSpecificSubjectConfig[]
 }
 
-/**
- * A configuration for a single subject, which is only applied to a specific teacher.
- * This can be used to split combined subjects, like History and Geography.
- * @property teacher The short name of the teacher for which this configuration should be applied.
- */
-interface TeacherSpecificSubjectConfig extends SubjectConfig {
-	teacher: string
-}
+export type TeacherSpecificSubjectConfig = Omit<SubjectConfig, 'teachers'> & { teacher: string }
 
-export type SubjectConfigs = Record<string, SubjectConfig | TeacherSpecificSubjectConfig[]>
+export type SubjectConfigs = Record<string, SubjectConfig>
 
 export type Description = {
 	_title: string
@@ -58,8 +53,9 @@ export type GeneralizedConfigDescription = {
 }
 
 export interface ConfigEditorOptions {
-	config: GeneralizedConfig
+	configPart: GeneralizedConfig
 	defaultConfig: GeneralizedConfig
+	fullConfig: Config
 	descriptions: GeneralizedConfigDescription
 }
 
