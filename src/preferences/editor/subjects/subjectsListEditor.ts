@@ -5,21 +5,12 @@ import { createNewSubjectConfig } from './createSubjectConfig'
 import { addSubjectConfigRow } from './subjectConfigRow'
 
 export const subjectConfigPlaceholderMap: Record<keyof TeacherSpecificSubjectConfig, string> = {
-	color: 'color (#123abc)',
+	color: 'color (#123abc or name)',
 	nameOverride: 'custom short name',
 	longNameOverride: 'custom long Name',
 	ignoreInfos: 'ignore ("info1", "info2")',
 	teacher: 'teacher short name',
 }
-
-export const editSubjectDescription = `Enter the config for the subject below.
-color: Hex or name
-ignore infos: lesson info to ignore`
-
-export const addSubjectDescription = `${editSubjectDescription}
-short name: short name of the subject displayed in WebUntis.
-teacher: short name of the teacher to apply this config to
-`
 
 export function showSubjectListEditor(config: Config, saveFullConfig: () => void) {
 	const table = new UITable()

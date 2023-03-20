@@ -1,8 +1,14 @@
-import { SubjectConfig, TeacherSpecificSubjectConfig } from '@/types/config'
 import { Config } from '@/preferences/config'
-import { InputOptions, InputPreparedType, askForInput, parseArray, showInfoPopup } from '@/utils/scriptable/input'
-import { subjectConfigPlaceholderMap, addSubjectDescription } from './subjectsListEditor'
+import { TeacherSpecificSubjectConfig } from '@/types/config'
+import { InputOptions, askForInput, showInfoPopup } from '@/utils/scriptable/input'
 import { parseSubjectConfig } from './parseSubjectConfig'
+import { subjectConfigPlaceholderMap } from './subjectsListEditor'
+import { editSubjectDescription } from './subjectConfigEditor'
+
+export const addSubjectDescription = `${editSubjectDescription}
+short name: subject name displayed in WebUntis.
+teacher: short name of the teacher to apply this config to
+`
 
 export async function createNewSubjectConfig(config: Config, saveFullConfig: () => void) {
 	console.log('Config Editor: Opening UI to add new subject.')
@@ -31,23 +37,17 @@ export async function createNewSubjectConfig(config: Config, saveFullConfig: () 
 		doneLabel: 'Add',
 	})
 
-	log('done')
-
 	if (!unparsedSubjectConfig) return
-
-	log('1')
 
 	if (!unparsedSubjectConfig.name) {
 		showInfoPopup('Error', 'The subject name is required!')
 		return
 	}
-	log('2')
 
 	if (config.subjects[unparsedSubjectConfig.name]) {
 		showInfoPopup('Error', 'A subject with this name already exists!')
 		return
 	}
-	log('3')
 
 	// avoid duplicate teacher configs
 	if (
@@ -59,11 +59,8 @@ export async function createNewSubjectConfig(config: Config, saveFullConfig: () 
 		showInfoPopup('Error', 'This teacher already exists for this subject!')
 		return
 	}
-	log('4')
 
 	if ('teacher' in unparsedSubjectConfig && unparsedSubjectConfig.teacher) {
-		log('teacher')
-
 		// create the subject if it does not exist yet
 		if (!config.subjects[unparsedSubjectConfig.name]) {
 			console.log(
@@ -72,9 +69,7 @@ export async function createNewSubjectConfig(config: Config, saveFullConfig: () 
 			config.subjects[unparsedSubjectConfig.name] = {
 				teachers: [],
 			}
-			log('done')
 		}
-		log('adding teacher')
 		// add the teacher to the subject
 		config.subjects[unparsedSubjectConfig.name].teachers.push(parseSubjectConfig(unparsedSubjectConfig, true) as TeacherSpecificSubjectConfig)
 
@@ -82,9 +77,6 @@ export async function createNewSubjectConfig(config: Config, saveFullConfig: () 
 		saveFullConfig()
 		return
 	}
-	log('not')
-
-	log(parseSubjectConfig(unparsedSubjectConfig))
 
 	config.subjects[unparsedSubjectConfig.name] = parseSubjectConfig(unparsedSubjectConfig)
 

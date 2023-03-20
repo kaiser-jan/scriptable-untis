@@ -78,7 +78,7 @@ export function compareCachedLessons(
 				// if the day is the same
 				if (lesson.rescheduleInfo.otherFrom.getDate() === lesson.rescheduleInfo.otherTo.getDate()) {
 					scheduleNotification(
-						`⏫${dayString}: ${subjectTitle} was shifted`,
+						`⏫ ${dayString}: ${subjectTitle} was shifted`,
 						`from ${asNumericTime(lesson.from)} to ${asNumericTime(lesson.rescheduleInfo.otherFrom)}`
 					)
 					continue

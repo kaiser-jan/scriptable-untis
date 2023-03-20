@@ -1,7 +1,10 @@
 import { SubjectConfig, TeacherSpecificSubjectConfig } from '@/types/config'
 import { InputOptions, InputPreparedType, askForInput, showInfoPopup, stringifyArray } from '@/utils/scriptable/input'
-import { subjectConfigPlaceholderMap, editSubjectDescription } from './subjectsListEditor'
+import { subjectConfigPlaceholderMap } from './subjectsListEditor'
 import { parseSubjectConfig } from './parseSubjectConfig'
+
+export const editSubjectDescription = `Enter the config for the subject below.
+ignore infos: lesson info to ignore`
 
 export async function openSubjectConfigEditor(
 	key: string,
@@ -37,6 +40,7 @@ export async function openSubjectConfigEditor(
 		title: `✏️ Edit Subject "${key}"`,
 		description: editSubjectDescription,
 		inputs: inputOptions,
+		doneLabel: 'Save',
 	})
 
 	if (!newUnparsedSubjectConfig) return
