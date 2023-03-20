@@ -187,7 +187,7 @@ export function addWidgetLesson(
 	lessonText.lineLimit = 1
 
 	// add a x2 for double lessons etc.
-	if (lesson.duration > 1) {
+	if (lesson.duration > 1 && widgetConfig.views.lessons.showMultiplier) {
 		const durationText = lessonContainer.addText(`x${lesson.duration}`)
 		durationText.font = Font.mediumSystemFont(widgetConfig.appearance.fontSize)
 		durationText.textColor = secondaryTextColor

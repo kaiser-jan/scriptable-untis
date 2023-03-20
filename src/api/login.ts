@@ -62,7 +62,7 @@ async function fetchBearerToken(user: UserData, cookies: string[]) {
 		throw createError(ErrorCode.NO_TOKEN)
 	}
 
-	console.log('🎟️  Got Bearer Token for Authorization')
+	console.log('🎟️ Got Bearer Token for Authorization')
 
 	return token
 }
