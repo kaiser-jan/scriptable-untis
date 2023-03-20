@@ -1,9 +1,9 @@
-import { LOCALE, NO_VALUE_PLACEHOLDERS } from "@/constants"
-import { Config } from "@/preferences/config"
-import { LessonState } from "@/types/api"
-import { TransformedLessonWeek, TransformedExam, TransformedGrade, TransformedAbsence } from "@/types/transformed"
-import { scheduleNotification, asNumericTime, asWeekday } from "@/utils/helper"
-import { getSubjectTitle } from "@/utils/lessonHelper"
+import { LOCALE, NO_VALUE_PLACEHOLDERS } from '@/constants'
+import { Config } from '@/preferences/config'
+import { LessonState } from '@/types/api'
+import { TransformedLessonWeek, TransformedExam, TransformedGrade, TransformedAbsence } from '@/types/transformed'
+import { scheduleNotification, asNumericTime, asWeekday } from '@/utils/helper'
+import { getSubjectTitle } from '@/utils/lessonHelper'
 
 /**
  * Compares the fetched lessons with the cached lessons and sends notifications for most changes.
@@ -76,7 +76,7 @@ export function compareCachedLessons(
 				if (!lesson.rescheduleInfo.isSource) continue
 
 				// if the day is the same
-				if (lesson.rescheduleInfo.otherFrom.getDate() === lesson.rescheduleInfo.otherTo.getDate()) {
+				if (lesson.from.getDate() === lesson.rescheduleInfo.otherTo.getDate()) {
 					scheduleNotification(
 						`⏫ ${dayString}: ${subjectTitle} was shifted`,
 						`from ${asNumericTime(lesson.from)} to ${asNumericTime(lesson.rescheduleInfo.otherFrom)}`
@@ -86,7 +86,13 @@ export function compareCachedLessons(
 
 				scheduleNotification(
 					`⌚ ${dayString}: ${subjectTitle} was rescheduled`,
-					`from ${asWeekday(lesson.rescheduleInfo.otherFrom)} to ${asWeekday(lesson.rescheduleInfo.otherTo)}`
+					`from ${lesson.from.toLocaleString(LOCALE, {
+						weekday: 'short',
+						timeStyle: 'short',
+					})} to ${lesson.rescheduleInfo.otherFrom.toLocaleString(LOCALE, {
+						weekday: 'short',
+						timeStyle: 'short',
+					})}`
 				)
 				continue
 			}
@@ -161,9 +167,9 @@ export function compareCachedExams(exams: TransformedExam[], cachedExams: Transf
 
 		if (!cachedExam) {
 			scheduleNotification(
-				`🎓 Exam ${exam.subject} on ${exam.from.toLocaleDateString(LOCALE)}`,
-				`The ${exam.type} takes place @ ${exam.from.toLocaleTimeString(LOCALE)} in ${
-					exam.roomNames.join(', ') || 'an unkonwn room'
+				`🎓 Exam ${exam.subject} on ${asNumericTime(exam.from)}`,
+				`The ${exam.type} takes place @ ${asNumericTime(exam.from)} in ${
+					exam.roomNames.join(', ') || 'an unknown room'
 				}.`
 			)
 			continue
@@ -186,7 +192,11 @@ export function compareCachedGrades(grades: TransformedGrade[], cachedExams: Tra
 	}
 }
 
-export function compareCachedAbsences(absences: TransformedAbsence[], cachedAbsences: TransformedAbsence[], widgetConfig: Config) {
+export function compareCachedAbsences(
+	absences: TransformedAbsence[],
+	cachedAbsences: TransformedAbsence[],
+	widgetConfig: Config
+) {
 	// find any absences that were added
 	for (const absence of absences) {
 		const cachedAbsence = cachedAbsences.find(

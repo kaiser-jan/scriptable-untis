@@ -11,8 +11,8 @@ export function asNumericTime(date: Date) {
 	return date.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })
 }
 
-export function asWeekday(date: Date) {
-	return date.toLocaleDateString(LOCALE, { weekday: 'long' })
+export function asWeekday(date: Date, long?: boolean) {
+	return date.toLocaleDateString(LOCALE, { weekday: long ? 'long' : 'short' })
 }
 
 export function getDateInXDays(days: number) {
