@@ -18,7 +18,8 @@ export async function openValueEditor(
 			}
 			return parseFloat(value)
 		case 'boolean':
-			return openBooleanEditor(description)
+			// simply invert the value for booleans to toggle them
+			return !configPart
 		default:
 			throw new Error(`Cannot open value editor for unknown type ${typeof configPart}`)
 	}

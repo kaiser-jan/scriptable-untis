@@ -20,8 +20,15 @@ export function addValueRow(
 	titleCell.subtitleFont = Font.systemFont(12)
 	titleCell.subtitleColor = Color.gray()
 
+	let formattedValue = configPart.toString()
+	if (typeof defaultConfigPart === 'boolean') {
+		// make sure the value is a boolean, as the user could enter anything in the file
+		configPart = configPart === true
+		formattedValue = configPart ? '✅' : '❌'
+	}
+
 	// show the current value and the default value
-	const valueCell = row.addText(configPart.toString(), isDefaultValue ? '' : defaultConfigPart.toString())
+	const valueCell = row.addText(formattedValue, isDefaultValue ? '' : defaultConfigPart.toString())
 	valueCell.centerAligned()
 	valueCell.widthWeight = 18
 	valueCell.titleFont = Font.mediumSystemFont(16)
