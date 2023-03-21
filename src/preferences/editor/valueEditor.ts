@@ -11,6 +11,8 @@ export async function openValueEditor(
 			return openTextValueEditor(configPart as string, defaultConfigPart, description)
 		case 'number':
 			const value = await openTextValueEditor(configPart.toString(), defaultConfigPart, description)
+			// return null if the user cancels the input
+			if (value === null) return null
 			// check if the value is a number
 			if (isNaN(Number(value))) {
 				showInfoPopup('❌ Invalid number', `The value you entered (${value}) is not a number.`)
