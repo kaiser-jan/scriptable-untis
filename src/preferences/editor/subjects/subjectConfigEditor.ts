@@ -1,4 +1,4 @@
-import { SubjectConfig, TeacherSpecificSubjectConfig } from '@/types/config'
+import { BackFunctionType, SaveFullConfigFunction, SubjectConfig, TeacherSpecificSubjectConfig } from '@/types/config'
 import { InputOptions, InputPreparedType, askForInput, showInfoPopup, stringifyArray } from '@/utils/scriptable/input'
 import { subjectConfigPlaceholderMap } from './subjectsListEditor'
 import { parseSubjectConfig } from './parseSubjectConfig'
@@ -8,7 +8,8 @@ ignore infos: lesson info to ignore`
 
 export async function openSubjectConfigEditor(
 	key: string,
-	saveFullConfig: () => void,
+	saveFullConfig: SaveFullConfigFunction,
+	backFunction: BackFunctionType,
 	currentConfig?: SubjectConfig | TeacherSpecificSubjectConfig
 ) {
 	log(`Config Editor: Opening subject editor for subject "${key}".`)
@@ -58,7 +59,7 @@ export async function openSubjectConfigEditor(
 
 	Object.assign(currentConfig, newSubjectConfig)
 
-	saveFullConfig()
+	saveFullConfig(backFunction)
 
 	console.log(`Config Editor: Saved changes to subject "${key}". ${JSON.stringify(currentConfig)}`)
 }

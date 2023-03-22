@@ -54,9 +54,12 @@ export type GeneralizedConfigDescription = {
 
 export interface ConfigEditorOptions {
 	configPart: GeneralizedConfig
-	defaultConfig: GeneralizedConfig
+	defaultConfigPart: GeneralizedConfig
 	fullConfig: Config
-	descriptions: GeneralizedConfigDescription
+	descriptionsPart: GeneralizedConfigDescription
 }
+
+export type BackFunctionType = () => void
+export type SaveFullConfigFunction = (backFunction: BackFunctionType) => void
 
 //#endregion

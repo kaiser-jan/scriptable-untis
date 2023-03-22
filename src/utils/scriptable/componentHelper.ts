@@ -184,7 +184,6 @@ export function addWidgetLesson(
 	lessonText.font = Font.semiboldSystemFont(widgetConfig.appearance.fontSize)
 	lessonText.textColor = textColor
 	lessonText.leftAlignText()
-	lessonText.lineLimit = 1
 
 	// add a x2 for double lessons etc.
 	if (lesson.duration > 1 && widgetConfig.views.lessons.showMultiplier) {

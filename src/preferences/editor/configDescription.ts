@@ -5,7 +5,7 @@ export const configDescription: ConfigDescription = {
 	_description: 'Click a category below to open it.',
 	
 	subjects: {
-		_title: '📚 Subject Configs',
+		_title: '📚 Subjects',
 		_description: 'Colors, names etc. for the subjects.',
 	},
 	config: {

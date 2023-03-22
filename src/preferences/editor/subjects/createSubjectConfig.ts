@@ -1,5 +1,5 @@
 import { Config } from '@/preferences/config'
-import { TeacherSpecificSubjectConfig } from '@/types/config'
+import { BackFunctionType, SaveFullConfigFunction, TeacherSpecificSubjectConfig } from '@/types/config'
 import { InputOptions, askForInput, showInfoPopup } from '@/utils/scriptable/input'
 import { parseSubjectConfig } from './parseSubjectConfig'
 import { subjectConfigPlaceholderMap } from './subjectsListEditor'
@@ -10,7 +10,7 @@ short name: subject name displayed in WebUntis.
 teacher: short name of the teacher to apply this config to
 `
 
-export async function createNewSubjectConfig(config: Config, saveFullConfig: () => void) {
+export async function createNewSubjectConfig(config: Config, saveFullConfig: SaveFullConfigFunction, backFunction: BackFunctionType) {
 	console.log('Config Editor: Opening UI to add new subject.')
 
 	// create a map of placeholders for the input
@@ -74,13 +74,13 @@ export async function createNewSubjectConfig(config: Config, saveFullConfig: () 
 		config.subjects[unparsedSubjectConfig.name].teachers.push(parseSubjectConfig(unparsedSubjectConfig, true) as TeacherSpecificSubjectConfig)
 
 		console.log(`Config Editor: Added teacher "${unparsedSubjectConfig.teacher}" to subject "${unparsedSubjectConfig.name}".`)
-		saveFullConfig()
+		saveFullConfig(backFunction)
 		return
 	}
 
 	config.subjects[unparsedSubjectConfig.name] = parseSubjectConfig(unparsedSubjectConfig)
 
-	saveFullConfig()
+	saveFullConfig(backFunction)
 
 	console.log(`Config Editor: Added subject "${unparsedSubjectConfig.name}". ${JSON.stringify(unparsedSubjectConfig)}`)
 }

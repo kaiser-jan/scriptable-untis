@@ -1,9 +1,12 @@
 import { ConfigValue, Description } from "@/types/config"
 import { openValueEditor } from "./valueEditor"
 
+/**
+ * Adds a row to the table that allows the user to edit a value.
+ * @param changeValue a function that updates the value in the config and the UI
+ */
 export function addValueRow(
 	table: UITable,
-	key: string,
 	configPart: ConfigValue,
 	defaultConfigPart: ConfigValue,
 	description: Description,
@@ -47,9 +50,13 @@ export function addValueRow(
 	}
 
 	row.onSelect = async () => {
+		// edit the value
 		const newValue = await openValueEditor(configPart, defaultConfigPart, description)
+		// exit if the user cancelled
 		if (newValue === null) return
+		// update the config and the UI
 		changeValue(newValue)
 	}
+
 	table.addRow(row)
 }
