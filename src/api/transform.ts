@@ -9,13 +9,6 @@ function parseDateNumber(date: number) {
 	return new Date(`${year}-${month}-${day}`)
 }
 
-function parseTimeNumber(time: number) {
-	const timeStr = time.toString().padStart(4, '0')
-	const hours = timeStr.slice(0, 2)
-	const minutes = timeStr.slice(2, 4)
-	return new Date(`1970-01-01T${hours}:${minutes}`)
-}
-
 /**
  * Adds the necessary leading 0s, and combines date and time to a new JS Date object
  * @param date the date as a number, e.g. 20220911
@@ -23,8 +16,14 @@ function parseTimeNumber(time: number) {
  */
 export function combineDateAndTime(date: number, time: number) {
 	const parsedDate = parseDateNumber(date)
-	const parsedTime = parseTimeNumber(time)
-	return new Date(parsedDate.getTime() + parsedTime.getTime())
+
+	const timeStr = time.toString().padStart(4, '0')
+	const hours = timeStr.slice(0, 2)
+	const minutes = timeStr.slice(2, 4)
+	parsedDate.setHours(parseInt(hours))
+	parsedDate.setMinutes(parseInt(minutes))
+
+	return parsedDate
 }
 
 export function transformExams(exams: Exam[]) {
