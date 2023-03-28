@@ -1,5 +1,6 @@
 import { getTextWidth } from '@/utils/helper'
 import { TableMenu } from './tableMenu'
+import { TableMenuCell } from './tableMenuCell'
 
 /**
  * Represents a row in a table menu.
@@ -7,58 +8,61 @@ import { TableMenu } from './tableMenu'
  */
 export class TableMenuRow {
 	private readonly _row: UITableRow
-	private readonly _cells: {
-		cell: UITableCell
-		width: number | null
-	}[]
+	private readonly _cells: TableMenuCell[]
 
-	constructor(private readonly _table: UITable, private readonly _rowHeight: number = 60) {
+	constructor(_rowHeight: number = 60) {
 		this._row = new UITableRow()
 		this._row.dismissOnSelect = false
 		this._row.height = _rowHeight
 		this._cells = []
 	}
 
-	private _addCell(cell: UITableCell, width?: number) {
-		this._cells.push({
-			cell,
-			width: width ?? null,
-		})
+	private _addCell(cell: TableMenuCell) {
+		this._cells.push(cell)
 	}
 
-	addIconButton(emoji: string, onTap?: () => void) {
+	addIconButton(emoji: string, onTap: () => void, width: number = 6) {
 		const cell = this._row.addButton(emoji)
 		cell.centerAligned()
 		cell.onTap = onTap
-		this._addCell(cell, 6)
-		return this
+
+		const tableMenuCell = new TableMenuCell(cell, width)
+		this._addCell(tableMenuCell)
+		return tableMenuCell
 	}
 
 	addText(
-		text: string,
+		title: string,
+		subtitle: string,
 		options: {
 			color?: Color
 			font?: Font
 			subtitle?: {
-				text: string
 				color?: Color
 				font?: Font
 			}
 			width?: number
-		}
+		},
+		onTap?: () => void
 	) {
-		const cell = this._row.addText(text, options.subtitle?.text)
+		const cell = this._row.addText(title, subtitle)
 		cell.titleFont = options.font ?? Font.mediumSystemFont(16)
 		cell.titleColor = options.color
 		cell.subtitleFont = options.subtitle?.font ?? Font.systemFont(12)
 		cell.subtitleColor = options.subtitle?.color ?? Color.gray()
-		this._addCell(cell, options.width)
-		return this
+		cell.onTap = onTap
+
+		const tableMenuCell = new TableMenuCell(cell, options.width)
+		this._addCell(tableMenuCell)
+		return tableMenuCell
 	}
 
 	setHeight(height: number) {
 		this._row.height = height
-		return this
+	}
+
+	setOnTap(onTap: () => void) {
+		this._row.onSelect = onTap
 	}
 
 	/**

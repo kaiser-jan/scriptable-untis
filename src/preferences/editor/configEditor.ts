@@ -1,16 +1,10 @@
-import {
-	BackFunctionType,
-	ConfigEditorOptions,
-	ConfigValue,
-	GeneralizedConfig,
-	SaveFullConfigFunction,
-} from '@/types/config'
+import { ConfigEditorOptions, ConfigValue, Description, GeneralizedConfig } from '@/types/config'
 import { getModuleFileManager, readConfig, writeConfig } from '@/utils/scriptable/fileSystem'
+import { TableMenu } from '@/utils/scriptable/table/tableMenu'
 import { defaultConfig } from '../config'
 import { configDescription } from './configDescription'
-import { CUSTOM_CONFIG_KEYS } from '@/constants'
-import { addCategoryRow as addConfigCategoryRow } from './categoryRow'
-import { addValueRow as addConfigValueRow } from './valueRow'
+import { openValueEditor } from './valueEditor'
+import { TableMenuCell } from '@/utils/scriptable/table/tableMenuCell'
 
 /**
  * Opens the config editor as a UITable.
@@ -22,74 +16,29 @@ export async function openConfigEditor() {
 	const { useICloud, fileManager } = getModuleFileManager()
 	const widgetConfig = await readConfig(useICloud)
 
-	createConfigEditorFor(
+	const tableMenu = new TableMenu(new UITable())
+	buildConfigEditor(
+		tableMenu,
 		{
 			configPart: widgetConfig,
 			defaultConfigPart: defaultConfig,
 			fullConfig: widgetConfig,
 			descriptionsPart: configDescription,
 		},
-		() => writeConfig(useICloud, widgetConfig)
+		() => {
+			writeConfig(useICloud, widgetConfig)
+		}
 	)
 }
 
-/**
- * Creates and presents the UITable for the config editor at the current nested level.
- */
-export function createConfigEditorFor(options: ConfigEditorOptions, saveFullConfig: SaveFullConfigFunction) {
-	const table = new UITable()
-	table.showSeparators = true
-
-	// could this lead to unused memory?!
-	updateConfigEditor(table, options, saveFullConfig)
-
-	table.present()
-}
-
-/**
- * Updates the UITable with the config editor for the current nested level.
- * @param table The UITable to update with the given options.
- * @param saveFullConfig a function that saves the config to the file system.
- * @param backFunction a function to return back to the previous level.
- */
-export function updateConfigEditor(
-	table: UITable,
-	options: ConfigEditorOptions,
-	saveFullConfig: SaveFullConfigFunction,
-	backFunction?: BackFunctionType
-) {
-	table.removeAllRows()
-
+export function buildConfigEditor(tableMenu: TableMenu, options: ConfigEditorOptions, saveConfig: () => void) {
 	const { configPart, defaultConfigPart, descriptionsPart } = options
 
-	const headerRow = new UITableRow()
-	headerRow.height = 60
-	headerRow.isHeader = true
+	tableMenu.reset()
 
-	let remainingHeaderWidth = 100
+	tableMenu.addTitleRow(descriptionsPart._title)
 
-	// add a back button if this is not the top level
-	if (backFunction) {
-		const backButton = headerRow.addButton('⬅️')
-		backButton.onTap = backFunction
-		backButton.widthWeight = 15
-		remainingHeaderWidth -= backButton.widthWeight
-	}
-
-	const titleCell = headerRow.addText(descriptionsPart._title)
-	titleCell.titleFont = Font.semiboldSystemFont(28)
-	titleCell.widthWeight = remainingHeaderWidth
-
-	// TODO: add a reset all button
-	table.addRow(headerRow)
-
-	// add a row for each category and setting
 	for (const key of Object.keys(defaultConfigPart)) {
-		// exclude custom config keys from the list of settings (like subjects)
-		if (CUSTOM_CONFIG_KEYS.includes(key)) {
-			continue
-		}
-
 		const configSubPart = configPart[key]
 		const defaultSubConfigPart = defaultConfigPart[key]
 		const descriptionsSubPart = descriptionsPart[key]
@@ -104,29 +53,76 @@ export function updateConfigEditor(
 			descriptionsPart: descriptionsSubPart,
 		}
 
+		function updateValue(newValue: ConfigValue) {
+			// modify this value in the config
+			configPart[key] = newValue
+			console.log(`Config Editor: Set "${key}" to "${newValue}".`)
+			saveConfig()
+			buildConfigEditor(tableMenu, options, saveConfig)
+		}
+
 		// if this is a category, add a row for it
-		if (typeof configSubPart === 'object' || typeof defaultSubConfigPart === 'object') {
-			addConfigCategoryRow(table, key, optionsPart, saveFullConfig, () =>
-				updateConfigEditor(table, options, saveFullConfig, backFunction)
-			)
+		if (typeof defaultSubConfigPart === 'object') {
+			addConfigCategoryRow(tableMenu, key, optionsPart, saveConfig)
 		} else {
 			// add a row for this setting
 			addConfigValueRow(
-				table,
-				configSubPart,
+				tableMenu,
+				configSubPart as ConfigValue,
 				defaultSubConfigPart,
 				descriptionsSubPart,
-				// update method
-				(newValue: ConfigValue) => {
-					// modify this value in the config
-					configPart[key] = newValue
-					console.log(`Config Editor: Set "${key}" to "${newValue}".`)
-					saveFullConfig(backFunction)
-					updateConfigEditor(table, options, saveFullConfig, backFunction)
-				}
+				updateValue
 			)
 		}
 	}
 
-	table.reload()
+	tableMenu.show()
+}
+
+function addConfigCategoryRow(tableMenu: TableMenu, key: string, options: ConfigEditorOptions, saveConfig: () => void) {
+	const row = tableMenu.addTextRow(options.descriptionsPart._title, options.descriptionsPart._description)
+
+	row.setOnTap(() => {
+		// show the subject list editor
+		if (key === 'subjects') {
+			// TODO: implement
+			// showSubjectListEditor(table, options.fullConfig, saveFullConfig, backFunction)
+			return
+		}
+
+		buildConfigEditor(tableMenu.createSubView(), options, saveConfig)
+	})
+}
+
+function addConfigValueRow(
+	tableMenu: TableMenu,
+	value: ConfigValue,
+	defaultValue: ConfigValue,
+	description: Description,
+	updateValue: (newValue: ConfigValue) => void
+) {
+	const row = tableMenu.addTextRow(description._title, description._description)
+
+	let valueCell: TableMenuCell
+
+	const isDefaultValue = value === defaultValue
+	let defaultValueIndicator = isDefaultValue ? '' : defaultValue.toString()
+
+	if (typeof value === 'boolean') {
+		const valueIndicator = value ? '✅' : '❌'
+		valueCell = row.addText(valueIndicator, defaultValueIndicator, { width: 20 })
+		row.setOnTap(() => updateValue(!value))
+	} else {
+		valueCell = row.addText(value.toString(), defaultValueIndicator, { width: 24 })
+		row.setOnTap(async () => {
+			const newValue = await openValueEditor(value, defaultValue, description)
+			if (!newValue) return
+			updateValue(newValue)
+		})
+	}
+
+	if (value !== defaultValue) {
+		const buttonCell = row.addIconButton('↩️', () => updateValue(defaultValue))
+		valueCell.width -= buttonCell.width
+	}
 }
