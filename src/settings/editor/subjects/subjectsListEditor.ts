@@ -1,6 +1,6 @@
 import { BackFunctionType, SaveFullConfigFunction, SubjectConfig, TeacherSpecificSubjectConfig } from '@/types/config'
-import { Config } from '../../config'
-import { configDescription } from '../configDescription'
+import { Settings } from '../../defaultConfig'
+import { settingsDescriptions } from '../settingsDescription'
 import { createNewSubjectConfig } from './createSubjectConfig'
 import { addSubjectConfigRow } from './subjectConfigRow'
 
@@ -12,7 +12,7 @@ export const subjectConfigPlaceholderMap: Record<keyof TeacherSpecificSubjectCon
 	teacher: 'teacher short name',
 }
 
-export function showSubjectListEditor(table: UITable, config: Config, saveFullConfig: SaveFullConfigFunction, backFunction: BackFunctionType) {
+export function showSubjectListEditor(table: UITable, config: Settings, saveFullConfig: SaveFullConfigFunction, backFunction: BackFunctionType) {
 	table.removeAllRows()
 
 	updateSubjectListEditor(table, config, saveFullConfig, backFunction)
@@ -23,7 +23,7 @@ export function showSubjectListEditor(table: UITable, config: Config, saveFullCo
 /**
  * Opens a UITable with a list of the subjects and their configs.
  */
-export function updateSubjectListEditor(table: UITable, config: Config, saveFullConfig: SaveFullConfigFunction, backFunction: BackFunctionType) {
+export function updateSubjectListEditor(table: UITable, config: Settings, saveFullConfig: SaveFullConfigFunction, backFunction: BackFunctionType) {
 	table.removeAllRows()
 
 	const headerRow = new UITableRow()
@@ -40,7 +40,7 @@ export function updateSubjectListEditor(table: UITable, config: Config, saveFull
 		remainingHeaderWidth -= backButton.widthWeight
 	}
 
-	const titleCell = headerRow.addText(configDescription.subjects._title)
+	const titleCell = headerRow.addText(settingsDescriptions.subjects._title)
 	titleCell.titleFont = Font.semiboldSystemFont(28)
 	titleCell.widthWeight = 55
 	remainingHeaderWidth -= titleCell.widthWeight

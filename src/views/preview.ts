@@ -1,7 +1,7 @@
 import { CURRENT_DATETIME } from "@/constants"
 import { combineLessons } from "@/api/transformLessons"
 import { LOCALE } from "@/constants"
-import { Config } from "@/preferences/config"
+import { Settings } from "@/settings/defaultConfig"
 import { TransformedLesson } from "@/types/transformed"
 import { fillContainerWithSubject } from "@/utils/scriptable/componentHelper"
 import { getCharHeight, getCharWidth, asNumericTime, getTextWidth } from "@/utils/helper"
@@ -9,7 +9,7 @@ import { FlowLayoutRow } from "@/utils/scriptable/layoutHelper"
 import { filterCanceledLessons, getSubjectTitle } from "@/utils/lessonHelper"
 import { ViewBuildData } from "@/widget"
 import { LessonState } from "@/types/api"
-import { colors } from "@/preferences/colors"
+import { colors } from "@/settings/colors"
 
 export function addViewPreview(
 	lessons: TransformedLesson[],
@@ -68,7 +68,7 @@ function addPreviewTitle(
 	lessons: TransformedLesson[],
 	nextDayKey: string,
 	width: number,
-	widgetConfig: Config
+	widgetConfig: Settings
 ) {
 	const nextDayHeader = container.addStack()
 	nextDayHeader.layoutHorizontally()
@@ -103,7 +103,7 @@ function addPreviewTitle(
 function addPreviewList(
 	container: WidgetStack,
 	lessons: TransformedLesson[],
-	widgetConfig: Config,
+	widgetConfig: Settings,
 	width: number,
 	height: number
 ) {

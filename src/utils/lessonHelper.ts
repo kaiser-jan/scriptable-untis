@@ -1,4 +1,4 @@
-import { Config } from "@/preferences/config"
+import { Settings } from "@/settings/defaultConfig"
 import { LessonState } from "@/types/api"
 import { TransformedLesson } from "@/types/transformed"
 
@@ -20,7 +20,7 @@ export function filterCanceledLessons(lessons: TransformedLesson[]) {
 export function shouldCombineLessons(
 	a: TransformedLesson,
 	b: TransformedLesson,
-	widgetConfig: Config,
+	widgetConfig: Settings,
 	ignoreDetails = false,
 	ignoreBreaks = false
 ) {

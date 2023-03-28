@@ -1,4 +1,4 @@
-import { Config } from "@/preferences/config";
+import { Settings } from "@/settings/defaultConfig";
 import { TransformedLessonWeek, TransformedLesson, StatefulElement, Group, Room, Stateful, Subject, Teacher, StatelessElement, ExtendedTransformedElement } from "@/types/transformed";
 import { shouldCombineLessons } from "@/utils/lessonHelper";
 import { Element, ElementType, Lesson, LessonState, UnresolvedElement } from "@/types/api";
@@ -14,7 +14,7 @@ import { combineDateAndTime } from "./transform";
  * @returns a transformed lesson week
  */
 
-export function transformLessons(lessons: Lesson[], elements: Element[], widgetConfig: Config): TransformedLessonWeek {
+export function transformLessons(lessons: Lesson[], elements: Element[], widgetConfig: Settings): TransformedLessonWeek {
 	const transformedLessonWeek: TransformedLessonWeek = {};
 
 	// transform each lesson
@@ -215,7 +215,7 @@ function resolveElements(lesson: Lesson, elements: Element[]) {
  * @param ignoreDetails if true, only the subject and time will be considered
  */
 
-export function combineLessons(lessons: TransformedLesson[], widgetConfig: Config, ignoreDetails = false, ignoreBreaks = false) {
+export function combineLessons(lessons: TransformedLesson[], widgetConfig: Settings, ignoreDetails = false, ignoreBreaks = false) {
 	const combinedLessonsNextDay: TransformedLesson[] = [];
 	for (const [index, lesson] of lessons.entries()) {
 		const previousLesson = combinedLessonsNextDay[combinedLessonsNextDay.length - 1];

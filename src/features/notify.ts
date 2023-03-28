@@ -1,5 +1,5 @@
 import { LOCALE, NO_VALUE_PLACEHOLDERS } from '@/constants'
-import { Config } from '@/preferences/config'
+import { Settings } from '@/settings/defaultConfig'
 import { LessonState } from '@/types/api'
 import { TransformedLessonWeek, TransformedExam, TransformedGrade, TransformedAbsence } from '@/types/transformed'
 import { scheduleNotification, asNumericTime, asWeekday } from '@/utils/helper'
@@ -15,7 +15,7 @@ import { getSubjectTitle } from '@/utils/lessonHelper'
 export function compareCachedLessons(
 	lessonWeek: TransformedLessonWeek,
 	cachedLessonWeek: TransformedLessonWeek,
-	widgetConfig: Config
+	widgetConfig: Settings
 ) {
 	console.log('Comparing cached lessons with fetched lessons.')
 
@@ -158,7 +158,7 @@ export function compareCachedLessons(
 	}
 }
 
-export function compareCachedExams(exams: TransformedExam[], cachedExams: TransformedExam[], widgetConfig: Config) {
+export function compareCachedExams(exams: TransformedExam[], cachedExams: TransformedExam[], widgetConfig: Settings) {
 	// find any exams that were added
 	for (const exam of exams) {
 		const cachedExam = cachedExams.find((cachedExam) => {
@@ -177,7 +177,7 @@ export function compareCachedExams(exams: TransformedExam[], cachedExams: Transf
 	}
 }
 
-export function compareCachedGrades(grades: TransformedGrade[], cachedExams: TransformedGrade[], widgetConfig: Config) {
+export function compareCachedGrades(grades: TransformedGrade[], cachedExams: TransformedGrade[], widgetConfig: Settings) {
 	// find any grades that were added
 	for (const grade of grades) {
 		const cachedGrade = cachedExams.find((cachedGrade) => JSON.stringify(cachedGrade) === JSON.stringify(grade))
@@ -195,7 +195,7 @@ export function compareCachedGrades(grades: TransformedGrade[], cachedExams: Tra
 export function compareCachedAbsences(
 	absences: TransformedAbsence[],
 	cachedAbsences: TransformedAbsence[],
-	widgetConfig: Config
+	widgetConfig: Settings
 ) {
 	// find any absences that were added
 	for (const absence of absences) {

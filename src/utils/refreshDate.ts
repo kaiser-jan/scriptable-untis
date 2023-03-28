@@ -1,5 +1,5 @@
 import { CURRENT_DATETIME } from "@/constants"
-import { Config } from "@/preferences/config"
+import { Settings } from "@/settings/defaultConfig"
 import { TransformedLesson } from "@/types/transformed"
 
 /**
@@ -8,7 +8,7 @@ import { TransformedLesson } from "@/types/transformed"
 export function getRefreshDateForLessons(
 	lessonsTodayRemaining: TransformedLesson[],
 	lessonsTomorrow: TransformedLesson[],
-	widgetConfig: Config
+	widgetConfig: Settings
 ) {
 	let nextRefreshDate: Date
 

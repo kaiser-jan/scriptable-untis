@@ -1,4 +1,4 @@
-import { Config } from '@/preferences/config'
+import { Settings } from '@/settings/defaultConfig'
 import { readKeychain } from '@/setup'
 import { login } from './login'
 
@@ -7,7 +7,7 @@ import { login } from './login'
  * @param widgetConfig
  * @returns
  */
-export async function prepareUser(widgetConfig: Config): Promise<FullUser> {
+export async function prepareUser(widgetConfig: Settings): Promise<FullUser> {
 	const CACHE_KEY = 'user'
 
 	const { json, cacheAge, cacheDate } = await readFromCache(CACHE_KEY)

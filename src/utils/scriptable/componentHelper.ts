@@ -2,9 +2,9 @@ import { MAX_TIME_STRING } from '@/constants'
 import { getCharHeight, getTextWidth, getCharWidth, asNumericTime } from '../helper'
 import { getSubjectTitle } from '../lessonHelper'
 import { TransformedLesson } from '@/types/transformed'
-import { Config } from '@/preferences/config'
+import { Settings } from '@/settings/defaultConfig'
 import { LessonState } from '@/types/api'
-import { colors, getColor } from '@/preferences/colors'
+import { colors, getColor } from '@/settings/colors'
 
 /**
  * Adds a SFSymbol with the correct outer size to match the font size.
@@ -32,7 +32,7 @@ export function addBreak(
 	breakFrom: Date,
 	breakTo: Date,
 	showToTime: boolean,
-	widgetConfig: Config
+	widgetConfig: Settings
 ) {
 	const breakContainer = makeTimelineEntry(to, breakFrom, widgetConfig, {
 		backgroundColor: colors.background.primary,
@@ -57,7 +57,7 @@ export function addBreak(
 function makeTimelineEntry(
 	to: WidgetStack | ListWidget,
 	time: Date,
-	widgetConfig: Config,
+	widgetConfig: Settings,
 	options: {
 		showTime?: boolean
 		showToTime?: boolean
@@ -150,7 +150,7 @@ function getLessonColors(lesson: TransformedLesson) {
 export function addWidgetLesson(
 	lesson: TransformedLesson,
 	to: ListWidget | WidgetStack,
-	widgetConfig: Config,
+	widgetConfig: Settings,
 	options: {
 		showTime: boolean
 		showToTime: boolean
@@ -252,7 +252,7 @@ export function addWidgetLesson(
  * @param container
  * @param widgetConfig
  */
-export function fillContainerWithSubject(lesson: TransformedLesson, container: WidgetStack, widgetConfig: Config) {
+export function fillContainerWithSubject(lesson: TransformedLesson, container: WidgetStack, widgetConfig: Settings) {
 	const { backgroundColor, textColor, secondaryTextColor } = getLessonColors(lesson)
 
 	container.backgroundColor = backgroundColor

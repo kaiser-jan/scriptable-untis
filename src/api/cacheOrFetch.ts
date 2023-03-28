@@ -3,9 +3,9 @@ import { readFromCache, writeToCache } from '@/api/cache'
 import { fetchLessonsFor, fetchExamsFor, fetchGradesFor, fetchAbsencesFor, fetchSchoolYears } from '@/api/fetch'
 import { NOTIFIABLE_TOPICS } from '@/constants'
 import { compareCachedLessons, compareCachedExams, compareCachedGrades, compareCachedAbsences } from '@/features/notify'
-import { Config } from '@/preferences/config'
+import { Settings } from '@/settings/defaultConfig'
 import { sortKeysByDate } from '@/utils/helper'
-import { applyLessonConfigs } from '@/preferences/lessonConfig'
+import { applyLessonConfigs } from '@/settings/lessonConfig'
 
 /**
  * Transforms a json date string back to a Date object.
@@ -29,9 +29,9 @@ function jsonDateReviver(key: string, value: any) {
 async function getCachedOrFetch<T>(
 	key: string,
 	maxAge: number,
-	widgetConfig: Config,
+	widgetConfig: Settings,
 	fetchData: () => Promise<T>,
-	compareData?: (fetchedData: T, cachedData: T, widgetConfig: Config) => void
+	compareData?: (fetchedData: T, cachedData: T, widgetConfig: Settings) => void
 ): Promise<T | undefined> {
 	const { json: cachedJson, cacheAge, cacheDate } = await readFromCache(key)
 
@@ -79,7 +79,7 @@ async function getCachedOrFetch<T>(
 	return fetchedData ?? cachedData
 }
 
-export async function getLessonsFor(user: FullUser, date: Date, isNext: boolean, widgetConfig: Config) {
+export async function getLessonsFor(user: FullUser, date: Date, isNext: boolean, widgetConfig: Settings) {
 	const key = isNext ? 'lessons_next' : 'lessons'
 	return getCachedOrFetch(
 		key,
@@ -90,7 +90,7 @@ export async function getLessonsFor(user: FullUser, date: Date, isNext: boolean,
 	)
 }
 
-export async function getExamsFor(user: FullUser, from: Date, to: Date, widgetConfig: Config) {
+export async function getExamsFor(user: FullUser, from: Date, to: Date, widgetConfig: Settings) {
 	return getCachedOrFetch(
 		'exams',
 		widgetConfig.cacheHours.exams * 60 * 60 * 1000,
@@ -100,7 +100,7 @@ export async function getExamsFor(user: FullUser, from: Date, to: Date, widgetCo
 	)
 }
 
-export async function getGradesFor(user: FullUser, from: Date, to: Date, widgetConfig: Config) {
+export async function getGradesFor(user: FullUser, from: Date, to: Date, widgetConfig: Settings) {
 	return getCachedOrFetch(
 		'grades',
 		widgetConfig.cacheHours.grades * 60 * 60 * 1000,
@@ -110,7 +110,7 @@ export async function getGradesFor(user: FullUser, from: Date, to: Date, widgetC
 	)
 }
 
-export async function getAbsencesFor(user: FullUser, from: Date, to: Date, widgetConfig: Config) {
+export async function getAbsencesFor(user: FullUser, from: Date, to: Date, widgetConfig: Settings) {
 	return getCachedOrFetch(
 		'absences',
 		widgetConfig.cacheHours.absences * 60 * 60 * 1000,
@@ -120,7 +120,7 @@ export async function getAbsencesFor(user: FullUser, from: Date, to: Date, widge
 	)
 }
 
-export async function getSchoolYears(user: FullUser, widgetConfig: Config) {
+export async function getSchoolYears(user: FullUser, widgetConfig: Settings) {
 	return getCachedOrFetch('school_years', widgetConfig.cacheHours.schoolYears * 60 * 60 * 1000, widgetConfig, () =>
 		fetchSchoolYears(user)
 	)
@@ -132,7 +132,7 @@ export async function getSchoolYears(user: FullUser, widgetConfig: Config) {
  * @param widgetConfig
  * @returns the remaining lessons for today, the lessons tomorrow and the key (date) of the next day
  */
-export async function getTimetable(user: FullUser, widgetConfig: Config) {
+export async function getTimetable(user: FullUser, widgetConfig: Settings) {
 	// fetch this weeks lessons
 	let timetable = await getLessonsFor(user, CURRENT_DATETIME, false, widgetConfig)
 

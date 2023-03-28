@@ -9,14 +9,14 @@ import { addFooter, getFooterHeight } from './views/footer'
 import { addViewGrades } from './views/grades'
 import { addViewLessons } from './views/lessons'
 import { addViewPreview } from './views/preview'
-import { Config } from './preferences/config'
+import { Settings } from './settings/defaultConfig'
 import { getModuleFileManager } from './utils/scriptable/fileSystem'
 
 export interface ViewBuildData {
 	container: WidgetStack
 	width: number
 	height: number
-	widgetConfig: Config
+	widgetConfig: Settings
 }
 
 export function checkNewRefreshDate(newDate: Date, fetchedData: FetchedData) {
@@ -36,7 +36,7 @@ export function proposeRefreshInXHours(hours: number, fetchedData: FetchedData) 
  * Creates the widget by adding as many views to it as fit.
  * Also adds the footer.
  */
-export async function createWidget(user: FullUser, layout: View[][], widgetConfig: Config) {
+export async function createWidget(user: FullUser, layout: View[][], widgetConfig: Settings) {
 	const widget = new ListWidget()
 
 	const widgetSizes = getWidgetSizes()
@@ -101,7 +101,7 @@ function addColumn(
 	height: number,
 	width: number,
 	shownViews: Set<View>,
-	widgetConfig: Config,
+	widgetConfig: Settings,
 ) {
 	// add the column
 	const columnStack = widgetContent.addStack()

@@ -1,9 +1,9 @@
-import { ConfigValue, Description } from '@/types/config'
+import { SettingsValue, Description } from '@/types/config'
 import { askForSingleInput, selectOption, showInfoPopup } from '@/utils/scriptable/input'
 
 export async function openValueEditor(
-	configPart: ConfigValue,
-	defaultConfigPart: ConfigValue,
+	configPart: SettingsValue,
+	defaultConfigPart: SettingsValue,
 	description: Description
 ) {
 	switch (typeof defaultConfigPart) {

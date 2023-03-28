@@ -1,12 +1,12 @@
 import { SubjectConfig } from '@/types/config'
 import { TransformedLesson, TransformedLessonWeek } from '@/types/transformed'
 import { unparsedColors } from './colors'
-import { Config } from './config'
+import { Settings } from './defaultConfig'
 
 /**
  * Applies the custom lesson config to a timetable.
  **/
-export function applyLessonConfigs(timetable: TransformedLessonWeek, widgetConfig: Config) {
+export function applyLessonConfigs(timetable: TransformedLessonWeek, widgetConfig: Settings) {
 	// iterate over the days, then the lessons
 	for (const key of Object.keys(timetable)) {
 		const day = timetable[key]
@@ -20,7 +20,7 @@ export function applyLessonConfigs(timetable: TransformedLessonWeek, widgetConfi
 /**
  * Applies the custom lesson config to a lesson.
  */
-function applyCustomLessonConfig(lesson: TransformedLesson, widgetConfig: Config) {
+function applyCustomLessonConfig(lesson: TransformedLesson, widgetConfig: Settings) {
 	lesson.backgroundColor = unparsedColors.background.primary
 
 	// return default values if there is no custom config

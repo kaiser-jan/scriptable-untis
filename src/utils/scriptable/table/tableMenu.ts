@@ -1,4 +1,4 @@
-import { openValueEditor } from '@/preferences/editor/valueEditor'
+import { openValueEditor } from '@/settings/editor/valueEditor'
 import { TableMenuRow } from './tableMenuRow'
 import { Description } from '@/types/config'
 

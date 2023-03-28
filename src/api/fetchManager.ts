@@ -1,6 +1,6 @@
 import { CURRENT_DATETIME } from "@/constants"
 import { View } from "@/layout"
-import { Config } from "@/preferences/config"
+import { Settings } from "@/settings/defaultConfig"
 import { getDateInXDays } from "@/utils/helper"
 import { getRefreshDateForLessons } from "@/utils/refreshDate"
 import { getTimetable, getExamsFor, getGradesFor, getSchoolYears, getAbsencesFor } from "./cacheOrFetch"
@@ -38,7 +38,7 @@ const VIEW_FETCH_MAP = new Map<View, FetchableItems>([
 /**
  * Fetches the data which is required for the given views.
  */
-export async function fetchDataForViews(viewNames: View[], user: FullUser, widgetConfig: Config) {
+export async function fetchDataForViews(viewNames: View[], user: FullUser, widgetConfig: Settings) {
 	let fetchedData: FetchedData = {}
 	const itemsToFetch = new Set<FetchableItems>()
 

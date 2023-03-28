@@ -1,5 +1,5 @@
 import { MAX_SUBJECT_NAME_LENGTH, MAX_TIME_STRING, MAX_LONG_SUBJECT_NAME_LENGTH } from '@/constants'
-import { Config } from '@/preferences/config'
+import { Settings } from '@/settings/defaultConfig'
 import { TransformedLesson } from '@/types/transformed'
 import { addWidgetLesson } from '@/utils/scriptable/componentHelper'
 import { getCharHeight, getTextWidth, asNumericTime, getCharWidth } from '@/utils/helper'
@@ -7,13 +7,13 @@ import { filterCanceledLessons } from '@/utils/lessonHelper'
 import { ViewBuildData } from '@/widget'
 import { addBreak } from '@/utils/scriptable/componentHelper'
 import { LessonState } from '@/types/api'
-import { colors } from '@/preferences/colors'
+import { colors } from '@/settings/colors'
 
 export function addViewLessons(
 	lessons: TransformedLesson[],
 	count: number | undefined,
 	{ container, width, height }: ViewBuildData,
-	widgetConfig: Config
+	widgetConfig: Settings
 ) {
 	// only allow up to x items to avoid overflow
 	let itemCount = 0

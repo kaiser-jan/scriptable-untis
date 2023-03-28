@@ -1,13 +1,13 @@
 import { SCRIPT_START_DATETIME } from "@/constants"
-import { colors } from "@/preferences/colors"
-import { Config } from "@/preferences/config"
+import { colors } from "@/settings/colors"
+import { Settings } from "@/settings/defaultConfig"
 import { addSymbol } from "@/utils/scriptable/componentHelper"
 import { getCharHeight } from "@/utils/helper"
 
-export function getFooterHeight(widgetConfig: Config) {
+export function getFooterHeight(widgetConfig: Settings) {
 	return getCharHeight(10) + 2 * 4
 }
-export function addFooter(container: WidgetStack | ListWidget, width: number, widgetConfig: Config) {
+export function addFooter(container: WidgetStack | ListWidget, width: number, widgetConfig: Settings) {
 	const footerGroup = container.addStack()
 
 	footerGroup.layoutHorizontally()

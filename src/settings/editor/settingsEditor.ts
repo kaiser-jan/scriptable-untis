@@ -1,8 +1,8 @@
-import { ConfigEditorOptions, ConfigValue, Description, GeneralizedConfig } from '@/types/config'
+import { SettingsEditorParameters, SettingsValue, Description, GeneralizedSettings } from '@/types/config'
 import { getModuleFileManager, readConfig, writeConfig } from '@/utils/scriptable/fileSystem'
 import { TableMenu } from '@/utils/scriptable/table/tableMenu'
-import { defaultConfig } from '../config'
-import { configDescription } from './configDescription'
+import { defaultConfig } from '../defaultConfig'
+import { settingsDescriptions } from './settingsDescription'
 import { openValueEditor } from './valueEditor'
 import { TableMenuCell } from '@/utils/scriptable/table/tableMenuCell'
 
@@ -12,18 +12,18 @@ import { TableMenuCell } from '@/utils/scriptable/table/tableMenuCell'
  * Each setting as a row showing its title and current value.
  * Clicking on a row will open a modal to edit the value, depending on its type.
  */
-export async function openConfigEditor() {
+export async function openSettings() {
 	const { useICloud, fileManager } = getModuleFileManager()
 	const widgetConfig = await readConfig(useICloud)
 
 	const tableMenu = new TableMenu(new UITable())
-	buildConfigEditor(
+	buildSettingsEditorFor(
 		tableMenu,
 		{
 			configPart: widgetConfig,
 			defaultConfigPart: defaultConfig,
 			fullConfig: widgetConfig,
-			descriptionsPart: configDescription,
+			descriptionsPart: settingsDescriptions,
 		},
 		() => {
 			writeConfig(useICloud, widgetConfig)
@@ -31,7 +31,7 @@ export async function openConfigEditor() {
 	)
 }
 
-export function buildConfigEditor(tableMenu: TableMenu, options: ConfigEditorOptions, saveConfig: () => void) {
+export function buildSettingsEditorFor(tableMenu: TableMenu, options: SettingsEditorParameters, saveConfig: () => void) {
 	const { configPart, defaultConfigPart, descriptionsPart } = options
 
 	tableMenu.reset()
@@ -47,28 +47,28 @@ export function buildConfigEditor(tableMenu: TableMenu, options: ConfigEditorOpt
 		if (typeof descriptionsSubPart === 'string') continue
 
 		const optionsPart = {
-			configPart: configSubPart as GeneralizedConfig,
-			defaultConfigPart: defaultSubConfigPart as GeneralizedConfig,
+			configPart: configSubPart as GeneralizedSettings,
+			defaultConfigPart: defaultSubConfigPart as GeneralizedSettings,
 			fullConfig: options.fullConfig,
 			descriptionsPart: descriptionsSubPart,
 		}
 
-		function updateValue(newValue: ConfigValue) {
+		function updateValue(newValue: SettingsValue) {
 			// modify this value in the config
 			configPart[key] = newValue
 			console.log(`Config Editor: Set "${key}" to "${newValue}".`)
 			saveConfig()
-			buildConfigEditor(tableMenu, options, saveConfig)
+			buildSettingsEditorFor(tableMenu, options, saveConfig)
 		}
 
 		// if this is a category, add a row for it
 		if (typeof defaultSubConfigPart === 'object') {
-			addConfigCategoryRow(tableMenu, key, optionsPart, saveConfig)
+			addSettingsCategory(tableMenu, key, optionsPart, saveConfig)
 		} else {
 			// add a row for this setting
-			addConfigValueRow(
+			addSettingsValue(
 				tableMenu,
-				configSubPart as ConfigValue,
+				configSubPart as SettingsValue,
 				defaultSubConfigPart,
 				descriptionsSubPart,
 				updateValue
@@ -79,7 +79,7 @@ export function buildConfigEditor(tableMenu: TableMenu, options: ConfigEditorOpt
 	tableMenu.show()
 }
 
-function addConfigCategoryRow(tableMenu: TableMenu, key: string, options: ConfigEditorOptions, saveConfig: () => void) {
+function addSettingsCategory(tableMenu: TableMenu, key: string, options: SettingsEditorParameters, saveConfig: () => void) {
 	const row = tableMenu.addTextRow(options.descriptionsPart._title, options.descriptionsPart._description)
 
 	row.setOnTap(() => {
@@ -90,16 +90,16 @@ function addConfigCategoryRow(tableMenu: TableMenu, key: string, options: Config
 			return
 		}
 
-		buildConfigEditor(tableMenu.createSubView(), options, saveConfig)
+		buildSettingsEditorFor(tableMenu.createSubView(), options, saveConfig)
 	})
 }
 
-function addConfigValueRow(
+function addSettingsValue(
 	tableMenu: TableMenu,
-	value: ConfigValue,
-	defaultValue: ConfigValue,
+	value: SettingsValue,
+	defaultValue: SettingsValue,
 	description: Description,
-	updateValue: (newValue: ConfigValue) => void
+	updateValue: (newValue: SettingsValue) => void
 ) {
 	const row = tableMenu.addTextRow(description._title, description._description)
 

@@ -1,5 +1,5 @@
 import { CURRENT_DATETIME, LOCALE } from '@/constants'
-import { colors } from '@/preferences/colors'
+import { colors } from '@/settings/colors'
 import { TransformedExam } from '@/types/transformed'
 import { getCharHeight, getCharWidth } from '@/utils/helper'
 import { FlowLayoutRow } from '@/utils/scriptable/layoutHelper'

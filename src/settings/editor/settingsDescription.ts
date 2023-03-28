@@ -1,6 +1,6 @@
-import { ConfigDescription } from '../config'
+import { SettingsDescription } from '../defaultConfig'
 
-export const configDescription: ConfigDescription = {
+export const settingsDescriptions: SettingsDescription = {
 	_title: '🔧️ Config Editor',
 	_description: 'Click a category below to open it.',
 	

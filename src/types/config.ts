@@ -1,4 +1,4 @@
-import { Config } from '@/preferences/config'
+import { Settings } from '@/settings/defaultConfig'
 
 /**
  * A configuration for a single subject.
@@ -38,25 +38,25 @@ export type ReplaceKeyType<T, K extends keyof T, R> = Omit<T, K> & Record<K, R>
 
 // TODO: rework the types
 
-export type ConfigValue = string | number | boolean
+export type SettingsValue = string | number | boolean
 
-export type GeneralizedConfigEntry = GeneralizedConfig | ConfigValue | SubjectConfigs
+export type GeneralizedSettingsEntry = GeneralizedSettings | SettingsValue | SubjectConfigs
 
-export type GeneralizedConfig = {
-	[key: string]: GeneralizedConfigEntry
+export type GeneralizedSettings = {
+	[key: string]: GeneralizedSettingsEntry
 }
 
-export type GeneralizedConfigDescription = {
+export type GeneralizedSettingsDescription = {
 	_title: string
 	_description: string
-	[key: string]: Description | (GeneralizedConfigDescription & Description) | string
+	[key: string]: Description | (GeneralizedSettingsDescription & Description) | string
 }
 
-export interface ConfigEditorOptions {
-	configPart: GeneralizedConfig
-	defaultConfigPart: GeneralizedConfig
-	fullConfig: Config
-	descriptionsPart: GeneralizedConfigDescription
+export interface SettingsEditorParameters {
+	configPart: GeneralizedSettings
+	defaultConfigPart: GeneralizedSettings
+	fullConfig: Settings
+	descriptionsPart: GeneralizedSettingsDescription
 }
 
 export type BackFunctionType = () => void

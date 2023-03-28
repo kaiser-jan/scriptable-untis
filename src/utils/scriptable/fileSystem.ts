@@ -1,5 +1,5 @@
 import { CONFIG_FILE_NAME } from '@/constants'
-import { Config, defaultConfig } from '@/preferences/config'
+import { Settings, defaultConfig } from '@/settings/defaultConfig'
 import { deepMerge } from '../helper'
 
 export function getModuleFileManager() {
@@ -21,16 +21,16 @@ export async function readConfig(useICloud: boolean) {
 		defaultValue: JSON.stringify(defaultConfig)
 	})
 
-	const fileConfig: Config = JSON.parse(configJson)
+	const fileConfig: Settings = JSON.parse(configJson)
 
 	// create a copy of the default config to avoid modifying it
 	const defaultConfigCopy = JSON.parse(JSON.stringify(defaultConfig))
 
 	// combine the defaultConfig and read config and write it to config
-	return deepMerge(defaultConfigCopy, fileConfig) as Config
+	return deepMerge(defaultConfigCopy, fileConfig) as Settings
 }
 
-export async function writeConfig(useICloud: boolean, config: Config) {
+export async function writeConfig(useICloud: boolean, config: Settings) {
 	const fileManager = useICloud ? FileManager.iCloud() : FileManager.local()
 
 	const path = fileManager.joinPath(fileManager.documentsDirectory(), CONFIG_FILE_NAME)

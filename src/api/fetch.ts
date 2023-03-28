@@ -1,4 +1,4 @@
-import { Config } from '@/preferences/config'
+import { Settings } from '@/settings/defaultConfig'
 import { formatDateForUntis } from '@/utils/helper'
 import {
 	transformExams,
@@ -20,7 +20,7 @@ function prepareRequest(url: string, user: FullUser) {
 	return request
 }
 
-export async function fetchLessonsFor(user: FullUser, date: Date = new Date(), widgetConfig: Config) {
+export async function fetchLessonsFor(user: FullUser, date: Date = new Date(), widgetConfig: Settings) {
 	const urlTimetable = `https://${
 		user.server
 	}.webuntis.com/WebUntis/api/public/timetable/weekly/data?elementType=5&elementId=${user.id}&date=${
