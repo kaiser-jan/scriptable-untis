@@ -2,7 +2,7 @@ import { MAX_TIME_STRING } from '@/constants'
 import { getCharHeight, getTextWidth, getCharWidth, asNumericTime } from '../helper'
 import { getSubjectTitle } from '../lessonHelper'
 import { TransformedLesson } from '@/types/transformed'
-import { Settings } from '@/settings/defaultConfig'
+import { Settings } from '@/settings/settings'
 import { LessonState } from '@/types/api'
 import { colors, getColor } from '@/settings/colors'
 

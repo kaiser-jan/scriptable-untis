@@ -1,4 +1,4 @@
-import { Settings } from "@/settings/defaultConfig"
+import { Settings } from "@/settings/settings"
 import { LessonState } from "@/types/api"
 import { TransformedLesson } from "@/types/transformed"
 
@@ -25,7 +25,7 @@ export function shouldCombineLessons(
 	ignoreBreaks = false
 ) {
 	if (a.subject?.name !== b.subject?.name) return false
-	if (!ignoreBreaks && b.from.getTime() - a.to.getTime() > widgetConfig.config.breakMinMinutes * 60 * 1000) return false
+	if (!ignoreBreaks && b.from.getTime() - a.to.getTime() > widgetConfig.config.breakMin * 1000) return false
 
 	if (ignoreDetails) return true
 

@@ -1,11 +1,11 @@
 import { CURRENT_DATETIME } from "@/constants"
 import { View } from "@/layout"
-import { Settings } from "@/settings/defaultConfig"
-import { getDateInXDays } from "@/utils/helper"
+import { Settings } from "@/settings/settings"
+import { getDateInXSeconds } from "@/utils/helper"
 import { getRefreshDateForLessons } from "@/utils/refreshDate"
 import { getTimetable, getExamsFor, getGradesFor, getSchoolYears, getAbsencesFor } from "./cacheOrFetch"
 import { fetchClassRolesFor } from "./fetch"
-import { checkNewRefreshDate, proposeRefreshInXHours } from "@/widget"
+import { checkNewRefreshDate, proposeRefreshIn } from "@/widget"
 import { TransformedLesson, TransformedExam, TransformedGrade, TransformedAbsence, TransformedClassRole } from "@/types/transformed"
 
 export interface FetchedData {
@@ -57,20 +57,20 @@ export async function fetchDataForViews(viewNames: View[], user: FullUser, widge
 	}
 
 	if (itemsToFetch.has(FetchableItems.EXAMS)) {
-		const examsFrom = getDateInXDays(widgetConfig.views.exams.scopeDays)
+		const examsFrom = getDateInXSeconds(widgetConfig.views.exams.scope)
 		const promise = getExamsFor(user, examsFrom, CURRENT_DATETIME, widgetConfig).then((exams) => {
 			fetchedData.exams = exams
 		})
-		proposeRefreshInXHours(widgetConfig.cacheHours.exams, fetchedData)
+		proposeRefreshIn(widgetConfig.cache.exams, fetchedData)
 		fetchPromises.push(promise)
 	}
 
 	if (itemsToFetch.has(FetchableItems.GRADES)) {
-		const gradesFrom = getDateInXDays(widgetConfig.views.grades.scopeDays)
+		const gradesFrom = getDateInXSeconds(widgetConfig.views.grades.scope)
 		const promise = getGradesFor(user, gradesFrom, CURRENT_DATETIME, widgetConfig).then((grades) => {
 			fetchedData.grades = grades
 		})
-		proposeRefreshInXHours(widgetConfig.cacheHours.grades, fetchedData)
+		proposeRefreshIn(widgetConfig.cache.grades, fetchedData)
 		fetchPromises.push(promise)
 	}
 
@@ -83,7 +83,7 @@ export async function fetchDataForViews(viewNames: View[], user: FullUser, widge
 		const promise = getAbsencesFor(user, currentSchoolYear.from, CURRENT_DATETIME, widgetConfig).then((absences) => {
 			fetchedData.absences = absences
 		})
-		proposeRefreshInXHours(widgetConfig.cacheHours.absences, fetchedData)
+		proposeRefreshIn(widgetConfig.cache.absences, fetchedData)
 		fetchPromises.push(promise)
 	}
 

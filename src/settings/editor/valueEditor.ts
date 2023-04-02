@@ -1,50 +1,75 @@
-import { SettingsValue, Description } from '@/types/config'
+import {
+	PrimitiveSettingsValue as defaultValue,
+	PrimitiveSettingsValue,
+	SettingsValue,
+	SettingsValueType,
+} from '@/types/settings'
+import { Duration } from '@/utils/duration'
 import { askForSingleInput, selectOption, showInfoPopup } from '@/utils/scriptable/input'
 
+const LOCALE_REGEX = /^[a-z]{2}(-[A-Z]{2})?$/
+
 export async function openValueEditor(
-	configPart: SettingsValue,
-	defaultConfigPart: SettingsValue,
-	description: Description
+	formattedValue: string,
+	formattedDefaultValue: string,
+	blueprint: SettingsValue
 ) {
-	switch (typeof defaultConfigPart) {
-		case 'string':
-			return openTextValueEditor(configPart as string, defaultConfigPart, description)
-		case 'number':
-			const value = await openTextValueEditor(configPart.toString(), defaultConfigPart, description)
-			// return null if the user cancels the input
-			if (value === null) return null
-			// check if the value is a number
-			if (isNaN(Number(value))) {
-				showInfoPopup('❌ Invalid number', `The value you entered (${value}) is not a number.`)
+	const newValue = await openTextValueEditor(formattedValue.toString(), formattedDefaultValue, blueprint)
+
+	// return null if the user cancels the input
+	if (newValue === null) return null
+
+	switch (blueprint.type) {
+		case SettingsValueType.LOCALE:
+			// check if the value is a valid locale (using regex)
+			if (!newValue.match(LOCALE_REGEX)) {
+				showInfoPopup('❌ Invalid locale', `The locale should be in a format like "de-AT".`)
 				return null
 			}
-			return parseFloat(value)
-		case 'boolean':
-			// simply invert the value for booleans to toggle them
-			return !configPart
+			return newValue
+		case SettingsValueType.COUNT:
+			// check if the value is a number
+			if (isNaN(Number(newValue))) {
+				showInfoPopup('❌ Invalid number', `The value you entered (${newValue}) is not a number.`)
+				return null
+			}
+			return parseFloat(newValue)
+
+		case SettingsValueType.DURATION:
+			try {
+				// parse the duration string
+				return Duration.fromString(newValue).toSeconds()
+			} catch {
+				showInfoPopup(
+					'❌ Invalid duration',
+					`The duration should be a number followed by the unit. (e.g. "5m", "2h", "1wk")`
+				)
+				return null
+			}
+
 		default:
-			throw new Error(`Cannot open value editor for unknown type ${typeof configPart}`)
+			throw new Error(`Cannot open value editor for unknown type ${typeof newValue}`)
 	}
 }
 
 export async function openTextValueEditor(
-	value: string | number,
-	defaultValue: string | number,
-	description: Description
+	value: PrimitiveSettingsValue,
+	defaultValue: PrimitiveSettingsValue,
+	settingsValue: SettingsValue
 ) {
 	return await askForSingleInput({
-		title: description._title,
-		description: description._description,
+		title: settingsValue.title,
+		description: settingsValue.description,
 		placeholder: defaultValue.toString(),
 		defaultValue: value.toString(),
 	})
 }
 
-export async function openBooleanEditor(description: Description) {
+export async function openBooleanEditor(settingsValue: SettingsValue) {
 	try {
 		const response = await selectOption(['true', 'false'], {
-			title: description._title,
-			description: description._description,
+			title: settingsValue.title,
+			description: settingsValue.description,
 		})
 		return response === 'true'
 	} catch {

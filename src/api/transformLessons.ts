@@ -1,4 +1,4 @@
-import { Settings } from "@/settings/defaultConfig";
+import { Settings } from "@/settings/settings";
 import { TransformedLessonWeek, TransformedLesson, StatefulElement, Group, Room, Stateful, Subject, Teacher, StatelessElement, ExtendedTransformedElement } from "@/types/transformed";
 import { shouldCombineLessons } from "@/utils/lessonHelper";
 import { Element, ElementType, Lesson, LessonState, UnresolvedElement } from "@/types/api";

@@ -1,5 +1,5 @@
 import { MAX_SUBJECT_NAME_LENGTH, MAX_TIME_STRING, MAX_LONG_SUBJECT_NAME_LENGTH } from '@/constants'
-import { Settings } from '@/settings/defaultConfig'
+import { Settings } from '@/settings/settings'
 import { TransformedLesson } from '@/types/transformed'
 import { addWidgetLesson } from '@/utils/scriptable/componentHelper'
 import { getCharHeight, getTextWidth, asNumericTime, getCharWidth } from '@/utils/helper'
@@ -58,7 +58,7 @@ export function addViewLessons(
 			if (
 				previousLesson &&
 				widgetConfig.views.lessons.showLongBreaks &&
-				gapDuration > widgetConfig.config.breakMaxMinutes * 60 * 1000
+				gapDuration > widgetConfig.config.breakMax * 1000
 			) {
 				addBreak(container, previousLesson.to, lesson.from, showToTime, widgetConfig)
 				itemCount++

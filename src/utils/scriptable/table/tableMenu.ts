@@ -1,6 +1,4 @@
-import { openValueEditor } from '@/settings/editor/valueEditor'
 import { TableMenuRow } from './tableMenuRow'
-import { Description } from '@/types/config'
 
 export class TableMenu {
 	private _table: UITable

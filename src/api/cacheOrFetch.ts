@@ -3,7 +3,7 @@ import { readFromCache, writeToCache } from '@/api/cache'
 import { fetchLessonsFor, fetchExamsFor, fetchGradesFor, fetchAbsencesFor, fetchSchoolYears } from '@/api/fetch'
 import { NOTIFIABLE_TOPICS } from '@/constants'
 import { compareCachedLessons, compareCachedExams, compareCachedGrades, compareCachedAbsences } from '@/features/notify'
-import { Settings } from '@/settings/defaultConfig'
+import { Settings } from '@/settings/settings'
 import { sortKeysByDate } from '@/utils/helper'
 import { applyLessonConfigs } from '@/settings/lessonConfig'
 
@@ -20,7 +20,7 @@ function jsonDateReviver(key: string, value: any) {
 /**
  * Tries to read the given cache, or fetches the data if the cache is too old.
  * @param key the key of the cache
- * @param maxAge the maximum age of the cache in milliseconds
+ * @param maxAge the maximum age of the cache in seconds
  * @param widgetConfig
  * @param fetchData a function which fetches the fresh data
  * @param compareData a function which compares the fetched data with the cached data for sending notifications
@@ -43,8 +43,11 @@ async function getCachedOrFetch<T>(
 
 	let fetchedData: T
 
+	log(cacheAge)
+	log(maxAge * 1000)
+
 	// refetch if the cache is too old (max age exceeded or not the same day)
-	if (!cachedJson || cacheAge > maxAge || cacheDate.getDate() !== CURRENT_DATETIME.getDate()) {
+	if (!cachedJson || cacheAge > maxAge * 1000 || cacheDate.getDate() !== CURRENT_DATETIME.getDate()) {
 		console.log(`Fetching data ${key}, cache invalid.`)
 
 		// we cannot fall back to the cached data if there is no internet,
@@ -57,7 +60,7 @@ async function getCachedOrFetch<T>(
 		}
 	}
 
-	const areNotificationsEnabled = widgetConfig.notifications.enabled[key]
+	const areNotificationsEnabled = widgetConfig.notifications[key]
 
 	if (!areNotificationsEnabled) {
 		if (NOTIFIABLE_TOPICS.includes(key)) {
@@ -83,7 +86,7 @@ export async function getLessonsFor(user: FullUser, date: Date, isNext: boolean,
 	const key = isNext ? 'lessons_next' : 'lessons'
 	return getCachedOrFetch(
 		key,
-		widgetConfig.cacheHours.lessons * 60 * 60 * 1000,
+		widgetConfig.cache.lessons,
 		widgetConfig,
 		() => fetchLessonsFor(user, date, widgetConfig),
 		compareCachedLessons
@@ -93,7 +96,7 @@ export async function getLessonsFor(user: FullUser, date: Date, isNext: boolean,
 export async function getExamsFor(user: FullUser, from: Date, to: Date, widgetConfig: Settings) {
 	return getCachedOrFetch(
 		'exams',
-		widgetConfig.cacheHours.exams * 60 * 60 * 1000,
+		widgetConfig.cache.exams,
 		widgetConfig,
 		() => fetchExamsFor(user, from, to),
 		compareCachedExams
@@ -103,7 +106,7 @@ export async function getExamsFor(user: FullUser, from: Date, to: Date, widgetCo
 export async function getGradesFor(user: FullUser, from: Date, to: Date, widgetConfig: Settings) {
 	return getCachedOrFetch(
 		'grades',
-		widgetConfig.cacheHours.grades * 60 * 60 * 1000,
+		widgetConfig.cache.grades,
 		widgetConfig,
 		() => fetchGradesFor(user, from, to),
 		compareCachedGrades
@@ -113,7 +116,7 @@ export async function getGradesFor(user: FullUser, from: Date, to: Date, widgetC
 export async function getAbsencesFor(user: FullUser, from: Date, to: Date, widgetConfig: Settings) {
 	return getCachedOrFetch(
 		'absences',
-		widgetConfig.cacheHours.absences * 60 * 60 * 1000,
+		widgetConfig.cache.absences,
 		widgetConfig,
 		() => fetchAbsencesFor(user, from, to),
 		compareCachedAbsences
@@ -121,7 +124,7 @@ export async function getAbsencesFor(user: FullUser, from: Date, to: Date, widge
 }
 
 export async function getSchoolYears(user: FullUser, widgetConfig: Settings) {
-	return getCachedOrFetch('school_years', widgetConfig.cacheHours.schoolYears * 60 * 60 * 1000, widgetConfig, () =>
+	return getCachedOrFetch('school_years', widgetConfig.cache.schoolYears, widgetConfig, () =>
 		fetchSchoolYears(user)
 	)
 }
@@ -152,7 +155,7 @@ export async function getTimetable(user: FullUser, widgetConfig: Settings) {
 		const firstDate = sortedKeys[0] ? new Date(sortedKeys[0]) : CURRENT_DATETIME
 		// get the first date of the next timetable week
 		const nextWeekFirstDate = new Date(firstDate.getTime() + 7 * 24 * 60 * 60 * 1000)
-		console.log(`No lessons for today/tomorrow -> fetching next week. (${nextWeekFirstDate.toISOString()})`)
+		console.log(`No lessons for tomorrow -> fetching next week. (${nextWeekFirstDate.toISOString()})`)
 		// fetch the next week
 		const nextWeekTimetable = await getLessonsFor(user, nextWeekFirstDate, true, widgetConfig)
 		// merge the next week timetable into the current one

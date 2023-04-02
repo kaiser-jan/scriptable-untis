@@ -1,7 +1,7 @@
-import { SubjectConfig } from '@/types/config'
+import { SubjectConfig } from '@/types/settings'
 import { TransformedLesson, TransformedLessonWeek } from '@/types/transformed'
 import { unparsedColors } from './colors'
-import { Settings } from './defaultConfig'
+import { Settings } from './settings'
 
 /**
  * Applies the custom lesson config to a timetable.

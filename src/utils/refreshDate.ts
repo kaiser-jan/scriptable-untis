@@ -1,5 +1,5 @@
 import { CURRENT_DATETIME } from "@/constants"
-import { Settings } from "@/settings/defaultConfig"
+import { Settings } from "@/settings/settings"
 import { TransformedLesson } from "@/types/transformed"
 
 /**
@@ -27,7 +27,7 @@ export function getRefreshDateForLessons(
 			// if the break is too short
 			if (
 				secondLesson &&
-				secondLesson.from.getTime() - firstLesson.to.getTime() < widgetConfig.config.breakMaxMinutes * 60 * 1000
+				secondLesson.from.getTime() - firstLesson.to.getTime() < widgetConfig.config.breakMax * 1000
 			) {
 				nextRefreshDate = secondLesson.from
 				console.log(
@@ -46,19 +46,19 @@ export function getRefreshDateForLessons(
 		// if the next lesson (on the next day) is in the scope of the frequent updates
 		if (lessonsTomorrow && lessonsTomorrow.length > 1) {
 			const timeUntilNextLesson = lessonsTomorrow[0].from.getTime() - CURRENT_DATETIME.getTime()
-			shouldLazyUpdate = timeUntilNextLesson > widgetConfig.refresh.normalScopeHours * 60 * 60 * 1000
+			shouldLazyUpdate = timeUntilNextLesson > widgetConfig.refresh.normalScope * 1000
 		}
 
 		// refresh based on normal/lazy refreshing
 		if (shouldLazyUpdate) {
-			console.log(`Would refresh in ${widgetConfig.refresh.lazyIntervalMinutes} minutes (lazy updating).`)
+			console.log(`Would refresh in ${widgetConfig.refresh.lazyInterval} minutes (lazy updating).`)
 			nextRefreshDate = new Date(
-				CURRENT_DATETIME.getTime() + widgetConfig.refresh.lazyIntervalMinutes * 60 * 1000
+				CURRENT_DATETIME.getTime() + widgetConfig.refresh.lazyInterval * 1000
 			)
 		} else {
-			console.log(`Would refresh in ${widgetConfig.refresh.normalIntervalMinutes} minutes (normal updating).`)
+			console.log(`Would refresh in ${widgetConfig.refresh.normalInterval} minutes (normal updating).`)
 			nextRefreshDate = new Date(
-				CURRENT_DATETIME.getTime() + widgetConfig.refresh.normalIntervalMinutes * 60 * 1000
+				CURRENT_DATETIME.getTime() + widgetConfig.refresh.normalInterval * 1000
 			)
 		}
 	}

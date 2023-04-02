@@ -1,7 +1,7 @@
 import { CURRENT_DATETIME } from '@/constants'
 import { FetchedData, fetchDataForViews } from './api/fetchManager'
 import { View } from './layout'
-import { getCharHeight } from './utils/helper'
+import { getCharHeight, getDateInXSeconds } from './utils/helper'
 import { getWidgetSize, getWidgetSizes } from './utils/scriptable/widgetSize'
 import { addViewAbsences } from './views/absences'
 import { addViewExams } from './views/exams'
@@ -9,7 +9,7 @@ import { addFooter, getFooterHeight } from './views/footer'
 import { addViewGrades } from './views/grades'
 import { addViewLessons } from './views/lessons'
 import { addViewPreview } from './views/preview'
-import { Settings } from './settings/defaultConfig'
+import { Settings } from './settings/settings'
 import { getModuleFileManager } from './utils/scriptable/fileSystem'
 
 export interface ViewBuildData {
@@ -26,9 +26,8 @@ export function checkNewRefreshDate(newDate: Date, fetchedData: FetchedData) {
 	}
 }
 
-export function proposeRefreshInXHours(hours: number, fetchedData: FetchedData) {
-	const newDate = new Date(CURRENT_DATETIME)
-	newDate.setHours(newDate.getHours() + hours)
+export function proposeRefreshIn(seconds: number, fetchedData: FetchedData) {
+	const newDate = getDateInXSeconds(seconds)
 	checkNewRefreshDate(newDate, fetchedData)
 }
 
@@ -76,18 +75,10 @@ export async function createWidget(user: FullUser, layout: View[][], widgetConfi
 
 	// add all the columns with the views
 	for (const column of layout) {
-		addColumn(
-			fetchedData,
-			widgetContent,
-			column,
-			contentSize.height,
-			columnWidth,
-			shownViews,
-			widgetConfig,
-		)
+		addColumn(fetchedData, widgetContent, column, contentSize.height, columnWidth, shownViews, widgetConfig)
 	}
 
-	if (widgetConfig.footer.show) {
+	if (widgetConfig.appearance.footer) {
 		addFooter(widget, contentSize.width, widgetConfig)
 	}
 
@@ -101,7 +92,7 @@ function addColumn(
 	height: number,
 	width: number,
 	shownViews: Set<View>,
-	widgetConfig: Settings,
+	widgetConfig: Settings
 ) {
 	// add the column
 	const columnStack = widgetContent.addStack()
@@ -111,7 +102,7 @@ function addColumn(
 
 	// calculate the real available height
 	let availableContentHeight = height
-	if (widgetConfig.footer.show) availableContentHeight -= getFooterHeight(widgetConfig)
+	if (widgetConfig.appearance.footer) availableContentHeight -= getFooterHeight(widgetConfig)
 
 	columnStack.size = new Size(width, availableContentHeight)
 
@@ -164,21 +155,19 @@ function addView(fetchedData: FetchedData, view: View, viewData: ViewBuildData, 
 
 	switch (view) {
 		case View.LESSONS:
-			if (!fetchedData.lessonsTodayRemaining || !fetchedData.lessonsNextDay || !fetchedData.nextDayKey) {
-				console.warn(`Tried to add lessons view, but no lessons data was fetched`)
-				return
-			}
-			// show a preview if there are no lessons today anymore
-			if (fetchedData.lessonsTodayRemaining.length > 0) {
+			// show the lessons view if there are lessons today
+			if (fetchedData.lessonsTodayRemaining?.length > 0) {
 				return addViewLessons(
 					fetchedData.lessonsTodayRemaining,
 					widgetConfig.views.lessons.maxCount,
 					viewData,
 					widgetConfig
 				)
-			} else {
-				return addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData)
 			}
+
+			// otherwise, show a preview (handles no lessons in the next week)
+			return addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData)
+
 		case View.PREVIEW:
 			if (!fetchedData.lessonsNextDay || !fetchedData.nextDayKey) {
 				console.warn(`Tried to add preview view, but no lessons data was fetched`)

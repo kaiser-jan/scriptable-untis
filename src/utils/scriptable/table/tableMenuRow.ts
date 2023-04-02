@@ -71,7 +71,6 @@ export class TableMenuRow {
 	build() {
 		let usedWidth = 0
 		let autoWidthCount = 0
-		log('building row')
 
 		if (this._cells.length === 0) return this._row
 
@@ -79,10 +78,8 @@ export class TableMenuRow {
 		for (const cell of this._cells) {
 			if (cell.width !== null) {
 				usedWidth += cell.width
-				log(`cell with fixed width: ${cell.width}`)
 			} else {
 				autoWidthCount++
-				log(`cell with auto width`)
 			}
 		}
 

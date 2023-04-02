@@ -50,9 +50,9 @@ export function addViewExams(
 		if (exam.to < CURRENT_DATETIME) continue
 
 		// continue is not in the scope
-		const daysUntilExam = Math.floor((exam.from.getTime() - CURRENT_DATETIME.getTime()) / 1000 / 60 / 60 / 24)
+		const secondsUntilExam = Math.floor((exam.from.getTime() - CURRENT_DATETIME.getTime()) / 1000)
 
-		if (widgetConfig.views.exams.scopeDays && daysUntilExam > widgetConfig.views.exams.scopeDays) continue
+		if (widgetConfig.views.exams.scope && secondsUntilExam > widgetConfig.views.exams.scope) continue
 
 		// subtract the spacing between the items
 		if (i > 0) remainingHeight -= widgetConfig.appearance.spacing

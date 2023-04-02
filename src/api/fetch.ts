@@ -1,4 +1,4 @@
-import { Settings } from '@/settings/defaultConfig'
+import { Settings } from '@/settings/settings'
 import { formatDateForUntis } from '@/utils/helper'
 import {
 	transformExams,
@@ -40,7 +40,7 @@ export async function fetchLessonsFor(user: FullUser, date: Date = new Date(), w
 
 	const transformedLessons = transformLessons(lessons, timetableData.elements, widgetConfig)
 
-	console.log(`🧬 Transformed ${Object.keys(transformedLessons).length} lessons`)
+	console.log(`🧬 Transformed lessons for ${Object.keys(transformedLessons).length} days`)
 
 	return transformedLessons
 }

@@ -1,7 +1,7 @@
 import { CURRENT_DATETIME } from "@/constants"
 import { combineLessons } from "@/api/transformLessons"
 import { LOCALE } from "@/constants"
-import { Settings } from "@/settings/defaultConfig"
+import { Settings } from "@/settings/settings"
 import { TransformedLesson } from "@/types/transformed"
 import { fillContainerWithSubject } from "@/utils/scriptable/componentHelper"
 import { getCharHeight, getCharWidth, asNumericTime, getTextWidth } from "@/utils/helper"

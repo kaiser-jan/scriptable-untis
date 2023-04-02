@@ -1,6 +1,6 @@
 import { LOCALE } from "@/constants"
 import { colors } from "@/settings/colors"
-import { Settings } from "@/settings/defaultConfig"
+import { Settings } from "@/settings/settings"
 import { TransformedAbsence } from "@/types/transformed"
 import { getCharHeight } from "@/utils/helper"
 import { FlowLayoutRow } from "@/utils/scriptable/layoutHelper"

@@ -1,10 +1,22 @@
-import { SettingsEditorParameters, SettingsValue, Description, GeneralizedSettings } from '@/types/config'
+import {
+	GeneralizedSettings,
+	GeneralizedSettingsEntry,
+	PrimitiveSettingsValue,
+	SettingsCategory,
+	SettingsEditorParameters,
+	SettingsStructureBase,
+	SettingsValue,
+	SettingsValueType,
+	isPrimitiveSettingsValue,
+	isSettingsValue,
+} from '@/types/settings'
 import { getModuleFileManager, readConfig, writeConfig } from '@/utils/scriptable/fileSystem'
 import { TableMenu } from '@/utils/scriptable/table/tableMenu'
-import { defaultConfig } from '../defaultConfig'
-import { settingsDescriptions } from './settingsDescription'
-import { openValueEditor } from './valueEditor'
 import { TableMenuCell } from '@/utils/scriptable/table/tableMenuCell'
+import { Settings, defaultSettings } from '../settings'
+import { settingsBlueprint } from './settingsBlueprint'
+import { openValueEditor } from './valueEditor'
+import { Duration } from '@/utils/duration'
 
 /**
  * Opens the config editor as a UITable.
@@ -20,10 +32,10 @@ export async function openSettings() {
 	buildSettingsEditorFor(
 		tableMenu,
 		{
-			configPart: widgetConfig,
-			defaultConfigPart: defaultConfig,
-			fullConfig: widgetConfig,
-			descriptionsPart: settingsDescriptions,
+			settings: widgetConfig,
+			defaultSettings: defaultSettings,
+			fullSettings: widgetConfig,
+			blueprint: settingsBlueprint,
 		},
 		() => {
 			writeConfig(useICloud, widgetConfig)
@@ -31,56 +43,75 @@ export async function openSettings() {
 	)
 }
 
-export function buildSettingsEditorFor(tableMenu: TableMenu, options: SettingsEditorParameters, saveConfig: () => void) {
-	const { configPart, defaultConfigPart, descriptionsPart } = options
+export function buildSettingsEditorFor(
+	tableMenu: TableMenu,
+	options: {
+		settings: GeneralizedSettings
+		defaultSettings: GeneralizedSettings
+		blueprint: SettingsCategory<SettingsStructureBase>
+		fullSettings: Settings
+	},
+	saveConfig: () => void
+) {
+	const { settings, defaultSettings, blueprint } = options
 
 	tableMenu.reset()
+	tableMenu.addTitleRow(blueprint.title)
 
-	tableMenu.addTitleRow(descriptionsPart._title)
+	log(`Config Editor: Building settings editor for "${blueprint.title}".`)
 
-	for (const key of Object.keys(defaultConfigPart)) {
-		const configSubPart = configPart[key]
-		const defaultSubConfigPart = defaultConfigPart[key]
-		const descriptionsSubPart = descriptionsPart[key]
+	for (const key of Object.keys(blueprint.items)) {
+		const settingsPart = settings[key as keyof typeof settings]
+		const defaultSettingsPart = defaultSettings[key as keyof typeof defaultSettings]
+		// TODO(types): typescript doesn't recognize the union type in the conditional type in the SettingsList types
+		const blueprintPart = blueprint.items[key]
 
-		// this can't happen, as only _title and _description are strings, and are not used as keys
-		if (typeof descriptionsSubPart === 'string') continue
-
-		const optionsPart = {
-			configPart: configSubPart as GeneralizedSettings,
-			defaultConfigPart: defaultSubConfigPart as GeneralizedSettings,
-			fullConfig: options.fullConfig,
-			descriptionsPart: descriptionsSubPart,
-		}
-
-		function updateValue(newValue: SettingsValue) {
+		function updateValue(newValue: PrimitiveSettingsValue) {
 			// modify this value in the config
-			configPart[key] = newValue
+			settings[key] = newValue
 			console.log(`Config Editor: Set "${key}" to "${newValue}".`)
 			saveConfig()
 			buildSettingsEditorFor(tableMenu, options, saveConfig)
 		}
 
-		// if this is a category, add a row for it
-		if (typeof defaultSubConfigPart === 'object') {
-			addSettingsCategory(tableMenu, key, optionsPart, saveConfig)
-		} else {
-			// add a row for this setting
-			addSettingsValue(
-				tableMenu,
-				configSubPart as SettingsValue,
-				defaultSubConfigPart,
-				descriptionsSubPart,
-				updateValue
-			)
+		// if this is a value, add a row for it
+		if (isSettingsValue(blueprintPart)) {
+			// type guards, even though they should be unnecessary
+			if (!isPrimitiveSettingsValue(settingsPart)) throw new Error(`Settings part "${key}" is not a value.`)
+			if (!isPrimitiveSettingsValue(defaultSettingsPart))
+				throw new Error(`Default settings part "${key}" is not a value.`)
+
+			addSettingsValue(tableMenu, settingsPart, defaultSettingsPart, blueprintPart, updateValue)
+			continue
 		}
+
+		// otherwise, add a row for the category
+
+		// type guards, even though they should be unnecessary
+		if (isPrimitiveSettingsValue(settingsPart)) throw new Error(`Settings part "${key}" is not a category.`)
+		if (isPrimitiveSettingsValue(defaultSettingsPart))
+			throw new Error(`Default settings part "${key}" is not a category.`)
+
+		const optionsPart: SettingsEditorParameters = {
+			settings: settingsPart,
+			defaultSettings: defaultSettingsPart,
+			blueprint: blueprintPart,
+			fullSettings: options.fullSettings,
+		}
+
+		addSettingsCategory(tableMenu, key, optionsPart, saveConfig)
 	}
 
 	tableMenu.show()
 }
 
-function addSettingsCategory(tableMenu: TableMenu, key: string, options: SettingsEditorParameters, saveConfig: () => void) {
-	const row = tableMenu.addTextRow(options.descriptionsPart._title, options.descriptionsPart._description)
+function addSettingsCategory(
+	tableMenu: TableMenu,
+	key: string,
+	options: SettingsEditorParameters,
+	saveConfig: () => void
+) {
+	const row = tableMenu.addTextRow(options.blueprint.title, options.blueprint.description)
 
 	row.setOnTap(() => {
 		// show the subject list editor
@@ -90,39 +121,68 @@ function addSettingsCategory(tableMenu: TableMenu, key: string, options: Setting
 			return
 		}
 
+		log(`Config Editor: Building settings editor for category "${key}".`)
+
 		buildSettingsEditorFor(tableMenu.createSubView(), options, saveConfig)
 	})
 }
 
 function addSettingsValue(
 	tableMenu: TableMenu,
-	value: SettingsValue,
-	defaultValue: SettingsValue,
-	description: Description,
-	updateValue: (newValue: SettingsValue) => void
+	value: PrimitiveSettingsValue,
+	defaultValue: PrimitiveSettingsValue,
+	blueprint: SettingsValue,
+	updateValue: (newValue: PrimitiveSettingsValue) => void
 ) {
-	const row = tableMenu.addTextRow(description._title, description._description)
+	const row = tableMenu.addTextRow(blueprint.title, blueprint.description)
 
 	let valueCell: TableMenuCell
 
 	const isDefaultValue = value === defaultValue
-	let defaultValueIndicator = isDefaultValue ? '' : defaultValue.toString()
+	const formattedValue = formatValue(value, blueprint.type)
+	const formattedDefaultValue = formatValue(defaultValue, blueprint.type, true)
+	// hide the default value if it's the same as the current value
+	const defaultValueIndicator = isDefaultValue ? '' : formattedDefaultValue
 
-	if (typeof value === 'boolean') {
-		const valueIndicator = value ? '✅' : '❌'
-		valueCell = row.addText(valueIndicator, defaultValueIndicator, { width: 20 })
-		row.setOnTap(() => updateValue(!value))
-	} else {
-		valueCell = row.addText(value.toString(), defaultValueIndicator, { width: 24 })
-		row.setOnTap(async () => {
-			const newValue = await openValueEditor(value, defaultValue, description)
-			if (!newValue) return
-			updateValue(newValue)
-		})
+	switch (blueprint.type) {
+		case SettingsValueType.ON_OFF:
+		case SettingsValueType.SHOW_HIDE:
+			valueCell = row.addText(formattedValue, defaultValueIndicator, { width: 24 })
+			row.setOnTap(() => updateValue(!value))
+			break
+		default:
+			valueCell = row.addText(formattedValue, defaultValueIndicator, { width: 24 })
+			row.setOnTap(async () => {
+				const newValue = await openValueEditor(formattedValue, formattedDefaultValue, blueprint)
+				if (!newValue) return
+				updateValue(newValue)
+			})
+			break
 	}
 
 	if (value !== defaultValue) {
 		const buttonCell = row.addIconButton('↩️', () => updateValue(defaultValue))
 		valueCell.width -= buttonCell.width
+	}
+}
+
+/**
+ * Formats the given value according to its type to be displayed in a UI.
+ * @param isSecondary returns text for the value, to make it less prominent
+ */
+function formatValue(value: PrimitiveSettingsValue, type: SettingsValueType, isSecondary = false) {
+	switch (type) {
+		case SettingsValueType.DURATION:
+			return Duration.fromSeconds(value as number).toString()
+		case SettingsValueType.ON_OFF:
+			if (isSecondary) return value ? 'on' : 'off'
+			return value ? '✅' : '❌'
+			case SettingsValueType.SHOW_HIDE:
+				// TODO: find good show/hide emojis/icons
+				if (isSecondary) return value ? 'visible' : 'hidden'
+				// return value ? '👁️' : '⚫'
+				return value ? '✅' : '❌'
+		default:
+			return value.toString()
 	}
 }

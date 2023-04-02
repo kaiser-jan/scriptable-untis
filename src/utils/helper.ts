@@ -15,9 +15,9 @@ export function asWeekday(date: Date, long?: boolean) {
 	return date.toLocaleDateString(LOCALE, { weekday: long ? 'long' : 'short' })
 }
 
-export function getDateInXDays(days: number) {
+export function getDateInXSeconds(seconds: number) {
 	const newDate = new Date(CURRENT_DATETIME)
-	newDate.setDate(newDate.getDate() + days)
+	newDate.setSeconds(newDate.getSeconds() + seconds)
 	return newDate
 }
 
@@ -108,7 +108,7 @@ export function getKeyByValue(object: Object, value: any) {
  */
 export function deepMerge(target: any, source: any) {
 	for (const key in source) {
-		if (source[key] instanceof Object && key in target) {
+		if (source[key] instanceof Object && key in target && target[key] instanceof Object) {
 			deepMerge(target[key], source[key])
 		} else {
 			target[key] = source[key]

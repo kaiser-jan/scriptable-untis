@@ -1,5 +1,5 @@
 import { LOCALE, NO_VALUE_PLACEHOLDERS } from '@/constants'
-import { Settings } from '@/settings/defaultConfig'
+import { Settings } from '@/settings/settings'
 import { LessonState } from '@/types/api'
 import { TransformedLessonWeek, TransformedExam, TransformedGrade, TransformedAbsence } from '@/types/transformed'
 import { scheduleNotification, asNumericTime, asWeekday } from '@/utils/helper'

@@ -1,6 +1,6 @@
 import { SCRIPT_START_DATETIME } from "@/constants"
 import { colors } from "@/settings/colors"
-import { Settings } from "@/settings/defaultConfig"
+import { Settings } from "@/settings/settings"
 import { addSymbol } from "@/utils/scriptable/componentHelper"
 import { getCharHeight } from "@/utils/helper"
 
