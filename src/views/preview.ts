@@ -1,27 +1,31 @@
-import { CURRENT_DATETIME } from "@/constants"
-import { combineLessons } from "@/api/transformLessons"
-import { LOCALE } from "@/constants"
-import { Settings } from "@/settings/settings"
-import { TransformedLesson } from "@/types/transformed"
-import { fillContainerWithSubject } from "@/utils/scriptable/componentHelper"
-import { getCharHeight, getCharWidth, asNumericTime, getTextWidth } from "@/utils/helper"
-import { FlowLayoutRow } from "@/utils/scriptable/layoutHelper"
-import { filterCanceledLessons, getSubjectTitle } from "@/utils/lessonHelper"
-import { ViewBuildData } from "@/widget"
-import { LessonState } from "@/types/api"
-import { colors } from "@/settings/colors"
+import { CURRENT_DATETIME } from '@/constants'
+import { combineLessons } from '@/api/transformLessons'
+import { LOCALE } from '@/constants'
+import { Settings } from '@/settings/settings'
+import { TransformedLesson } from '@/types/transformed'
+import { fillContainerWithSubject } from '@/utils/scriptable/componentHelper'
+import { getCharHeight, getCharWidth, asNumericTime, getTextWidth } from '@/utils/helper'
+import { FlowLayoutRow } from '@/utils/scriptable/layoutHelper'
+import { filterCanceledLessons, getSubjectTitle } from '@/utils/lessonHelper'
+import { ViewBuildData } from '@/widget'
+import { LessonState } from '@/types/api'
+import { colors } from '@/settings/colors'
 
 export function addViewPreview(
 	lessons: TransformedLesson[],
 	nextDayKey: string,
-	{ container, width, height, widgetConfig }: ViewBuildData,
+	{ container, width, height, widgetConfig }: ViewBuildData
 ) {
 	const titleHeight = getCharHeight(widgetConfig.appearance.fontSize)
 	const subjectHeight = getCharHeight(widgetConfig.appearance.fontSize) + 8
 	let currentHeight = 0
 
 	// if the next lesson is more than 3 days away, don't show the preview
-	if (lessons[0].from.getTime() > CURRENT_DATETIME.getTime() + 3 * 24 * 60 * 60 * 1000) {
+	if (
+		!lessons ||
+		lessons.length === 0 ||
+		lessons[0].from.getTime() > CURRENT_DATETIME.getTime() + 3 * 24 * 60 * 60 * 1000
+	) {
 		console.log('Not showing preview because the next lesson is more than 3 days away')
 		const padding = 4
 		const containerHeight = 2 * getCharHeight(widgetConfig.appearance.fontSize) + 2 * padding
