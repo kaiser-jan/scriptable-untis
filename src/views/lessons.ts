@@ -1,13 +1,12 @@
-import { MAX_SUBJECT_NAME_LENGTH, MAX_TIME_STRING, MAX_LONG_SUBJECT_NAME_LENGTH } from '@/constants'
-import { Settings } from '@/settings/settings'
-import { TransformedLesson } from '@/types/transformed'
-import { addWidgetLesson } from '@/utils/scriptable/componentHelper'
-import { getCharHeight, getTextWidth, asNumericTime, getCharWidth } from '@/utils/helper'
-import { filterCanceledLessons } from '@/utils/lessonHelper'
-import { ViewBuildData } from '@/widget'
-import { addBreak } from '@/utils/scriptable/componentHelper'
-import { LessonState } from '@/types/api'
+import { MAX_LONG_SUBJECT_NAME_LENGTH, MAX_SUBJECT_NAME_LENGTH, MAX_TIME_STRING } from '@/constants'
 import { colors } from '@/settings/colors'
+import { Settings } from '@/settings/settings'
+import { LessonState } from '@/types/api'
+import { TransformedLesson } from '@/types/transformed'
+import { asNumericTime, getCharHeight, getCharWidth, getTextWidth } from '@/utils/helper'
+import { filterCanceledLessons } from '@/utils/lessonHelper'
+import { addBreak, addWidgetLesson } from '@/utils/scriptable/componentHelper'
+import { ViewBuildData } from '@/widget'
 
 export function addViewLessons(
 	lessons: TransformedLesson[],
@@ -63,7 +62,8 @@ export function addViewLessons(
 				addBreak(container, previousLesson.to, lesson.from, showToTime, widgetConfig)
 				itemCount++
 				remainingHeight -= widgetConfig.appearance.spacing + lessonHeight
-				if ((count && itemCount >= count) || remainingHeight < lessonHeight + widgetConfig.appearance.spacing) break
+				if ((count && itemCount >= count) || remainingHeight < lessonHeight + widgetConfig.appearance.spacing)
+					break
 			}
 		}
 
@@ -90,7 +90,10 @@ export function addViewLessons(
 
 	const remainingFontSize = widgetConfig.appearance.fontSize * 0.8
 	// add a "+ x more" if there are more lessons and there is enough space
-	if (lessons.length > itemCount && remainingHeight > getCharHeight(remainingFontSize) + widgetConfig.appearance.spacing) {
+	if (
+		lessons.length > itemCount &&
+		remainingHeight > getCharHeight(remainingFontSize) + widgetConfig.appearance.spacing
+	) {
 		const realLessons = filterCanceledLessons(lessons.slice(itemCount - 1))
 		const dayToString = asNumericTime(realLessons[realLessons.length - 1].to)
 		// count the number of remaining lessons including the duration

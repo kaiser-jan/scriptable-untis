@@ -1,11 +1,10 @@
-import { CURRENT_DATETIME } from '@/constants'
 import { readFromCache, writeToCache } from '@/api/cache'
-import { fetchLessonsFor, fetchExamsFor, fetchGradesFor, fetchAbsencesFor, fetchSchoolYears } from '@/api/fetch'
-import { NOTIFIABLE_TOPICS } from '@/constants'
-import { compareCachedLessons, compareCachedExams, compareCachedGrades, compareCachedAbsences } from '@/features/notify'
+import { fetchAbsencesFor, fetchExamsFor, fetchGradesFor, fetchLessonsFor, fetchSchoolYears } from '@/api/fetch'
+import { CURRENT_DATETIME, NOTIFIABLE_TOPICS } from '@/constants'
+import { compareCachedAbsences, compareCachedExams, compareCachedGrades, compareCachedLessons } from '@/features/notify'
+import { applyLessonConfigs } from '@/settings/lessonConfig'
 import { Settings } from '@/settings/settings'
 import { sortKeysByDate } from '@/utils/helper'
-import { applyLessonConfigs } from '@/settings/lessonConfig'
 
 /**
  * Transforms a json date string back to a Date object.
@@ -35,7 +34,7 @@ async function getCachedOrFetch<T>(
 ): Promise<T | undefined> {
 	const { json: cachedJson, cacheAge, cacheDate } = await readFromCache(key)
 
-	let cachedData: T | undefined = undefined 
+	let cachedData: T | undefined = undefined
 
 	if (cachedJson) {
 		cachedData = JSON.parse(cachedJson, jsonDateReviver)
@@ -124,9 +123,7 @@ export async function getAbsencesFor(user: FullUser, from: Date, to: Date, widge
 }
 
 export async function getSchoolYears(user: FullUser, widgetConfig: Settings) {
-	return getCachedOrFetch('school_years', widgetConfig.cache.schoolYears, widgetConfig, () =>
-		fetchSchoolYears(user)
-	)
+	return getCachedOrFetch('school_years', widgetConfig.cache.schoolYears, widgetConfig, () => fetchSchoolYears(user))
 }
 
 /**

@@ -1,9 +1,4 @@
-import {
-	PrimitiveSettingsValue as defaultValue,
-	PrimitiveSettingsValue,
-	SettingsValue,
-	SettingsValueType,
-} from '@/types/settings'
+import { PrimitiveSettingsValue, SettingsValue, SettingsValueType } from '@/types/settings'
 import { Duration } from '@/utils/duration'
 import { askForSingleInput, parseArray, selectOption, showInfoPopup } from '@/utils/scriptable/input'
 

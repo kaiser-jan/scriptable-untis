@@ -1,4 +1,4 @@
-import { PREVIEW_WIDGET_SIZE } from "@/constants"
+import { PREVIEW_WIDGET_SIZE } from '@/constants'
 
 interface HomescreenWidgetSizes {
 	small: Size

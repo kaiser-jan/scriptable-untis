@@ -1,8 +1,8 @@
-import { SCRIPT_START_DATETIME } from "@/constants"
-import { colors } from "@/settings/colors"
-import { Settings } from "@/settings/settings"
-import { addSymbol } from "@/utils/scriptable/componentHelper"
-import { getCharHeight } from "@/utils/helper"
+import { SCRIPT_START_DATETIME } from '@/constants'
+import { colors } from '@/settings/colors'
+import { Settings } from '@/settings/settings'
+import { getCharHeight } from '@/utils/helper'
+import { addSymbol } from '@/utils/scriptable/componentHelper'
 
 export function getFooterHeight(widgetConfig: Settings) {
 	return getCharHeight(10) + 2 * 4

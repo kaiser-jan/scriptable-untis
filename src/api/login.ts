@@ -1,4 +1,4 @@
-import { ErrorCode, createError } from "@/utils/errors"
+import { ErrorCode, createError } from '@/utils/errors'
 
 export async function login(user: UserData, password: string) {
 	console.log(`🔑 Logging in as ${user.username} in school ${user.school} on ${user.server}.webuntis.com`)

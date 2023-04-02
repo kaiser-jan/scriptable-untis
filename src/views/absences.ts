@@ -1,15 +1,14 @@
-import { LOCALE } from "@/constants"
-import { colors } from "@/settings/colors"
-import { Settings } from "@/settings/settings"
-import { TransformedAbsence } from "@/types/transformed"
-import { getCharHeight } from "@/utils/helper"
-import { FlowLayoutRow } from "@/utils/scriptable/layoutHelper"
-import { ViewBuildData } from "@/widget"
+import { LOCALE } from '@/constants'
+import { colors } from '@/settings/colors'
+import { TransformedAbsence } from '@/types/transformed'
+import { getCharHeight } from '@/utils/helper'
+import { FlowLayoutRow } from '@/utils/scriptable/layoutHelper'
+import { ViewBuildData } from '@/widget'
 
 export function addViewAbsences(
 	absences: TransformedAbsence[],
 	maxCount: number,
-	{ container, width, height, widgetConfig }: ViewBuildData,
+	{ container, width, height, widgetConfig }: ViewBuildData
 ) {
 	let remainingHeight = height
 	const lineHeight = getCharHeight(widgetConfig.appearance.fontSize)

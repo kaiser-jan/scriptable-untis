@@ -1,6 +1,6 @@
-import { CURRENT_DATETIME } from '@/constants'
 import { FetchedData, fetchDataForViews } from './api/fetchManager'
 import { View } from './layout'
+import { Settings } from './settings/settings'
 import { getCharHeight, getDateInXSeconds } from './utils/helper'
 import { getWidgetSize, getWidgetSizes } from './utils/scriptable/widgetSize'
 import { addViewAbsences } from './views/absences'
@@ -9,8 +9,6 @@ import { addFooter, getFooterHeight } from './views/footer'
 import { addViewGrades } from './views/grades'
 import { addViewLessons } from './views/lessons'
 import { addViewPreview } from './views/preview'
-import { Settings } from './settings/settings'
-import { getModuleFileManager } from './utils/scriptable/fileSystem'
 
 export interface ViewBuildData {
 	container: WidgetStack

@@ -1,4 +1,3 @@
-
 export enum ElementType {
 	GROUP = 1,
 	TEACHER = 2,

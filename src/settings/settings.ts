@@ -5,7 +5,7 @@ const defaultSubjectConfig: SubjectConfig = {
 	color: undefined,
 	nameOverride: undefined,
 	longNameOverride: undefined,
-	ignoreInfos: undefined,		
+	ignoreInfos: undefined,
 }
 
 export const defaultSettings = {
@@ -14,7 +14,7 @@ export const defaultSettings = {
 			...defaultSubjectConfig,
 			teachers: {
 				_: {
-					...defaultSubjectConfig
+					...defaultSubjectConfig,
 				},
 			},
 		},

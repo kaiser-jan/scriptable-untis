@@ -1,6 +1,6 @@
-import { Settings } from "@/settings/settings"
-import { LessonState } from "@/types/api"
-import { TransformedLesson } from "@/types/transformed"
+import { Settings } from '@/settings/settings'
+import { LessonState } from '@/types/api'
+import { TransformedLesson } from '@/types/transformed'
 
 export function filterCanceledLessons(lessons: TransformedLesson[]) {
 	// filter out lessons which don't take place
@@ -10,7 +10,6 @@ export function filterCanceledLessons(lessons: TransformedLesson[]) {
 		return true
 	})
 }
-
 
 /**
  * Compares two lessons and returns if they can be combined.
@@ -34,7 +33,6 @@ export function shouldCombineLessons(
 	const keyIgnorer = (key: string, value: any) => (ignoredEqualKeys.includes(key) ? undefined : value)
 	return JSON.stringify(a, keyIgnorer) === JSON.stringify(b, keyIgnorer)
 }
-
 
 /**
  * Returns a title for a subject following an order based on what is available.

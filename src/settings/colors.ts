@@ -1,4 +1,3 @@
-
 export const unparsedColors = {
 	background: {
 		primary: '#222629',

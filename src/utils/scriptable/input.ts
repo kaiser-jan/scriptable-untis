@@ -76,7 +76,6 @@ export async function askForInput<T>(
 		textField.isSecure = input.isSecure ?? false
 	}
 
-
 	const responseIndex = await alert.presentAlert()
 
 	if (responseIndex !== 0) return null

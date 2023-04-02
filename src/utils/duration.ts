@@ -19,15 +19,14 @@ const durationUnitMultipliers = {
 }
 
 const durationUnitMaxima = {
-    [DurationUnit.SECOND]: 300,
-    [DurationUnit.MINUTE]: 300,
-    [DurationUnit.HOUR]: 48,
-    [DurationUnit.DAY]: 30,
-    [DurationUnit.WEEK]: 12,
-    [DurationUnit.MONTH]: 24,
-    [DurationUnit.YEAR]: Number.MAX_VALUE,
+	[DurationUnit.SECOND]: 300,
+	[DurationUnit.MINUTE]: 300,
+	[DurationUnit.HOUR]: 48,
+	[DurationUnit.DAY]: 30,
+	[DurationUnit.WEEK]: 12,
+	[DurationUnit.MONTH]: 24,
+	[DurationUnit.YEAR]: Number.MAX_VALUE,
 }
-
 
 export class Duration {
 	private seconds: number
@@ -37,12 +36,12 @@ export class Duration {
 	}
 
 	public static fromString(value: string): Duration {
-        // parse the value using a regex, allow decimal places
-        const match = value.match(/^(\d+(?:\.\d+)?)\s*(s|min|h|d|wk|mo|yr)$/)
-        if (match) {
-            const [, number, unit] = match
-            return new Duration(parseFloat(number), unit as DurationUnit)
-        }
+		// parse the value using a regex, allow decimal places
+		const match = value.match(/^(\d+(?:\.\d+)?)\s*(s|min|h|d|wk|mo|yr)$/)
+		if (match) {
+			const [, number, unit] = match
+			return new Duration(parseFloat(number), unit as DurationUnit)
+		}
 
 		throw new Error(`Invalid duration: ${value}`)
 	}
@@ -75,7 +74,7 @@ export class Duration {
 			if (stringifiedValue.includes('.') && stringifiedValue.split('.')[1].length > 2) {
 				// if the number is larger than allowed for the unit, still use the previous (larger) unit (if it exists)
 				if (value > durationUnitMaxima[unit] && i > 0) return this.toStringFor(units[i - 1])
-                continue
+				continue
 			}
 
 			// otherwise, format the value using the current unit
@@ -83,14 +82,14 @@ export class Duration {
 		}
 	}
 
-    /**
-     * Formats the duration using the given unit.
-     * The value is rounded to a maximum of 2 decimal places.
-     */
+	/**
+	 * Formats the duration using the given unit.
+	 * The value is rounded to a maximum of 2 decimal places.
+	 */
 	public toStringFor(unit: DurationUnit): string {
 		const value = this.seconds / durationUnitMultipliers[unit]
-        const roundedValue = Math.round(value * 100) / 100
-        return `${roundedValue}${unit}`
+		const roundedValue = Math.round(value * 100) / 100
+		return `${roundedValue}${unit}`
 	}
 
 	public toSeconds(): number {

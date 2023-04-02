@@ -1,8 +1,8 @@
 import { LOCALE, NO_VALUE_PLACEHOLDERS } from '@/constants'
 import { Settings } from '@/settings/settings'
 import { LessonState } from '@/types/api'
-import { TransformedLessonWeek, TransformedExam, TransformedGrade, TransformedAbsence } from '@/types/transformed'
-import { scheduleNotification, asNumericTime, asWeekday } from '@/utils/helper'
+import { TransformedAbsence, TransformedExam, TransformedGrade, TransformedLessonWeek } from '@/types/transformed'
+import { asNumericTime, scheduleNotification } from '@/utils/helper'
 import { getSubjectTitle } from '@/utils/lessonHelper'
 
 /**
@@ -177,7 +177,11 @@ export function compareCachedExams(exams: TransformedExam[], cachedExams: Transf
 	}
 }
 
-export function compareCachedGrades(grades: TransformedGrade[], cachedExams: TransformedGrade[], widgetConfig: Settings) {
+export function compareCachedGrades(
+	grades: TransformedGrade[],
+	cachedExams: TransformedGrade[],
+	widgetConfig: Settings
+) {
 	// find any grades that were added
 	for (const grade of grades) {
 		const cachedGrade = cachedExams.find((cachedGrade) => JSON.stringify(cachedGrade) === JSON.stringify(grade))

@@ -1,15 +1,15 @@
 import { Settings } from '@/settings/settings'
+import { Absence, ClassRole, Exam, Grade, Lesson } from '@/types/api'
+import { TransformedAbsence, TransformedClassRole, TransformedExam, TransformedGrade } from '@/types/transformed'
 import { formatDateForUntis } from '@/utils/helper'
 import {
-	transformExams,
-	transformGrades,
 	transformAbsences,
 	transformClassRoles,
+	transformExams,
+	transformGrades,
 	transformSchoolYears,
 } from './transform'
-import { transformLessons } from "./transformLessons"
-import { Lesson, Exam, Grade, ClassRole, Absence } from '@/types/api'
-import { TransformedAbsence, TransformedClassRole, TransformedExam, TransformedGrade } from '@/types/transformed'
+import { transformLessons } from './transformLessons'
 
 function prepareRequest(url: string, user: FullUser) {
 	const request = new Request(url)

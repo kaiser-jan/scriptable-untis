@@ -1,6 +1,6 @@
-import { CURRENT_DATETIME } from "@/constants"
-import { Settings } from "@/settings/settings"
-import { TransformedLesson } from "@/types/transformed"
+import { CURRENT_DATETIME } from '@/constants'
+import { Settings } from '@/settings/settings'
+import { TransformedLesson } from '@/types/transformed'
 
 /**
  * Find out when to refresh the widget based on the content.
@@ -52,14 +52,10 @@ export function getRefreshDateForLessons(
 		// refresh based on normal/lazy refreshing
 		if (shouldLazyUpdate) {
 			console.log(`Would refresh in ${widgetConfig.refresh.lazyInterval} minutes (lazy updating).`)
-			nextRefreshDate = new Date(
-				CURRENT_DATETIME.getTime() + widgetConfig.refresh.lazyInterval * 1000
-			)
+			nextRefreshDate = new Date(CURRENT_DATETIME.getTime() + widgetConfig.refresh.lazyInterval * 1000)
 		} else {
 			console.log(`Would refresh in ${widgetConfig.refresh.normalInterval} minutes (normal updating).`)
-			nextRefreshDate = new Date(
-				CURRENT_DATETIME.getTime() + widgetConfig.refresh.normalInterval * 1000
-			)
+			nextRefreshDate = new Date(CURRENT_DATETIME.getTime() + widgetConfig.refresh.normalInterval * 1000)
 		}
 	}
 

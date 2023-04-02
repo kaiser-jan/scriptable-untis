@@ -1,8 +1,19 @@
-import { Settings } from "@/settings/settings";
-import { TransformedLessonWeek, TransformedLesson, StatefulElement, Group, Room, Stateful, Subject, Teacher, StatelessElement, ExtendedTransformedElement } from "@/types/transformed";
-import { shouldCombineLessons } from "@/utils/lessonHelper";
-import { Element, ElementType, Lesson, LessonState, UnresolvedElement } from "@/types/api";
-import { combineDateAndTime } from "./transform";
+import { Settings } from '@/settings/settings'
+import { Element, ElementType, Lesson, LessonState, UnresolvedElement } from '@/types/api'
+import {
+	ExtendedTransformedElement,
+	Group,
+	Room,
+	Stateful,
+	StatefulElement,
+	StatelessElement,
+	Subject,
+	Teacher,
+	TransformedLesson,
+	TransformedLessonWeek,
+} from '@/types/transformed'
+import { shouldCombineLessons } from '@/utils/lessonHelper'
+import { combineDateAndTime } from './transform'
 
 /**
  * Transforms the lessons from the API to a more usable format,
@@ -14,18 +25,22 @@ import { combineDateAndTime } from "./transform";
  * @returns a transformed lesson week
  */
 
-export function transformLessons(lessons: Lesson[], elements: Element[], widgetConfig: Settings): TransformedLessonWeek {
-	const transformedLessonWeek: TransformedLessonWeek = {};
+export function transformLessons(
+	lessons: Lesson[],
+	elements: Element[],
+	widgetConfig: Settings
+): TransformedLessonWeek {
+	const transformedLessonWeek: TransformedLessonWeek = {}
 
 	// transform each lesson
 	for (const lesson of lessons) {
 		// get the linked elements from the list
-		const resolvedElements = resolveElements(lesson, elements);
+		const resolvedElements = resolveElements(lesson, elements)
 		if (!resolvedElements) {
-			console.log(`Could not resolve elements for lesson ${lesson.lessonId}`);
-			continue;
+			console.log(`Could not resolve elements for lesson ${lesson.lessonId}`)
+			continue
 		}
-		const { groups, teachers, subject, rooms } = resolvedElements;
+		const { groups, teachers, subject, rooms } = resolvedElements
 
 		// create the transformed lesson
 		const transformedLesson: TransformedLesson = {
@@ -51,24 +66,24 @@ export function transformLessons(lessons: Lesson[], elements: Element[], widgetC
 			isRescheduled: 'rescheduleInfo' in lesson,
 
 			duration: 1, // incremented when combining lessons
-		};
+		}
 
-		const changedTeacherCount = transformedLesson.teachers.filter((teacher) => teacher.original).length;
-		const changedRoomCount = transformedLesson.rooms.filter((room) => room.original).length;
+		const changedTeacherCount = transformedLesson.teachers.filter((teacher) => teacher.original).length
+		const changedRoomCount = transformedLesson.rooms.filter((room) => room.original).length
 
 		// set the state depending on what changed, ordered by importance
 		if (changedTeacherCount >= 1) {
-			transformedLesson.state = LessonState.TEACHER_SUBSTITUTED;
+			transformedLesson.state = LessonState.TEACHER_SUBSTITUTED
 		}
 		if (changedRoomCount >= 1) {
 			// set to substituted if the teacher is also substituted
 			if (changedTeacherCount) {
-				transformedLesson.state = LessonState.SUBSTITUTED;
+				transformedLesson.state = LessonState.SUBSTITUTED
 			}
-			transformedLesson.state = LessonState.ROOM_SUBSTITUTED;
+			transformedLesson.state = LessonState.ROOM_SUBSTITUTED
 		}
 		if (subject.original) {
-			transformedLesson.state = LessonState.SUBSTITUTED;
+			transformedLesson.state = LessonState.SUBSTITUTED
 		}
 
 		// add the reschedule info if it exists
@@ -77,7 +92,7 @@ export function transformLessons(lessons: Lesson[], elements: Element[], widgetC
 				isSource: lesson.rescheduleInfo.isSource,
 				otherFrom: combineDateAndTime(lesson.rescheduleInfo.date, lesson.rescheduleInfo.startTime),
 				otherTo: combineDateAndTime(lesson.rescheduleInfo.date, lesson.rescheduleInfo.endTime),
-			};
+			}
 		}
 
 		// add the exam info if it exists
@@ -85,32 +100,32 @@ export function transformLessons(lessons: Lesson[], elements: Element[], widgetC
 			transformedLesson.exam = {
 				name: lesson.exam.name,
 				markSchemaId: lesson.exam.markSchemaId,
-			};
+			}
 		}
 
 		// add the lesson with the date as key
-		const dateKey = transformedLesson.from.toISOString().split('T')[0];
+		const dateKey = transformedLesson.from.toISOString().split('T')[0]
 		if (!transformedLessonWeek[dateKey]) {
-			transformedLessonWeek[dateKey] = [];
+			transformedLessonWeek[dateKey] = []
 		}
 
-		transformedLessonWeek[dateKey].push(transformedLesson);
+		transformedLessonWeek[dateKey].push(transformedLesson)
 	}
 
-	console.log('Sorting...');
+	console.log('Sorting...')
 
 	// sort the lessons by start time
 	for (const dateKey in transformedLessonWeek) {
-		transformedLessonWeek[dateKey].sort((a, b) => a.from.getTime() - b.from.getTime());
+		transformedLessonWeek[dateKey].sort((a, b) => a.from.getTime() - b.from.getTime())
 	}
 
-	let combinedLessonWeek: TransformedLessonWeek = {};
+	let combinedLessonWeek: TransformedLessonWeek = {}
 	// combine lessons which are equal and are directly after each other
 	for (const dateKey in transformedLessonWeek) {
-		combinedLessonWeek[dateKey] = combineLessons(transformedLessonWeek[dateKey], widgetConfig);
+		combinedLessonWeek[dateKey] = combineLessons(transformedLessonWeek[dateKey], widgetConfig)
 	}
 
-	return combinedLessonWeek;
+	return combinedLessonWeek
 }
 /**
  * Searches for the stateless element with the given id and type in the list of elements.
@@ -121,29 +136,28 @@ export function transformLessons(lessons: Lesson[], elements: Element[], widgetC
  * @returns	the found element, or undefined if it was not found
  */
 function resolveStatelessElement(id: number, type: number, availableElements: Element[]): StatelessElement {
-	const foundElement = availableElements.find((element) => element.id === id && element.type === type);
+	const foundElement = availableElements.find((element) => element.id === id && element.type === type)
 	const elementBase: StatelessElement = {
 		id: id,
 		name: foundElement?.name,
-	};
+	}
 
-	if (!foundElement)
-		return;
+	if (!foundElement) return
 
 	if (foundElement.type === ElementType.TEACHER) {
-		return elementBase;
+		return elementBase
 	}
 
-	const element = elementBase as ExtendedTransformedElement;
-	element.longName = foundElement.longName;
+	const element = elementBase as ExtendedTransformedElement
+	element.longName = foundElement.longName
 
 	if (foundElement.type === ElementType.ROOM) {
-		const room = element as Room;
-		room.capacity = foundElement.roomCapacity;
-		return room;
+		const room = element as Room
+		room.capacity = foundElement.roomCapacity
+		return room
 	}
 
-	return element;
+	return element
 }
 /**
  * Resolves the given unresolved element to a stateful element.
@@ -152,21 +166,21 @@ function resolveStatelessElement(id: number, type: number, availableElements: El
  * @returns	the resolved element
  */
 function resolveStatefulElement(unresolvedElement: UnresolvedElement, availableElements: Element[]) {
-	const statelessElement = resolveStatelessElement(unresolvedElement.id, unresolvedElement.type, availableElements);
+	const statelessElement = resolveStatelessElement(unresolvedElement.id, unresolvedElement.type, availableElements)
 
-	const element = statelessElement as StatefulElement;
-	element.state = unresolvedElement.state;
+	const element = statelessElement as StatefulElement
+	element.state = unresolvedElement.state
 
 	if (unresolvedElement.orgId && unresolvedElement.orgId !== 0) {
 		const originalElement = resolveStatelessElement(
 			unresolvedElement.orgId,
 			unresolvedElement.type,
 			availableElements
-		);
-		element.original = originalElement;
+		)
+		element.original = originalElement
 	}
 
-	return element;
+	return element
 }
 /**
  * Resolves the elements of the given lesson.
@@ -175,39 +189,39 @@ function resolveStatefulElement(unresolvedElement: UnresolvedElement, availableE
  * @returns the resolved elements (groups, teachers, subject, rooms)
  */
 function resolveElements(lesson: Lesson, elements: Element[]) {
-	const groups: Stateful<Group>[] = [];
-	const teachers: Stateful<Teacher>[] = [];
-	let subject: Stateful<Subject> | undefined;
-	const rooms: Stateful<Room>[] = [];
+	const groups: Stateful<Group>[] = []
+	const teachers: Stateful<Teacher>[] = []
+	let subject: Stateful<Subject> | undefined
+	const rooms: Stateful<Room>[] = []
 
 	for (const unresolvedElement of lesson.elements) {
-		const element = resolveStatefulElement(unresolvedElement, elements);
+		const element = resolveStatefulElement(unresolvedElement, elements)
 
 		if (!element) {
-			console.warn(`Could not find element ${unresolvedElement.id} with type ${unresolvedElement.type}`);
-			continue;
+			console.warn(`Could not find element ${unresolvedElement.id} with type ${unresolvedElement.type}`)
+			continue
 		}
 
 		switch (unresolvedElement.type) {
 			case ElementType.TEACHER:
-				teachers.push(element as Stateful<Teacher>);
-				break;
+				teachers.push(element as Stateful<Teacher>)
+				break
 			case ElementType.GROUP:
-				groups.push(element as Stateful<Group>);
-				break;
+				groups.push(element as Stateful<Group>)
+				break
 			case ElementType.SUBJECT:
-				subject = element as Stateful<Subject>;
-				break;
+				subject = element as Stateful<Subject>
+				break
 			case ElementType.ROOM:
-				rooms.push(element as Stateful<Room>);
-				break;
+				rooms.push(element as Stateful<Room>)
+				break
 			default:
-				console.warn(`Unknown element type ${unresolvedElement.type}`);
-				break;
+				console.warn(`Unknown element type ${unresolvedElement.type}`)
+				break
 		}
 	}
 
-	return { groups, teachers, subject, rooms };
+	return { groups, teachers, subject, rooms }
 }
 /**
  * Combines lessons which are directly after each other and have the same properties.
@@ -215,24 +229,30 @@ function resolveElements(lesson: Lesson, elements: Element[]) {
  * @param ignoreDetails if true, only the subject and time will be considered
  */
 
-export function combineLessons(lessons: TransformedLesson[], widgetConfig: Settings, ignoreDetails = false, ignoreBreaks = false) {
-	const combinedLessonsNextDay: TransformedLesson[] = [];
+export function combineLessons(
+	lessons: TransformedLesson[],
+	widgetConfig: Settings,
+	ignoreDetails = false,
+	ignoreBreaks = false
+) {
+	const combinedLessonsNextDay: TransformedLesson[] = []
 	for (const [index, lesson] of lessons.entries()) {
-		const previousLesson = combinedLessonsNextDay[combinedLessonsNextDay.length - 1];
+		const previousLesson = combinedLessonsNextDay[combinedLessonsNextDay.length - 1]
 
-		if (index !== 0 &&
+		if (
+			index !== 0 &&
 			previousLesson &&
-			shouldCombineLessons(previousLesson, lesson, widgetConfig, ignoreDetails, ignoreBreaks)) {
+			shouldCombineLessons(previousLesson, lesson, widgetConfig, ignoreDetails, ignoreBreaks)
+		) {
 			// update the break duration
-			if (!previousLesson.break)
-				previousLesson.break = 0;
-			previousLesson.break += lesson.from.getTime() - previousLesson.to.getTime();
+			if (!previousLesson.break) previousLesson.break = 0
+			previousLesson.break += lesson.from.getTime() - previousLesson.to.getTime()
 
-			previousLesson.to = lesson.to;
-			previousLesson.duration++;
+			previousLesson.to = lesson.to
+			previousLesson.duration++
 		} else {
-			combinedLessonsNextDay.push(lesson);
+			combinedLessonsNextDay.push(lesson)
 		}
 	}
-	return combinedLessonsNextDay;
+	return combinedLessonsNextDay
 }

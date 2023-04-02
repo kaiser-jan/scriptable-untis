@@ -1,14 +1,13 @@
-import { colors } from "@/settings/colors"
-import { Settings } from "@/settings/settings"
-import { TransformedGrade } from "@/types/transformed"
-import { getCharHeight } from "@/utils/helper"
-import { FlowLayoutRow } from "@/utils/scriptable/layoutHelper"
-import { ViewBuildData } from "@/widget"
+import { colors } from '@/settings/colors'
+import { TransformedGrade } from '@/types/transformed'
+import { getCharHeight } from '@/utils/helper'
+import { FlowLayoutRow } from '@/utils/scriptable/layoutHelper'
+import { ViewBuildData } from '@/widget'
 
 export function addViewGrades(
 	grades: TransformedGrade[],
 	maxCount: number,
-	{ container, width, height, widgetConfig }: ViewBuildData,
+	{ container, width, height, widgetConfig }: ViewBuildData
 ) {
 	let remainingHeight = height
 	const lineHeight = getCharHeight(widgetConfig.appearance.fontSize)

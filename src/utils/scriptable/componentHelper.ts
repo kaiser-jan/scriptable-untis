@@ -1,10 +1,10 @@
 import { MAX_TIME_STRING } from '@/constants'
-import { getCharHeight, getTextWidth, getCharWidth, asNumericTime } from '../helper'
-import { getSubjectTitle } from '../lessonHelper'
-import { TransformedLesson } from '@/types/transformed'
+import { colors, getColor } from '@/settings/colors'
 import { Settings } from '@/settings/settings'
 import { LessonState } from '@/types/api'
-import { colors, getColor } from '@/settings/colors'
+import { TransformedLesson } from '@/types/transformed'
+import { asNumericTime, getCharHeight, getCharWidth, getTextWidth } from '../helper'
+import { getSubjectTitle } from '../lessonHelper'
 
 /**
  * Adds a SFSymbol with the correct outer size to match the font size.

@@ -93,9 +93,7 @@ export type GeneralizedSettings = {
 export type GeneralizedSettingsCategory = SettingsCategory<SettingsStructureBase>
 export type GeneralizedSettingsMap = SettingsMap<SettingsStructureBase>
 
-export interface SettingsEditorParameters<
-	BlueprintT extends GeneralizedSettingsCategory | GeneralizedSettingsMap,
-> {
+export interface SettingsEditorParameters<BlueprintT extends GeneralizedSettingsCategory | GeneralizedSettingsMap> {
 	settings: GeneralizedSettings
 	defaultSettings: GeneralizedSettings
 	blueprint: BlueprintT

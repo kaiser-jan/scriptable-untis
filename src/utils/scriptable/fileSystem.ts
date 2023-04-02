@@ -18,7 +18,7 @@ export async function readConfig(useICloud: boolean) {
 		path: [fileManager.documentsDirectory(), CONFIG_FILE_NAME],
 		fileManager: fileManager,
 		create: true,
-		defaultValue: JSON.stringify(defaultSettings)
+		defaultValue: JSON.stringify(defaultSettings),
 	})
 
 	const fileConfig: Settings = JSON.parse(configJson)

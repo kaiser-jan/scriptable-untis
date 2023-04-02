@@ -1,4 +1,4 @@
-import { ElementState, LessonState } from "./api"
+import { ElementState, LessonState } from './api'
 
 /**
  * An element that does not have a state and can therefore not be substituted.
@@ -9,7 +9,7 @@ export interface ExtendedTransformedElement {
 	longName: string
 }
 
-export type Teacher = Omit<ExtendedTransformedElement, "longName">
+export type Teacher = Omit<ExtendedTransformedElement, 'longName'>
 export type Group = ExtendedTransformedElement
 export type Subject = ExtendedTransformedElement
 export interface Room extends ExtendedTransformedElement {
@@ -26,7 +26,6 @@ export type Stateful<T extends StatelessElement> = T & {
 	original?: T
 }
 export type StatefulElement = Stateful<StatelessElement>
-
 
 export interface TransformedLesson {
 	id: number

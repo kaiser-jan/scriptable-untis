@@ -1,5 +1,5 @@
 import { ErrorCode, createError } from './utils/errors'
-import { askForInput, askForSingleInput } from './utils/scriptable/input'
+import { askForSingleInput } from './utils/scriptable/input'
 
 const keychainRequestStrings = {
 	school: {

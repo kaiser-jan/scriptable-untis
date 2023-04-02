@@ -1,5 +1,5 @@
 // runtime constants
-export const SCRIPT_START_DATETIME = new Date();
+export const SCRIPT_START_DATETIME = new Date()
 
 // compile-time constants
 export const CURRENT_DATETIME = new Date() // '2022-09-15T14:00' or '2022-09-19T12:30'

@@ -1,5 +1,11 @@
-import { TransformedExam, TransformedGrade, TransformedAbsence, TransformedClassRole, TransformedSchoolYear } from "@/types/transformed"
-import { Absence, ClassRole, Exam, Grade, SchoolYear } from "@/types/api"
+import { Absence, ClassRole, Exam, Grade, SchoolYear } from '@/types/api'
+import {
+	TransformedAbsence,
+	TransformedClassRole,
+	TransformedExam,
+	TransformedGrade,
+	TransformedSchoolYear,
+} from '@/types/transformed'
 
 function parseDateNumber(date: number) {
 	const dateStr = date.toString()

@@ -1,5 +1,5 @@
-import { CURRENT_DATETIME, LOCALE } from "@/constants"
-import { TransformedLessonWeek } from "@/types/transformed"
+import { CURRENT_DATETIME, LOCALE } from '@/constants'
+import { TransformedLessonWeek } from '@/types/transformed'
 
 export function formatDateForUntis(date: Date) {
 	const paddedMonth = (date.getMonth() + 1).toString().padStart(2, '0')

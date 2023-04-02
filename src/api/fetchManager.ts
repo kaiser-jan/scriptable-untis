@@ -1,12 +1,18 @@
-import { CURRENT_DATETIME } from "@/constants"
-import { View } from "@/layout"
-import { Settings } from "@/settings/settings"
-import { getDateInXSeconds } from "@/utils/helper"
-import { getRefreshDateForLessons } from "@/utils/refreshDate"
-import { getTimetable, getExamsFor, getGradesFor, getSchoolYears, getAbsencesFor } from "./cacheOrFetch"
-import { fetchClassRolesFor } from "./fetch"
-import { checkNewRefreshDate, proposeRefreshIn } from "@/widget"
-import { TransformedLesson, TransformedExam, TransformedGrade, TransformedAbsence, TransformedClassRole } from "@/types/transformed"
+import { CURRENT_DATETIME } from '@/constants'
+import { View } from '@/layout'
+import { Settings } from '@/settings/settings'
+import {
+	TransformedAbsence,
+	TransformedClassRole,
+	TransformedExam,
+	TransformedGrade,
+	TransformedLesson,
+} from '@/types/transformed'
+import { getDateInXSeconds } from '@/utils/helper'
+import { getRefreshDateForLessons } from '@/utils/refreshDate'
+import { checkNewRefreshDate, proposeRefreshIn } from '@/widget'
+import { getAbsencesFor, getExamsFor, getGradesFor, getSchoolYears, getTimetable } from './cacheOrFetch'
+import { fetchClassRolesFor } from './fetch'
 
 export interface FetchedData {
 	lessonsTodayRemaining?: TransformedLesson[]
@@ -28,11 +34,11 @@ enum FetchableItems {
 }
 
 const VIEW_FETCH_MAP = new Map<View, FetchableItems>([
-    [View.LESSONS, FetchableItems.TIMETABLE],
-    [View.PREVIEW, FetchableItems.TIMETABLE],
-    [View.EXAMS, FetchableItems.EXAMS],
-    [View.GRADES, FetchableItems.GRADES],
-    [View.ABSENCES, FetchableItems.ABSENCES],
+	[View.LESSONS, FetchableItems.TIMETABLE],
+	[View.PREVIEW, FetchableItems.TIMETABLE],
+	[View.EXAMS, FetchableItems.EXAMS],
+	[View.GRADES, FetchableItems.GRADES],
+	[View.ABSENCES, FetchableItems.ABSENCES],
 ])
 
 /**
@@ -49,10 +55,15 @@ export async function fetchDataForViews(viewNames: View[], user: FullUser, widge
 	const fetchPromises: Promise<any>[] = []
 
 	if (itemsToFetch.has(FetchableItems.TIMETABLE)) {
-		const promise = getTimetable(user, widgetConfig).then(({ lessonsTodayRemaining, lessonsNextDay, nextDayKey }) => {
-			fetchedData = { ...fetchedData, lessonsTodayRemaining, lessonsNextDay, nextDayKey }
-			checkNewRefreshDate(getRefreshDateForLessons(lessonsTodayRemaining, lessonsNextDay, widgetConfig), fetchedData)
-		})
+		const promise = getTimetable(user, widgetConfig).then(
+			({ lessonsTodayRemaining, lessonsNextDay, nextDayKey }) => {
+				fetchedData = { ...fetchedData, lessonsTodayRemaining, lessonsNextDay, nextDayKey }
+				checkNewRefreshDate(
+					getRefreshDateForLessons(lessonsTodayRemaining, lessonsNextDay, widgetConfig),
+					fetchedData
+				)
+			}
+		)
 		fetchPromises.push(promise)
 	}
 
@@ -80,9 +91,11 @@ export async function fetchDataForViews(viewNames: View[], user: FullUser, widge
 		const currentSchoolYear = schoolYears.find(
 			(schoolYear) => schoolYear.from <= CURRENT_DATETIME && schoolYear.to >= CURRENT_DATETIME
 		)
-		const promise = getAbsencesFor(user, currentSchoolYear.from, CURRENT_DATETIME, widgetConfig).then((absences) => {
-			fetchedData.absences = absences
-		})
+		const promise = getAbsencesFor(user, currentSchoolYear.from, CURRENT_DATETIME, widgetConfig).then(
+			(absences) => {
+				fetchedData.absences = absences
+			}
+		)
 		proposeRefreshIn(widgetConfig.cache.absences, fetchedData)
 		fetchPromises.push(promise)
 	}
