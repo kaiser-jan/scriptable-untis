@@ -5,15 +5,11 @@ import {
 	SettingsValueType,
 } from '@/types/settings'
 import { Duration } from '@/utils/duration'
-import { askForSingleInput, selectOption, showInfoPopup } from '@/utils/scriptable/input'
+import { askForSingleInput, parseArray, selectOption, showInfoPopup } from '@/utils/scriptable/input'
 
 const LOCALE_REGEX = /^[a-z]{2}(-[A-Z]{2})?$/
 
-export async function openValueEditor(
-	formattedValue: string,
-	formattedDefaultValue: string,
-	blueprint: SettingsValue
-) {
+export async function openValueEditor(formattedValue: string, formattedDefaultValue: string, blueprint: SettingsValue) {
 	const newValue = await openTextValueEditor(formattedValue.toString(), formattedDefaultValue, blueprint)
 
 	// return null if the user cancels the input
@@ -46,6 +42,11 @@ export async function openValueEditor(
 				)
 				return null
 			}
+		case SettingsValueType.STRING:
+		case SettingsValueType.COLOR:
+			return newValue
+		case SettingsValueType.STRING_ARRAY:
+			return parseArray(newValue)
 
 		default:
 			throw new Error(`Cannot open value editor for unknown type ${typeof newValue}`)

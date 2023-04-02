@@ -35,8 +35,24 @@ export type SettingsCategory<T extends SettingsStructureBase> = SettingsItemBase
 	items: SettingsList<T>
 }
 
-type SettingsList<T extends SettingsStructureBase> = {
-	[K in keyof T]: T[K] extends SettingsStructureBase ? SettingsCategory<T[K]> : SettingsValue
+export type SettingsMap<T extends SettingsStructureBase> = SettingsItemBase & {
+	items: SettingsList<T>
+	type: SettingsValueType.MAP
+	nameFormatter?: (key: string, item: T) => string
+}
+
+export function isSettingsMap(value: SettingsCategory<any> | SettingsValue): value is SettingsMap<any> {
+	return typeof value === 'object' && !Array.isArray(value) && 'type' in value && value.type === SettingsValueType.MAP
+}
+
+export type SettingsMapValue = { _: SettingsStructureBase }
+
+export type SettingsList<T extends SettingsStructureBase> = {
+	[K in keyof T]: T[K] extends SettingsStructureBase
+		? T[K] extends SettingsMapValue
+			? SettingsMap<T[K]['_']>
+			: SettingsCategory<T[K]>
+		: SettingsValue
 }
 
 export type SettingsValue = SettingsItemBase & {
@@ -44,19 +60,22 @@ export type SettingsValue = SettingsItemBase & {
 }
 
 export function isSettingsValue(value: SettingsCategory<any> | SettingsValue): value is SettingsValue {
-	return typeof value === 'object' && !Array.isArray(value) && 'type' in value
+	return typeof value === 'object' && !Array.isArray(value) && 'type' in value && value.type !== SettingsValueType.MAP
 }
 
 export enum SettingsValueType {
-	LOCALE,
-	DURATION,
+	STRING,
+	STRING_ARRAY,
+	COUNT,
 	ON_OFF,
 	SHOW_HIDE,
-	COUNT,
-	CUSTOM,
+	DURATION,
+	COLOR,
+	LOCALE,
+	MAP,
 }
 
-export type PrimitiveSettingsValue = string | number | boolean
+export type PrimitiveSettingsValue = string | number | boolean | string[]
 
 export type GeneralizedSettingsEntry = GeneralizedSettings | PrimitiveSettingsValue
 

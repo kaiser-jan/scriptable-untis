@@ -1,5 +1,34 @@
-import { SettingsCategory, SettingsValueType } from '@/types/settings'
+import { SettingsCategory, SettingsValueType, SubjectConfig } from '@/types/settings'
 import { defaultSettings } from '../settings'
+
+const subjectBlueprint = {
+	color: {
+		title: '🎨 Color',
+		description: 'The color of the subject.',
+		type: SettingsValueType.COLOR,
+	},
+	nameOverride: {
+		title: '📝 Short Name',
+		description: 'The short name of the subject.',
+		type: SettingsValueType.STRING,
+	},
+	longNameOverride: {
+		title: '📝 Long Name',
+		description: 'The long name of the subject.',
+		type: SettingsValueType.STRING,
+	},
+	ignoreInfos: {
+		title: '🚫 Ignore Infos',
+		description: 'Ignore unnecessary infos.',
+		type: SettingsValueType.STRING_ARRAY,
+	},
+}
+
+function subjectNameFormatter(key: string, item: SubjectConfig) {
+	let name = key
+	if (item.nameOverride) name += ` (${item.nameOverride})`
+	return name
+}
 
 export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 	title: '🛠️ Settings',
@@ -7,12 +36,17 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 	items: {
 		subjects: {
 			title: '📚 Subjects',
-			description: 'Colors, names etc. for the subjects.',
+			description: 'Custom colors, names etc. for subjects.',
+			type: SettingsValueType.MAP,
+			nameFormatter: subjectNameFormatter,
 			items: {
-				_: {
-					title: '📚 Subject',
-					description: 'Colors, names etc. for a subject.',
-					type: SettingsValueType.CUSTOM,
+				...subjectBlueprint,
+				teachers: {
+					title: '👨‍🏫 Teachers',
+					description: 'Custom configuration when the subject is taught by a certain teacher.',
+					type: SettingsValueType.MAP,
+					nameFormatter: subjectNameFormatter,
+					items: subjectBlueprint,
 				},
 			},
 		},
@@ -255,27 +289,3 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 		},
 	},
 }
-
-// const defaultSettings: DefaultSettings<typeof settingsConfig> = getDefaultSettings(settingsConfig)
-
-// function getDefaultSettings<T extends SettingsConfig>(config: T) {
-// 	const defaultSettings: any = {}
-
-// 	for (const key in config) {
-// 		const item = config[key]
-// 		if ('default' in item) {
-// 			defaultSettings[key] = item.default
-// 		} else {
-// 			defaultSettings[key] = getDefaultSettings<typeof item>(item)
-// 		}
-// 	}
-// 	return defaultSettings
-// }
-
-// type DefaultSettings<T extends SettingsConfig> = {
-// 	[K in keyof T]: T[K] extends { default: infer U }
-// 		? U
-// 		: T[K] extends { items: SettingsConfig }
-// 		? DefaultSettings<T[K]['items']>
-// 		: string
-// }

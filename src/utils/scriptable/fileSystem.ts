@@ -27,6 +27,7 @@ export async function readConfig(useICloud: boolean) {
 	const defaultSettingsCopy = JSON.parse(JSON.stringify(defaultSettings))
 
 	// combine the defaultSettings and read config and write it to config
+	// TODO: omit "_" properties
 	return deepMerge(defaultSettingsCopy, fileConfig) as Settings
 }
 

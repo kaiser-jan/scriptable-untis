@@ -1,7 +1,24 @@
+import { SubjectConfig } from '@/types/settings'
 import { Duration, DurationUnit } from '@/utils/duration'
 
+const defaultSubjectConfig: SubjectConfig = {
+	color: undefined,
+	nameOverride: undefined,
+	longNameOverride: undefined,
+	ignoreInfos: undefined,		
+}
+
 export const defaultSettings = {
-	subjects: null,
+	subjects: {
+		_: {
+			...defaultSubjectConfig,
+			teachers: {
+				_: {
+					...defaultSubjectConfig
+				},
+			},
+		},
+	},
 	config: {
 		locale: 'de-AT',
 		breakMin: Duration.asSeconds(7, DurationUnit.MINUTE),
@@ -54,8 +71,8 @@ export const defaultSettings = {
 		spacing: 4,
 		padding: 8,
 		fontSize: 14,
-		footer: true
-	}
+		footer: true,
+	},
 }
 
 export type Settings = typeof defaultSettings

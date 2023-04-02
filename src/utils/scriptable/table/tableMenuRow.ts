@@ -2,6 +2,16 @@ import { getTextWidth } from '@/utils/helper'
 import { TableMenu } from './tableMenu'
 import { TableMenuCell } from './tableMenuCell'
 
+export interface TableMenuRowTextOptions {
+	color?: Color
+	font?: Font
+	subtitle?: {
+		color?: Color
+		font?: Font
+	}
+	width?: number
+}
+
 /**
  * Represents a row in a table menu.
  * Allows you to add cells with a width percentage, the weights are calculated when calling `.calculate()`.
@@ -31,20 +41,7 @@ export class TableMenuRow {
 		return tableMenuCell
 	}
 
-	addText(
-		title: string,
-		subtitle: string,
-		options: {
-			color?: Color
-			font?: Font
-			subtitle?: {
-				color?: Color
-				font?: Font
-			}
-			width?: number
-		},
-		onTap?: () => void
-	) {
+	addText(title: string, subtitle: string, options: TableMenuRowTextOptions, onTap?: () => void) {
 		const cell = this._row.addText(title, subtitle)
 		cell.titleFont = options.font ?? Font.mediumSystemFont(16)
 		cell.titleColor = options.color
