@@ -4,7 +4,12 @@ export class TableMenu {
 	private _table: UITable
 	private _rows: TableMenuRow[]
 
-	constructor(table?: UITable, private _previousView?: TableMenu, private _rowHeight: number = 60) {
+	constructor(
+		table?: UITable,
+		private _previousView?: TableMenu,
+		private _customBackFunction?: () => void,
+		private _rowHeight: number = 60
+	) {
 		this._table = table ?? new UITable()
 		this._rows = []
 	}
@@ -14,7 +19,17 @@ export class TableMenu {
 
 		// add the back button if this is the first row
 		if (this._rows.length === 0 && this._previousView) {
-			row.addIconButton('⬅️', () => this.showPreviousView(), 15)
+			row.addIconButton(
+				'⬅️',
+				() => {
+					if (this._customBackFunction) {
+						this._customBackFunction()
+					} else {
+						this.showPreviousView()
+					}
+				},
+				15
+			)
 		}
 
 		this._rows.push(row)
@@ -82,11 +97,11 @@ export class TableMenu {
 
 		this._table = new UITable()
 		this.update()
-		this._table.present()
+		this._table.present(true)
 	}
 
-	createSubView(rowHeight?: number) {
-		const subView = new TableMenu(this._table, this, rowHeight ?? this._rowHeight)
+	createSubView(customBackFunction?: () => void, rowHeight?: number) {
+		const subView = new TableMenu(this._table, this, customBackFunction, rowHeight ?? this._rowHeight)
 		subView._previousView = this
 		return subView
 	}

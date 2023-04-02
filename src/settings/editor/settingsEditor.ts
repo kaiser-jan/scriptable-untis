@@ -1,5 +1,7 @@
 import {
 	GeneralizedSettings,
+	GeneralizedSettingsCategory,
+	GeneralizedSettingsMap,
 	PrimitiveSettingsValue,
 	SettingsCategory,
 	SettingsEditorParameters,
@@ -108,7 +110,7 @@ function buildSettingsEditorForCategory(
 		if (isPrimitiveSettingsValue(defaultSettingsPart))
 			throw new Error(`Default settings part "${key}" is not a category.`)
 
-		const optionsPart: SettingsEditorParameters = {
+		const optionsPart: SettingsEditorParameters<GeneralizedSettingsCategory> = {
 			settings: settingsPart,
 			defaultSettings: defaultSettingsPart,
 			blueprint: blueprintPart,
@@ -136,7 +138,8 @@ function buildSettingsEditorForMap(
 	tableMenu.reset()
 	const titleRow = tableMenu.addTitleRow(blueprint.title)
 
-	titleRow.addIconButton('➕', () => createSettingsMapEntry(tableMenu, options, saveConfig))
+	// TODO: use a regular button
+	titleRow.addIconButton('➕ add', () => createSettingsMapEntry(tableMenu, options, saveConfig), 15)
 
 	log(`Config Editor: Building settings editor for Map "${blueprint.title}".`)
 
@@ -148,14 +151,28 @@ function buildSettingsEditorForMap(
 
 		let name = blueprint.nameFormatter ? blueprint.nameFormatter(key, settingsPart) : key
 		const row = tableMenu.addTextRow(name)
+		row.addIconButton('🗑️', () => {
+			delete settings[key]
+			saveConfig()
+			buildSettingsEditorForMap(tableMenu, options, saveConfig)
+		})
 
-		row.setOnTap(() => openSettingsEditorForMapKey(tableMenu, key, options, saveConfig))
+		row.setOnTap(() =>
+			openSettingsEditorForMapKey(tableMenu, key, options, saveConfig, () => {
+				// reload the map list, so the values are updated
+				buildSettingsEditorForMap(tableMenu, options, saveConfig)
+			})
+		)
 	}
 
 	tableMenu.show()
 }
 
-async function createSettingsMapEntry(tableMenu: TableMenu, options: SettingsEditorParameters, saveConfig: () => void) {
+async function createSettingsMapEntry(
+	tableMenu: TableMenu,
+	options: SettingsEditorParameters<GeneralizedSettingsMap>,
+	saveConfig: () => void
+) {
 	console.log(`Config Editor: Creating new entry for Map "${options.blueprint.title}".`)
 
 	// ask for the key
@@ -174,29 +191,33 @@ async function createSettingsMapEntry(tableMenu: TableMenu, options: SettingsEdi
 	}
 
 	// add the key to the beginning of the settings (copying the default settings)
-	options.settings[key] = { ...options.defaultSettings['_'] as GeneralizedSettings }
+	options.settings[key] = { ...(options.defaultSettings['_'] as GeneralizedSettings) }
 	// save the config
 	// saveConfig()
 
 	console.log(`Config Editor: Added new entry for Map "${options.blueprint.title}". (Key: "${key}")`)
 
 	// open the editor for the new key
-	openSettingsEditorForMapKey(tableMenu, key, options, saveConfig)
+	openSettingsEditorForMapKey(tableMenu, key, options, saveConfig, () => {
+		// reload the map list, so the values are updated
+		buildSettingsEditorForMap(tableMenu, options, saveConfig)
+	})
 }
 
 function openSettingsEditorForMapKey(
 	tableMenu: TableMenu,
 	key: string,
-	options: SettingsEditorParameters,
-	saveConfig: () => void
+	options: SettingsEditorParameters<GeneralizedSettingsMap>,
+	saveConfig: () => void,
+	backFunction: () => void
 ) {
-	const newOptions: SettingsEditorParameters = {
+	const newOptions: SettingsEditorParameters<GeneralizedSettingsMap> = {
 		settings: options.settings[key] as GeneralizedSettings,
 		defaultSettings: options.defaultSettings['_'] as GeneralizedSettings,
 		blueprint: options.blueprint,
 		fullSettings: options.fullSettings,
 	}
-	buildSettingsEditorForCategory(tableMenu.createSubView(), newOptions, saveConfig)
+	buildSettingsEditorForCategory(tableMenu.createSubView(backFunction), newOptions, saveConfig)
 }
 
 function addSettingsCategoryRow(
@@ -214,7 +235,11 @@ function addSettingsCategoryRow(
 
 	row.setOnTap(() => {
 		// NOTE: typescript doesn't recognize the type guard of options.blueprint
-		buildSettingsEditorForCategory(tableMenu.createSubView(), options as SettingsEditorParameters, saveConfig)
+		buildSettingsEditorForCategory(
+			tableMenu.createSubView(),
+			options as SettingsEditorParameters<GeneralizedSettingsCategory>,
+			saveConfig
+		)
 	})
 }
 
