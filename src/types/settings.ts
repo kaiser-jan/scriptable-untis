@@ -38,6 +38,9 @@ export type SettingsCategory<T extends SettingsStructureBase> = SettingsItemBase
 export type SettingsMap<T extends SettingsStructureBase> = SettingsItemBase & {
 	items: SettingsList<T>
 	type: SettingsValueType.MAP
+	addItemTitle?: string
+	addItemDescription?: string
+	addItemPlaceholder?: string
 	nameFormatter?: (key: string, item: T) => string
 }
 

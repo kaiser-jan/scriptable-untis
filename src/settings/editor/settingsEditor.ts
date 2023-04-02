@@ -177,9 +177,9 @@ async function createSettingsMapEntry(
 
 	// ask for the key
 	const key = await askForSingleInput({
-		title: 'Add entry',
-		description: 'Enter the key for the new entry.',
-		placeholder: 'Key',
+		title: options.blueprint.addItemTitle ?? 'Add entry',
+		description: options.blueprint.addItemDescription ?? 'Enter the key for the new entry.',
+		placeholder: options.blueprint.addItemPlaceholder ?? 'Key',
 		doneLabel: 'Add',
 	})
 	// exit if the user cancelled
