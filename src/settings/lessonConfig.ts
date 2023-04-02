@@ -33,9 +33,18 @@ function applyCustomLessonConfig(lesson: TransformedLesson, widgetConfig: Settin
 
 	// unwrap the option, as there can be teacher specific widgetConfig
 	if (unparsedSubjectConfig.teachers) {
-		const foundTeacher = unparsedSubjectConfig.teachers.find((teacherConfig) => {
-			return lesson.teachers.some((teacher) => teacherConfig.teacher === teacher.name)
-		})
+		// TODO(compatibility): what if there are multiple teachers?
+		let foundTeacher: SubjectConfig | undefined
+		for (const teacher of lesson.teachers) {
+			if (!unparsedSubjectConfig.teachers[teacher.name]) continue
+			// if multiple teachers match, the default config will be used
+			if (foundTeacher) {
+				foundTeacher = undefined
+				break
+			}
+			// otherwise, the teacher specific config will be used
+			foundTeacher = unparsedSubjectConfig.teachers[teacher.name]
+		}
 		if (foundTeacher) subjectConfig = foundTeacher
 	}
 
