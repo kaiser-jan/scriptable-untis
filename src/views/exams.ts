@@ -53,9 +53,19 @@ export function addViewExams(
 		// apply the custom name if it exists
 		let lessonConfig = widgetConfig.subjects[exam.subject] as SubjectConfig
 		if (lessonConfig) {
-			// TODO: respect the teacher config
+			// apply the teacher override, if only this teacher is in the exam
+			if (
+				lessonConfig.teachers &&
+				exam.teacherNames.length === 1 &&
+				lessonConfig.teachers[exam.teacherNames[0]]
+			) {
+				lessonConfig = lessonConfig.teachers[exam.teacherNames[0]]
+			}
+
+			// apply the name override
 			if (lessonConfig.nameOverride) subjectName = lessonConfig.nameOverride
 
+			// apply the long name override
 			if (lessonConfig.longNameOverride) {
 				longSubjectName = lessonConfig.longNameOverride
 			}

@@ -60,6 +60,9 @@ export function addViewGrades(
 			else if (grade.mark.displayValue === 4) iconName = 'minus.circle'
 		}
 
+		// TODO: apply lesson config
+		// NOTE: check teacher config possibility, currently teacher is not available here
+
 		// build the layout row
 		const staticLayoutRow = new StaticLayoutRow(
 			width - 2 * padding,
