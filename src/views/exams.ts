@@ -11,11 +11,14 @@ export function addViewExams(
 	{ container, width, height, widgetConfig }: ViewBuildData
 ) {
 	let remainingHeight = height
+	log(`Available height: ${remainingHeight}`)
 	const charHeight = getCharHeight(widgetConfig.appearance.fontSize)
 	const charWidth = getCharWidth(widgetConfig.appearance.fontSize)
 	const padding = 4
 
-	if (height < charHeight + 2 * padding) return 0
+	if (remainingHeight < charHeight + 2 * padding) return 0
+
+	log(`Fits: ${charHeight + 2 * padding}`)
 
 	const sortedExams = exams.sort((a, b) => a.from.getTime() - b.from.getTime())
 
@@ -108,6 +111,8 @@ export function addViewExams(
 		)
 
 		const { resultingWidth, resultingHeight } = flowLayoutRow.finish()
+
+		log(`Resulting height: ${resultingHeight}`)
 
 		remainingHeight -= resultingHeight
 		lessonCount++

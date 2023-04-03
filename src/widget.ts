@@ -145,11 +145,11 @@ function addColumn(
  * @param shownViews
  * @return the height of the added view
  */
-function addView(fetchedData: FetchedData, view: View, viewData: ViewBuildData, shownViews: Set<View>): number | 0 {
+function addView(fetchedData: FetchedData, view: View, viewData: ViewBuildData, shownViews: Set<View>): number {
 	const widgetConfig = viewData.widgetConfig
 	const remainingHeight = viewData.height
 	// exit if there is not enough space left
-	if (remainingHeight <= getCharHeight(widgetConfig.appearance.fontSize)) return
+	if (remainingHeight <= getCharHeight(widgetConfig.appearance.fontSize)) return 0
 
 	switch (view) {
 		case View.LESSONS:
