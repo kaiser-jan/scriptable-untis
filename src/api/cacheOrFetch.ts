@@ -4,6 +4,7 @@ import { CURRENT_DATETIME, NOTIFIABLE_TOPICS } from '@/constants'
 import { compareCachedAbsences, compareCachedExams, compareCachedGrades, compareCachedLessons } from '@/features/notify'
 import { applyLessonConfigs } from '@/settings/lessonConfig'
 import { Settings } from '@/settings/settings'
+import { SubjectConfig } from '@/types/settings'
 import { sortKeysByDate } from '@/utils/helper'
 
 /**
@@ -173,20 +174,6 @@ export async function getTimetable(user: FullUser, widgetConfig: Settings) {
 	const lessonsToday = timetable[todayKey] ?? []
 	// the lessons which have not passed yet
 	const lessonsTodayRemaining = lessonsToday.filter((l) => l.to > CURRENT_DATETIME)
-
-	// check the teacher selection from the config
-	lessonsTodayRemaining.filter((lesson) => {
-		if (!lesson.subject) return true
-		const lessonOption = widgetConfig.subjects[lesson.subject.name]
-		if (!lessonOption) return true
-		if (Array.isArray(lessonOption)) {
-			// check if the teacher is in the lesson
-			return lessonOption.some((option) => {
-				return lesson.teachers.some((teacher) => teacher.name === option.teacher)
-			})
-		}
-		return true
-	})
 
 	return { lessonsTodayRemaining, lessonsNextDay, nextDayKey }
 }
