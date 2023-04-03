@@ -1,8 +1,10 @@
 import { CURRENT_DATETIME, LOCALE } from '@/constants'
 import { colors } from '@/settings/colors'
+import { SubjectConfig } from '@/types/settings'
 import { TransformedExam } from '@/types/transformed'
-import { getCharHeight, getCharWidth } from '@/utils/helper'
-import { FlowLayoutRow } from '@/utils/scriptable/layoutHelper'
+import { getCharHeight, getCharWidth, getTextWidth } from '@/utils/helper'
+import { FlowLayoutRow } from '@/utils/scriptable/layout/flowLayoutRow'
+import { StaticLayoutRow } from '@/utils/scriptable/layout/staticLayoutRow'
 import { ViewBuildData } from '@/widget'
 
 export function addViewExams(
@@ -11,37 +13,13 @@ export function addViewExams(
 	{ container, width, height, widgetConfig }: ViewBuildData
 ) {
 	let remainingHeight = height
-	log(`Available height: ${remainingHeight}`)
 	const charHeight = getCharHeight(widgetConfig.appearance.fontSize)
-	const charWidth = getCharWidth(widgetConfig.appearance.fontSize)
 	const padding = 4
+	const containerHeight = charHeight + 2 * padding
 
-	if (remainingHeight < charHeight + 2 * padding) return 0
-
-	log(`Fits: ${charHeight + 2 * padding}`)
+	if (remainingHeight < containerHeight) return 0
 
 	const sortedExams = exams.sort((a, b) => a.from.getTime() - b.from.getTime())
-
-	// the minimum width of an exam: padding + icon + subject + type + date
-	let minimumWidth = 2 * padding + charHeight + getCharWidth(widgetConfig.appearance.fontSize) * (6 + 5 + 6)
-
-	// show the exam type if it fits
-	let useExamType = false
-	if (minimumWidth <= width) {
-		useExamType = true
-	}
-	// show the long subject name if it fits (4 more characters)
-	let useLongSubjectName = false
-	if (width > minimumWidth + 4 * charWidth) {
-		minimumWidth += 4 * charWidth
-		useLongSubjectName = true
-	}
-	// show the weekday if it fits (4 more characters)
-	let useWeekday = false
-	if (width > minimumWidth + 4 * charWidth) {
-		minimumWidth += 4 * charWidth
-		useWeekday = true
-	}
 
 	let lessonCount = 0
 
@@ -61,67 +39,110 @@ export function addViewExams(
 		if (i > 0) remainingHeight -= widgetConfig.appearance.spacing
 
 		const examContainer = container.addStack()
+		examContainer.size = new Size(width, containerHeight)
 		examContainer.layoutHorizontally()
+		examContainer.setPadding(padding, padding, padding, padding)
 		examContainer.spacing = widgetConfig.appearance.spacing
 		examContainer.backgroundColor = colors.background.primary
 		examContainer.cornerRadius = widgetConfig.appearance.cornerRadius
 
-		const flowLayoutRow = new FlowLayoutRow(
-			width,
-			remainingHeight,
-			widgetConfig.appearance.spacing,
-			padding,
-			examContainer
-		)
+		// use the long subject name if it fits
+		let subjectName = exam.subject
+		let longSubjectName = subjectName
 
-		flowLayoutRow.addIcon('book.circle', widgetConfig.appearance.fontSize, colors.text.secondary)
+		// apply the custom name if it exists
+		let lessonConfig = widgetConfig.subjects[exam.subject] as SubjectConfig
+		if (lessonConfig) {
+			// TODO: respect the teacher config
+			if (lessonConfig.nameOverride) subjectName = lessonConfig.nameOverride
 
-		let customOption = widgetConfig.subjects[exam.subject]
-		if (customOption && !Array.isArray(customOption)) {
-			exam.subject = customOption.nameOverride ?? exam.subject
-			if (useLongSubjectName && customOption.longNameOverride) {
-				exam.subject = customOption.longNameOverride
+			if (lessonConfig.longNameOverride) {
+				longSubjectName = lessonConfig.longNameOverride
 			}
 		}
 
-		flowLayoutRow.addText(
-			exam.subject,
+		// get the formatted date
+		const shortDate = exam.from.toLocaleString(LOCALE, { day: 'numeric', month: 'short' })
+		const longDate = exam.from.toLocaleString(LOCALE, { weekday: 'short', day: 'numeric', month: 'short' })
+
+		// build the layout row
+		const staticLayoutRow = new StaticLayoutRow(
+			width - 2 * padding,
+			widgetConfig.appearance.spacing,
 			Font.mediumSystemFont(widgetConfig.appearance.fontSize),
 			widgetConfig.appearance.fontSize,
 			colors.text.primary
 		)
 
-		if (useExamType) {
-			flowLayoutRow.addText(
-				exam.type,
-				Font.mediumSystemFont(widgetConfig.appearance.fontSize),
-				widgetConfig.appearance.fontSize,
-				colors.text.secondary
-			)
-		}
+		/**
+		 * Priorities:
+		 * 1. Icon
+		 * 2. Subject name
+		 * 3. Date
+		 * 4. Exam type
+		 * 5. Long subject name
+		 * 6. Long date
+		 */
 
-		let dateFormat: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' }
-		if (useWeekday) dateFormat.weekday = 'short'
-		const date = exam.from.toLocaleString(LOCALE, dateFormat)
-		flowLayoutRow.addText(
-			date,
-			Font.regularSystemFont(widgetConfig.appearance.fontSize),
-			widgetConfig.appearance.fontSize,
-			colors.text.primary
-		)
+		// add the exam icon
+		staticLayoutRow.addItem({
+			type: 'icon',
+			icon: 'book.circle',
+			size: widgetConfig.appearance.fontSize,
+			color: colors.text.secondary,
+			priority: 1,
+		})
 
-		const { resultingWidth, resultingHeight } = flowLayoutRow.finish()
+		// add the subject name
+		staticLayoutRow.addItem({
+			type: 'text',
+			variants: [
+				{
+					text: subjectName,
+					priority: 2,
+				},
+				{
+					text: longSubjectName,
+					priority: 5,
+				},
+			],
+			fontSize: widgetConfig.appearance.fontSize,
+			color: colors.text.primary,
+		})
 
-		log(`Resulting height: ${resultingHeight}`)
+		// add the exam type
+		staticLayoutRow.addItem({
+			type: 'text',
+			variants: [{ text: exam.type, priority: 4 }],
+			color: colors.text.secondary,
+		})
 
-		remainingHeight -= resultingHeight
+		// add the date
+		staticLayoutRow.addItem({
+			type: 'text',
+			variants: [
+				{
+					text: shortDate,
+					priority: 3,
+				},
+				{
+					text: longDate,
+					priority: 6,
+				},
+			],
+			color: colors.text.primary,
+		})
+
+		staticLayoutRow.build(examContainer)
+
+		remainingHeight -= containerHeight
 		lessonCount++
 
 		// exit if the max item count is reached
 		if (maxCount && lessonCount >= maxCount) break
 
 		// exit if it would get too big, use the maximum height
-		if (remainingHeight - 3 * charHeight + 2 * widgetConfig.appearance.spacing < 0) break
+		if (containerHeight + widgetConfig.appearance.spacing > remainingHeight) break
 	}
 
 	return height - remainingHeight

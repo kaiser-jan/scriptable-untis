@@ -66,15 +66,17 @@ async function fetchData<T, TransformedT>(
 	user: FullUser,
 	url: string,
 	key: string,
-	transform: (data: T[]) => TransformedT[]
+	transform: (data: T[]) => TransformedT[],
+	expectArray = false
 ) {
 	const request = prepareRequest(url, user)
 	const json = await request.loadJSON()
-	if (!json || !json.data || !json.data[key]) {
+
+	if (!json || !json.data || (!expectArray && !json.data[key])) {
 		console.warn(`⚠️ Could not fetch ${key}!`)
 	}
 
-	const data: T[] = json.data[key]
+	const data: T[] = expectArray ? json.data : json.data[key]
 	console.log(`📅 Fetched ${data?.length} ${key}`)
 
 	if (!data) return undefined
@@ -95,7 +97,8 @@ export async function fetchGradesFor(user: FullUser, from: Date, to: Date) {
 		user.id
 	}&startDate=${formatDateForUntis(from)}&endDate=${formatDateForUntis(to)}`
 
-	return fetchData<Grade, TransformedGrade>(user, urlGrades, 'grades', transformGrades)
+	// out of some reason, the grades are not in the "grades" key, but directly in the data object
+	return fetchData<Grade, TransformedGrade>(user, urlGrades, 'grades', transformGrades, true)
 }
 
 export async function fetchAbsencesFor(user: FullUser, from: Date, to: Date) {

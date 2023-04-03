@@ -7,7 +7,7 @@ import { TransformedLesson } from '@/types/transformed'
 import { asNumericTime, getCharHeight, getCharWidth, getTextWidth } from '@/utils/helper'
 import { filterCanceledLessons, getSubjectTitle } from '@/utils/lessonHelper'
 import { fillContainerWithSubject } from '@/utils/scriptable/componentHelper'
-import { FlowLayoutRow } from '@/utils/scriptable/layoutHelper'
+import { FlowLayoutRow } from '@/utils/scriptable/layout/flowLayoutRow'
 import { ViewBuildData } from '@/widget'
 
 export function addViewPreview(

@@ -8,6 +8,7 @@ const defaultSubjectConfig: SubjectConfig = {
 	ignoreInfos: undefined,
 }
 
+// TODO: this implementation of the map does not provide auto completion
 export const defaultSettings = {
 	subjects: {
 		_: {

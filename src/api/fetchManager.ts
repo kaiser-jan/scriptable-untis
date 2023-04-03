@@ -68,8 +68,8 @@ export async function fetchDataForViews(viewNames: View[], user: FullUser, widge
 	}
 
 	if (itemsToFetch.has(FetchableItems.EXAMS)) {
-		const examsFrom = getDateInXSeconds(widgetConfig.views.exams.scope)
-		const promise = getExamsFor(user, examsFrom, CURRENT_DATETIME, widgetConfig).then((exams) => {
+		const examsTo = getDateInXSeconds(widgetConfig.views.exams.scope)
+		const promise = getExamsFor(user, CURRENT_DATETIME, examsTo, widgetConfig).then((exams) => {
 			fetchedData.exams = exams
 		})
 		proposeRefreshIn(widgetConfig.cache.exams, fetchedData)
@@ -77,7 +77,8 @@ export async function fetchDataForViews(viewNames: View[], user: FullUser, widge
 	}
 
 	if (itemsToFetch.has(FetchableItems.GRADES)) {
-		const gradesFrom = getDateInXSeconds(widgetConfig.views.grades.scope)
+		const gradesFrom = getDateInXSeconds(widgetConfig.views.grades.scope * -1)
+		log(`Fetching grades from ${gradesFrom} to ${CURRENT_DATETIME}`)
 		const promise = getGradesFor(user, gradesFrom, CURRENT_DATETIME, widgetConfig).then((grades) => {
 			fetchedData.grades = grades
 		})

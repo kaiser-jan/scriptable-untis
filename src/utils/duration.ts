@@ -83,6 +83,28 @@ export class Duration {
 	}
 
 	/**
+	 * Converts the duration to a human readable string with more than one unit of time if necessary.
+	 * e.g. 1d2h, 2h50min
+	 */
+	public toMixedUnitString(): string {
+		const units = Object.values(DurationUnit).reverse()
+		let remainingSeconds = this.seconds
+		let result = ''
+
+		for (const unit of units) {
+			const unitSeconds = durationUnitMultipliers[unit]
+			const unitCount = Math.floor(remainingSeconds / unitSeconds)
+
+			if (unitCount > 0) {
+				result += `${unitCount}${unit}`
+				remainingSeconds -= unitCount * unitSeconds
+			}
+		}
+
+		return result
+	}
+
+	/**
 	 * Formats the duration using the given unit.
 	 * The value is rounded to a maximum of 2 decimal places.
 	 */

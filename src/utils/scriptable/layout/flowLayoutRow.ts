@@ -1,5 +1,5 @@
-import { getCharHeight, getTextWidth } from '../helper'
-import { addSymbol } from './componentHelper'
+import { getCharHeight, getTextWidth } from '../../helper'
+import { addSymbol } from '../componentHelper'
 
 /**
  * A helper class which can be used to lay out items in a horizontal flow layout.
