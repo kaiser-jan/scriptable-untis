@@ -142,6 +142,7 @@ export class StaticLayoutRow {
 		for (const slot of this._slots) {
 			// check if the slot is an icon
 			if (slot.type === 'icon') {
+				if (!slot.icon) continue
 				metaItems.push({
 					type: slot.type,
 					priority: slot.priority,
@@ -152,6 +153,7 @@ export class StaticLayoutRow {
 			}
 			// otherwise, add all the text versions
 			for (const version of slot.variants) {
+				if (!version.text) continue
 				const item: StaticLayoutMeta = {
 					type: slot.type,
 					text: version.text,

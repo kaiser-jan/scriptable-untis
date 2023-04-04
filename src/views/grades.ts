@@ -1,5 +1,6 @@
 import { LOCALE } from '@/constants'
-import { colors } from '@/settings/colors'
+import { colors, getColor } from '@/settings/colors'
+import { SubjectConfig } from '@/types/settings'
 import { TransformedGrade } from '@/types/transformed'
 import { getCharHeight } from '@/utils/helper'
 import { StaticLayoutRow } from '@/utils/scriptable/layout/staticLayoutRow'
@@ -29,14 +30,6 @@ export function addViewGrades(
 		// subtract the spacing between the items
 		if (i > 0) remainingHeight -= widgetConfig.appearance.spacing
 
-		const gradeContainer = container.addStack()
-		gradeContainer.size = new Size(width, containerHeight)
-		gradeContainer.layoutHorizontally()
-		gradeContainer.setPadding(padding, padding, padding, padding)
-		gradeContainer.spacing = widgetConfig.appearance.spacing
-		gradeContainer.backgroundColor = colors.background.primary
-		gradeContainer.cornerRadius = widgetConfig.appearance.cornerRadius
-
 		// get the formatted date
 		const shortDate = grade.date.toLocaleString(LOCALE, { day: 'numeric', month: 'short' })
 		const longDate = grade.date.toLocaleString(LOCALE, { weekday: 'short', day: 'numeric', month: 'short' })
@@ -60,8 +53,27 @@ export function addViewGrades(
 			else if (grade.mark.displayValue === 4) iconName = 'minus.circle'
 		}
 
-		// TODO: apply lesson config
-		// NOTE: check teacher config possibility, currently teacher is not available here
+		let subjectName = grade.subject
+		let longSubjectName = grade.subject
+		let backgroundColor = colors.background.primary
+		// apply the custom lesson config if it exists
+		const lessonConfig = widgetConfig.subjects[grade.subject] as SubjectConfig
+		if (lessonConfig) {
+			// apply the overrides
+			if (lessonConfig.nameOverride) subjectName = lessonConfig.nameOverride
+			longSubjectName = lessonConfig.longNameOverride
+			if (lessonConfig.color) backgroundColor = getColor(lessonConfig.color)
+
+			// TODO: apply teacher config
+		}
+
+		const gradeContainer = container.addStack()
+		gradeContainer.size = new Size(width, containerHeight)
+		gradeContainer.layoutHorizontally()
+		gradeContainer.setPadding(padding, padding, padding, padding)
+		gradeContainer.spacing = widgetConfig.appearance.spacing
+		gradeContainer.backgroundColor = backgroundColor
+		gradeContainer.cornerRadius = widgetConfig.appearance.cornerRadius
 
 		// build the layout row
 		const staticLayoutRow = new StaticLayoutRow(
@@ -87,7 +99,7 @@ export function addViewGrades(
 			type: 'icon',
 			icon: iconName ?? defaultIconName,
 			size: widgetConfig.appearance.fontSize,
-			color: colors.text.secondary,
+			color: colors.text.primary,
 			priority: iconName ? 1 : 3,
 		})
 

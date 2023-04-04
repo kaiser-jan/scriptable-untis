@@ -20,7 +20,7 @@ export function applyLessonConfigs(timetable: TransformedLessonWeek, widgetConfi
 /**
  * Applies the custom lesson config to a lesson.
  */
-function applyCustomLessonConfig(lesson: TransformedLesson, widgetConfig: Settings) {
+export function applyCustomLessonConfig(lesson: TransformedLesson, widgetConfig: Settings) {
 	lesson.backgroundColor = unparsedColors.background.primary
 
 	// return default values if there is no custom config
@@ -34,7 +34,7 @@ function applyCustomLessonConfig(lesson: TransformedLesson, widgetConfig: Settin
 	// unwrap the option, as there can be teacher specific widgetConfig
 	if (unparsedSubjectConfig.teachers) {
 		// TODO(compatibility): what if there are multiple teachers?
-		let foundTeacher: SubjectConfig | undefined
+		let foundTeacher: SubjectConfig | undefined = undefined
 		for (const teacher of lesson.teachers) {
 			if (!unparsedSubjectConfig.teachers[teacher.name]) continue
 			// if multiple teachers match, the default config will be used

@@ -75,7 +75,7 @@ export function addViewAbsences(
 			type: 'icon',
 			icon: 'pills.circle',
 			size: widgetConfig.appearance.fontSize,
-			color: colors.text.secondary,
+			color: colors.text.primary,
 			priority: 1,
 		})
 

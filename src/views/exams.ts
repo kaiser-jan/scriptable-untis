@@ -1,6 +1,6 @@
 import { CURRENT_DATETIME, LOCALE } from '@/constants'
-import { colors } from '@/settings/colors'
-import { SubjectConfig } from '@/types/settings'
+import { colors, getColor } from '@/settings/colors'
+import { SubjectConfig, TeacherSpecificSubjectConfig } from '@/types/settings'
 import { TransformedExam } from '@/types/transformed'
 import { getCharHeight, getCharWidth, getTextWidth } from '@/utils/helper'
 import { FlowLayoutRow } from '@/utils/scriptable/layout/flowLayoutRow'
@@ -38,42 +38,45 @@ export function addViewExams(
 		// subtract the spacing between the items
 		if (i > 0) remainingHeight -= widgetConfig.appearance.spacing
 
-		const examContainer = container.addStack()
-		examContainer.size = new Size(width, containerHeight)
-		examContainer.layoutHorizontally()
-		examContainer.setPadding(padding, padding, padding, padding)
-		examContainer.spacing = widgetConfig.appearance.spacing
-		examContainer.backgroundColor = colors.background.primary
-		examContainer.cornerRadius = widgetConfig.appearance.cornerRadius
-
 		// use the long subject name if it fits
 		let subjectName = exam.subject
 		let longSubjectName = subjectName
 
+		let backgroundColor = colors.background.primary
+
 		// apply the custom name if it exists
-		let lessonConfig = widgetConfig.subjects[exam.subject] as SubjectConfig
+		const lessonConfig = widgetConfig.subjects[exam.subject] as SubjectConfig
 		if (lessonConfig) {
+			// apply the overrides
+			if (lessonConfig.nameOverride) subjectName = lessonConfig.nameOverride
+			longSubjectName = lessonConfig.longNameOverride
+			if (lessonConfig.color) backgroundColor = getColor(lessonConfig.color)
+
 			// apply the teacher override, if only this teacher is in the exam
 			if (
 				lessonConfig.teachers &&
 				exam.teacherNames.length === 1 &&
 				lessonConfig.teachers[exam.teacherNames[0]]
 			) {
-				lessonConfig = lessonConfig.teachers[exam.teacherNames[0]]
-			}
-
-			// apply the name override
-			if (lessonConfig.nameOverride) subjectName = lessonConfig.nameOverride
-
-			// apply the long name override
-			if (lessonConfig.longNameOverride) {
-				longSubjectName = lessonConfig.longNameOverride
+				const teacherConfig = lessonConfig.teachers[exam.teacherNames[0]]
+				if (teacherConfig.nameOverride) subjectName = teacherConfig.nameOverride
+				if (teacherConfig.longNameOverride) longSubjectName = teacherConfig.longNameOverride
+				if (teacherConfig.color) backgroundColor = getColor(teacherConfig.color)
 			}
 		}
 
 		// get the formatted date
 		const shortDate = exam.from.toLocaleString(LOCALE, { day: 'numeric', month: 'short' })
 		const longDate = exam.from.toLocaleString(LOCALE, { weekday: 'short', day: 'numeric', month: 'short' })
+
+		// build the container
+		const examContainer = container.addStack()
+		examContainer.size = new Size(width, containerHeight)
+		examContainer.layoutHorizontally()
+		examContainer.setPadding(padding, padding, padding, padding)
+		examContainer.spacing = widgetConfig.appearance.spacing
+		examContainer.backgroundColor = backgroundColor
+		examContainer.cornerRadius = widgetConfig.appearance.cornerRadius
 
 		// build the layout row
 		const staticLayoutRow = new StaticLayoutRow(
@@ -99,7 +102,7 @@ export function addViewExams(
 			type: 'icon',
 			icon: 'book.circle',
 			size: widgetConfig.appearance.fontSize,
-			color: colors.text.secondary,
+			color: colors.text.primary,
 			priority: 1,
 		})
 
