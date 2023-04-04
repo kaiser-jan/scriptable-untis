@@ -46,6 +46,7 @@ async function getCachedOrFetch<T>(
 	log(cacheAge)
 	log(maxAge * 1000)
 
+	// TODO(check): comparing to CURRENT_DATETIME causes the cache to be invalid when CURRENT_DATETIME is modified
 	// refetch if the cache is too old (max age exceeded or not the same day)
 	if (!cachedJson || cacheAge > maxAge * 1000 || cacheDate.getDate() !== CURRENT_DATETIME.getDate()) {
 		console.log(`Fetching data ${key}, cache invalid.`)

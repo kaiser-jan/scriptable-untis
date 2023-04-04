@@ -207,6 +207,8 @@ export function compareCachedAbsences(
 			(cachedAbsence) => JSON.stringify(cachedAbsence) === JSON.stringify(absence)
 		)
 
+		// TODO: notify for excused absences
+
 		if (!cachedAbsence) {
 			scheduleNotification(
 				`🚷 Absence was added by ${absence.createdBy}`,
