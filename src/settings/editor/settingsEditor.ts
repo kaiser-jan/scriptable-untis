@@ -61,10 +61,12 @@ function buildSettingsEditorForCategory(
 ) {
 	const { settings, defaultSettings, blueprint } = options
 
+	log(`Config Editor: Building settings editor for category "${blueprint.title}".`)
+
 	tableMenu.reset()
 	tableMenu.addTitleRow(blueprint.title)
-
-	log(`Config Editor: Building settings editor for category "${blueprint.title}".`)
+	tableMenu.addDescriptionRow(blueprint.description)
+	tableMenu.addSpacerRow()
 
 	for (const key of Object.keys(blueprint.items)) {
 		const settingsPart = settings[key as keyof typeof settings]

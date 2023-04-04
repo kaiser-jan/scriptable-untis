@@ -59,7 +59,7 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 
 		config: {
 			title: '⚙️ Config',
-			description: 'General configuration options (e.g. locale).',
+			description: 'General configuration options.',
 
 			items: {
 				locale: {
@@ -82,7 +82,7 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 
 		cache: {
 			title: '🗃️ Cache',
-			description: 'How long data should be reused instead of re-downloaded.',
+			description: 'How long data should be reused.',
 
 			items: {
 				user: {
@@ -120,7 +120,7 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 
 		refresh: {
 			title: '🔄️ Refresh',
-			description: 'How often the data should be refreshed.',
+			description: 'How often data should be refreshed.',
 
 			items: {
 				normalScope: {
@@ -134,7 +134,7 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 					type: SettingsValueType.DURATION,
 				},
 				lazyInterval: {
-					title: '🕒️ Lazy Interval',
+					title: '💤 Lazy Interval',
 					description: 'How often the widget should update when there are no lessons in the normal scope.',
 					type: SettingsValueType.DURATION,
 				},
@@ -143,16 +143,16 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 
 		views: {
 			title: '🖼️ Views',
-			description: 'Configuration for the different views.',
+			description: 'Change how information is displayed.',
 
 			items: {
 				lessons: {
 					title: '📚 Lessons',
-					description: 'Configuration for the lessons view.',
+					description: 'Choose how you want to see your lessons.',
 
 					items: {
 						maxCount: {
-							title: '📝 Maximum Count',
+							title: '🔢 Maximum Count',
 							description: 'How many lessons should be shown.',
 							type: SettingsValueType.COUNT,
 						},
@@ -162,12 +162,12 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 							type: SettingsValueType.SHOW_HIDE,
 						},
 						showLongBreaks: {
-							title: '🕐️ Show Long Breaks',
+							title: '🍽️ Show Long Breaks',
 							description: 'Whether long breaks should be displayed.',
 							type: SettingsValueType.SHOW_HIDE,
 						},
 						showEndTimes: {
-							title: '🕒️ Show End Times',
+							title: '🎊 Show End Times',
 							description: 'Whether the end times should be displayed. (if there is enough space)',
 							type: SettingsValueType.SHOW_HIDE,
 						},
@@ -177,7 +177,7 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 							type: SettingsValueType.SHOW_HIDE,
 						},
 						skipShortBreaks: {
-							title: '🕑️ Skip Short Breaks',
+							title: '⏲️ Skip Short Breaks',
 							description:
 								'Whether short breaks should be skipped and subtracted from the end time of a lesson.',
 							type: SettingsValueType.ON_OFF,
@@ -187,12 +187,12 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 
 				exams: {
 					title: '📝 Exams',
-					description: 'Configuration for the exams view.',
+					description: 'Edit which exams to display.',
 
 					items: {
 						maxCount: {
 							title: '🔢 Maximum Count',
-							description: 'How many exams should be shown.',
+							description: 'Up to how many exams should be shown.',
 							type: SettingsValueType.COUNT,
 						},
 						scope: {
@@ -205,17 +205,17 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 
 				grades: {
 					title: '🎓 Grades',
-					description: 'Configuration for the grades view.',
+					description: 'Edit which grades to display.',
 
 					items: {
 						maxCount: {
 							title: '🔢 Maximum Count',
-							description: 'How many grades should be shown.',
+							description: 'Up to how many grades should be shown.',
 							type: SettingsValueType.COUNT,
 						},
 						scope: {
-							title: '📅 Scope (Days)',
-							description: 'How many days grades should be shown.',
+							title: '📅 Scope',
+							description: 'For how long new should be shown.',
 							type: SettingsValueType.DURATION,
 						},
 					},
@@ -223,12 +223,12 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 
 				absences: {
 					title: '🚫 Absences',
-					description: 'Configuration for the absences view.',
+					description: 'Edit which absences to display.',
 
 					items: {
 						maxCount: {
 							title: '🔢 Maximum Count',
-							description: 'How many absences should be shown.',
+							description: 'Up to how many absences should be shown.',
 							type: SettingsValueType.COUNT,
 						},
 					},
@@ -237,37 +237,37 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 		},
 		notifications: {
 			title: '🔔 Notifications',
-			description: 'Which notifications to deliver.',
+			description: 'Choose which notifications to deliver.',
 
 			items: {
 				lessons: {
 					title: '📚 Lesson Notifications',
-					description: 'Enable lesson notifications? (added/canceled/shifted lessons etc.)',
+					description: 'added/canceled/shifted lessons etc.',
 					type: SettingsValueType.ON_OFF,
 				},
 				exams: {
 					title: '📝 Exam Notifications',
-					description: 'Enable exam notifications? (added exams)',
+					description: 'added exams',
 					type: SettingsValueType.ON_OFF,
 				},
 				grades: {
 					title: '🎓 Grade Notifications',
-					description: 'Enable grade notifications? (added grades)',
+					description: 'added grades',
 					type: SettingsValueType.ON_OFF,
 				},
 				absences: {
 					title: '🚫 Absence Notifications',
-					description: 'Enable absence notifications? (added absences)',
+					description: 'added absences',
 					type: SettingsValueType.ON_OFF,
 				},
 			},
 		},
 		appearance: {
 			title: '🎨 Appearance',
-			description: 'Configuration for the appearance of the widget.',
+			description: 'Style the widget to your liking.',
 			items: {
 				cornerRadius: {
-					title: '🔲️ Corner Radius',
+					title: '⭕ Corner Radius',
 					description: 'The corner radius of the items within the widget.',
 					type: SettingsValueType.COUNT,
 				},
@@ -277,12 +277,12 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 					type: SettingsValueType.COUNT,
 				},
 				padding: {
-					title: '📏 Padding',
-					description: 'The around the widget content.',
+					title: '⏹️ Padding',
+					description: 'The space around the widget content.',
 					type: SettingsValueType.COUNT,
 				},
 				spacing: {
-					title: '📏 Spacing',
+					title: '↕️ Spacing',
 					description: 'The space between items within the widget.',
 					type: SettingsValueType.COUNT,
 				},

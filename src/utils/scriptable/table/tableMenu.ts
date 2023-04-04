@@ -12,6 +12,8 @@ export class TableMenu {
 	) {
 		this._table = table ?? new UITable()
 		this._rows = []
+		// NOTE: this is not working (at least in fullscreen)
+		// this._table.showSeparators = true
 	}
 
 	private _addRow() {
@@ -38,6 +40,7 @@ export class TableMenu {
 
 	addTitleRow(title: string, subtitle?: string) {
 		const row = this._addRow()
+		row.setHeight(this._rowHeight * 0.75)
 
 		row.addText(title, subtitle, {
 			font: Font.semiboldSystemFont(28),
@@ -52,6 +55,7 @@ export class TableMenu {
 
 	addDescriptionRow(text: string) {
 		const row = this._addRow()
+		row.setHeight(this._rowHeight * 0.5)
 
 		row.addText(text, '', {
 			font: Font.mediumSystemFont(16),
@@ -63,7 +67,7 @@ export class TableMenu {
 
 	addSpacerRow() {
 		const row = this._addRow()
-		row.setHeight(this._rowHeight / 2)
+		row.setHeight(this._rowHeight / 4)
 		return row
 	}
 
