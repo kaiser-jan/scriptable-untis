@@ -1,28 +1,23 @@
-import {
-	GeneralizedSettings,
-	GeneralizedSettingsCategory,
-	GeneralizedSettingsMap,
-	PrimitiveSettingsValue,
-	SettingsCategory,
-	SettingsEditorParameters,
-	SettingsMap,
-	SettingsStructureBase,
-	SettingsValue,
-	SettingsValueType,
-	isPrimitiveSettingsValue,
-	isSettingsMap,
-	isSettingsValue,
-} from '@/types/settings'
-import { Duration } from '@/utils/duration'
 import { getModuleFileManager, readConfig, writeConfig } from '@/utils/scriptable/fileSystem'
-import { askForSingleInput, showInfoPopup } from '@/utils/scriptable/input'
 import { TableMenu } from '@/utils/scriptable/table/tableMenu'
-import { TableMenuCell } from '@/utils/scriptable/table/tableMenuCell'
-import { TableMenuRowTextOptions } from '@/utils/scriptable/table/tableMenuRow'
-import { getColor } from '../colors'
 import { Settings, defaultSettings } from '../settings'
 import { settingsBlueprint } from './settingsBlueprint'
-import { openValueEditor } from './valueEditor'
+import {
+	GeneralizedSettings,
+	SettingsCategory,
+	SettingsStructureBase,
+	SettingsMap,
+	SettingsValue,
+	PrimitiveSettingsValue,
+	isSettingsValue,
+	isPrimitiveSettingsValue,
+	isSettingsMap,
+	SettingsEditorParameters,
+	GeneralizedSettingsCategory,
+} from '@/types/settings'
+import { addSettingsCategoryRow } from './settingsCategory'
+import { addSettingsMapRow } from './settingsMap'
+import { addSettingsValueRow } from './settingsValueRow'
 
 /**
  * Opens the config editor as a UITable.
@@ -35,7 +30,8 @@ export async function openSettings() {
 	const widgetConfig = await readConfig(useICloud)
 
 	const tableMenu = new TableMenu(new UITable())
-	buildSettingsEditorForCategory(
+	// build the settings editor for the root "category"
+	buildSettingsEditorFor(
 		tableMenu,
 		{
 			settings: widgetConfig,
@@ -49,7 +45,11 @@ export async function openSettings() {
 	)
 }
 
-function buildSettingsEditorForCategory(
+/**
+ * Builds the settings editor for the given category or map.
+ * This will add a row for each value/category/map in the category or map.
+ */
+export function buildSettingsEditorFor(
 	tableMenu: TableMenu,
 	options: {
 		settings: GeneralizedSettings
@@ -79,7 +79,7 @@ function buildSettingsEditorForCategory(
 			settings[key] = newValue
 			console.log(`Config Editor: Set "${key}" to "${newValue}".`)
 			saveConfig()
-			buildSettingsEditorForCategory(tableMenu, options, saveConfig)
+			buildSettingsEditorFor(tableMenu, options, saveConfig)
 		}
 
 		// if this is a value, add a row for it
@@ -107,7 +107,6 @@ function buildSettingsEditorForCategory(
 		}
 
 		// otherwise, add a row for the category
-
 		if (isPrimitiveSettingsValue(settingsPart)) throw new Error(`Settings part "${key}" is not a category.`)
 		if (isPrimitiveSettingsValue(defaultSettingsPart))
 			throw new Error(`Default settings part "${key}" is not a category.`)
@@ -119,236 +118,8 @@ function buildSettingsEditorForCategory(
 			fullSettings: options.fullSettings,
 		}
 
-		addSettingsCategoryRow(tableMenu, key, optionsPart, saveConfig)
+		addSettingsCategoryRow(tableMenu, optionsPart, saveConfig)
 	}
 
 	tableMenu.show()
-}
-
-function buildSettingsEditorForMap(
-	tableMenu: TableMenu,
-	options: {
-		settings: GeneralizedSettings
-		defaultSettings: GeneralizedSettings
-		blueprint: SettingsMap<SettingsStructureBase>
-		fullSettings: Settings
-	},
-	saveConfig: () => void
-) {
-	const { settings, defaultSettings, blueprint } = options
-
-	tableMenu.reset()
-	const titleRow = tableMenu.addTitleRow(blueprint.title)
-
-	// TODO: use a regular button
-	titleRow.addIconButton('➕ add', () => createSettingsMapEntry(tableMenu, options, saveConfig), 15)
-
-	log(`Config Editor: Building settings editor for Map "${blueprint.title}".`)
-
-	// TODO(ux): show map key in title
-	for (const key of Object.keys(settings)) {
-		// skip the placeholder key from the default settings
-		if (key === '_') continue
-		const settingsPart = settings[key] as GeneralizedSettings
-
-		let name = blueprint.nameFormatter ? blueprint.nameFormatter(key, settingsPart) : key
-		const row = tableMenu.addTextRow(name)
-		row.addIconButton('🗑️', () => {
-			delete settings[key]
-			saveConfig()
-			buildSettingsEditorForMap(tableMenu, options, saveConfig)
-		})
-
-		row.setOnTap(() =>
-			openSettingsEditorForMapKey(tableMenu, key, options, saveConfig, () => {
-				// reload the map list, so the values are updated
-				buildSettingsEditorForMap(tableMenu, options, saveConfig)
-			})
-		)
-	}
-
-	tableMenu.show()
-}
-
-async function createSettingsMapEntry(
-	tableMenu: TableMenu,
-	options: SettingsEditorParameters<GeneralizedSettingsMap>,
-	saveConfig: () => void
-) {
-	console.log(`Config Editor: Creating new entry for Map "${options.blueprint.title}".`)
-
-	// ask for the key
-	const key = await askForSingleInput({
-		title: options.blueprint.addItemTitle ?? 'Add entry',
-		description: options.blueprint.addItemDescription ?? 'Enter the key for the new entry.',
-		placeholder: options.blueprint.addItemPlaceholder ?? 'Key',
-		doneLabel: 'Add',
-	})
-	// exit if the user cancelled
-	if (!key) return
-	// check if the key already exists
-	if (options.settings[key]) {
-		showInfoPopup('❌ Key already exists', `The key "${key}" already exists.`)
-		return
-	}
-
-	// add the key to the beginning of the settings (copying the default settings)
-	options.settings[key] = { ...(options.defaultSettings['_'] as GeneralizedSettings) }
-	// save the config
-	// saveConfig()
-
-	console.log(`Config Editor: Added new entry for Map "${options.blueprint.title}". (Key: "${key}")`)
-
-	// open the editor for the new key
-	openSettingsEditorForMapKey(tableMenu, key, options, saveConfig, () => {
-		// reload the map list, so the values are updated
-		buildSettingsEditorForMap(tableMenu, options, saveConfig)
-	})
-}
-
-function openSettingsEditorForMapKey(
-	tableMenu: TableMenu,
-	key: string,
-	options: SettingsEditorParameters<GeneralizedSettingsMap>,
-	saveConfig: () => void,
-	backFunction: () => void
-) {
-	const newOptions: SettingsEditorParameters<GeneralizedSettingsMap> = {
-		settings: options.settings[key] as GeneralizedSettings,
-		defaultSettings: options.defaultSettings['_'] as GeneralizedSettings,
-		blueprint: options.blueprint,
-		fullSettings: options.fullSettings,
-	}
-	buildSettingsEditorForCategory(tableMenu.createSubView(backFunction), newOptions, saveConfig)
-}
-
-function addSettingsCategoryRow(
-	tableMenu: TableMenu,
-	key: string,
-	options: {
-		settings: GeneralizedSettings
-		defaultSettings: GeneralizedSettings
-		blueprint: SettingsCategory<SettingsStructureBase>
-		fullSettings: Settings
-	},
-	saveConfig: () => void
-) {
-	const row = tableMenu.addTextRow(options.blueprint.title, options.blueprint.description)
-
-	row.setOnTap(() => {
-		// NOTE: typescript doesn't recognize the type guard of options.blueprint
-		buildSettingsEditorForCategory(
-			tableMenu.createSubView(),
-			options as SettingsEditorParameters<GeneralizedSettingsCategory>,
-			saveConfig
-		)
-	})
-}
-
-function addSettingsMapRow(
-	tableMenu: TableMenu,
-	options: {
-		settings: GeneralizedSettings | undefined
-		defaultSettings: GeneralizedSettings
-		blueprint: SettingsMap<SettingsStructureBase>
-		fullSettings: Settings
-	},
-	saveConfig: () => void
-) {
-	const { settings, defaultSettings, blueprint } = options
-
-	const row = tableMenu.addTextRow(blueprint.title, blueprint.description)
-
-	row.setOnTap(() => {
-		buildSettingsEditorForMap(
-			tableMenu.createSubView(),
-			{
-				settings: settings,
-				defaultSettings: defaultSettings,
-				blueprint: blueprint,
-				fullSettings: options.fullSettings,
-			},
-			saveConfig
-		)
-	})
-}
-
-function addSettingsValueRow(
-	tableMenu: TableMenu,
-	value: PrimitiveSettingsValue,
-	defaultValue: PrimitiveSettingsValue,
-	blueprint: SettingsValue,
-	updateValue: (newValue: PrimitiveSettingsValue) => void
-) {
-	const row = tableMenu.addTextRow(blueprint.title, blueprint.description)
-
-	let valueCell: TableMenuCell
-
-	const isDefaultValue = value === defaultValue
-	const formattedValue = formatValue(value, blueprint.type)
-	let valueIndicator = formattedValue
-	const formattedDefaultValue = formatValue(defaultValue, blueprint.type, true)
-	let textOptions: TableMenuRowTextOptions = { width: 24 }
-	// hide the default value if it's the same as the current value
-	const defaultValueIndicator = isDefaultValue ? '' : formattedDefaultValue
-
-	if (blueprint.type === SettingsValueType.COLOR) {
-		const color = getColor(value as string)
-		textOptions.color = color
-		textOptions.font = Font.boldSystemFont(32)
-		// use a square filled with the color as the value indicator
-		valueIndicator = '■'
-	}
-
-	switch (blueprint.type) {
-		case SettingsValueType.ON_OFF:
-		case SettingsValueType.SHOW_HIDE:
-			valueCell = row.addText(valueIndicator, defaultValueIndicator, textOptions)
-			row.setOnTap(() => updateValue(!value))
-			break
-		default:
-			valueCell = row.addText(valueIndicator, defaultValueIndicator, textOptions)
-			row.setOnTap(async () => {
-				const newValue = await openValueEditor(formattedValue, formattedDefaultValue, blueprint)
-				log(`Config Editor: New value for "${blueprint.title}": ${newValue}`)
-				if (!newValue) return
-				updateValue(newValue)
-			})
-			break
-	}
-
-	if (!isDefaultValue) {
-		const icon = defaultValue === undefined ? '🗑️' : '↩️'
-		const buttonCell = row.addIconButton(icon, () => updateValue(defaultValue))
-		valueCell.width -= buttonCell.width
-	}
-}
-
-/**
- * Formats the given value according to its type to be displayed in a UI.
- * @param isSecondary returns text for the value, to make it less prominent
- */
-function formatValue(value: PrimitiveSettingsValue, type: SettingsValueType, isSecondary = false) {
-	if (value === undefined) return ''
-	switch (type) {
-		case SettingsValueType.DURATION:
-			return Duration.fromSeconds(value as number).toString()
-		case SettingsValueType.ON_OFF:
-			if (isSecondary) return value ? 'on' : 'off'
-			return value ? '✅' : '❌'
-		case SettingsValueType.SHOW_HIDE:
-			// TODO: find good show/hide emojis/icons
-			if (isSecondary) return value ? 'visible' : 'hidden'
-			// return value ? '👁️' : '⚫'
-			return value ? '✅' : '❌'
-		case SettingsValueType.STRING:
-			return value as string
-		case SettingsValueType.STRING_ARRAY:
-			const array = value as string[]
-			if (array.length === 0) return ''
-			return `"${array.join('", "')}"`
-		default:
-			if (!value) return 'undefined'
-			return value.toString()
-	}
 }
