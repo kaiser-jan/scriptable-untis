@@ -8,6 +8,19 @@ const defaultSubjectConfig: SubjectConfig = {
 	ignoreInfos: undefined,
 }
 
+/**
+ * TODO: more settings
+ * - horizontal/vertical spacing
+ * - inner spacing
+ * - font
+ * - font weight
+ * - text-centered padding (fix text padding when e.g. fully rounded corners are used)
+ * - always show start time for lessons
+ * - auto-add subject configs
+ * - color exams, grades etc.
+ * - dev overrides (widget size, default views, override cache, cache to icloud, etc.)
+ */
+
 // TODO: this implementation of the map does not provide auto completion
 export const defaultSettings = {
 	subjects: {
