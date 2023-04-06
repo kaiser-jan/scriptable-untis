@@ -29,6 +29,10 @@ export class TableMenuRow {
 		this._cells.push(cell)
 	}
 
+	/**
+	 * Adds a button with the given emoji, using a fitting width by default.
+	 * NOTE: The font size (and many other options) cannot be changed for buttons, contrary to the documentation.
+	 */
 	addIconButton(emoji: string, onTap: () => void, width: number = 6) {
 		const cell = this._row.addButton(emoji)
 		cell.centerAligned()
@@ -39,7 +43,7 @@ export class TableMenuRow {
 		return tableMenuCell
 	}
 
-	addText(title: string, subtitle: string, options: TableMenuRowTextOptions, onTap?: () => void) {
+	addText(title: string, subtitle: string = '', options: TableMenuRowTextOptions = {}, onTap?: () => void) {
 		const cell = this._row.addText(title, subtitle)
 		cell.titleFont = options.font ?? Font.mediumSystemFont(16)
 		cell.titleColor = options.color
@@ -58,6 +62,10 @@ export class TableMenuRow {
 
 	setOnTap(onTap: () => void) {
 		this._row.onSelect = onTap
+	}
+
+	setBackgroundColor(color: Color) {
+		this._row.backgroundColor = color
 	}
 
 	/**

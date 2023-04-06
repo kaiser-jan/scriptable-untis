@@ -71,6 +71,12 @@ export class TableMenu {
 		return row
 	}
 
+	addEmptyRow(height = this._rowHeight / 2) {
+		const row = this._addRow()
+		row.setHeight(height)
+		return row
+	}
+
 	addTextRow(title: string, subtitle?: string) {
 		const row = this._addRow()
 
@@ -93,7 +99,7 @@ export class TableMenu {
 		this._table.reload()
 	}
 
-	show(forceNewView = false) {
+	show(forceNewView = false, fullscreen = false) {
 		if (this._previousView && !forceNewView) {
 			this.update()
 			return
@@ -101,7 +107,7 @@ export class TableMenu {
 
 		this._table = new UITable()
 		this.update()
-		this._table.present(true)
+		this._table.present(fullscreen)
 	}
 
 	createSubView(customBackFunction?: () => void, rowHeight?: number) {

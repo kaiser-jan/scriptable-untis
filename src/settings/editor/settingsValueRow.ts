@@ -3,7 +3,7 @@ import { Duration } from '@/utils/duration'
 import { TableMenu } from '@/utils/scriptable/table/tableMenu'
 import { TableMenuCell } from '@/utils/scriptable/table/tableMenuCell'
 import { TableMenuRowTextOptions } from '@/utils/scriptable/table/tableMenuRow'
-import { getColor } from '../colors'
+import { getColor, unparsedColors } from '../colors'
 import { openValueEditor } from './valueEditor'
 
 /**
@@ -17,8 +17,6 @@ export function addSettingsValueRow(
 	updateValue: (newValue: PrimitiveSettingsValue) => void
 ) {
 	const row = tableMenu.addTextRow(blueprint.title, blueprint.description)
-
-	let valueCell: TableMenuCell
 
 	const isDefaultValue = value === defaultValue
 	const formattedValue = formatValue(value, blueprint.type)
@@ -36,14 +34,23 @@ export function addSettingsValueRow(
 		valueIndicator = '■'
 	}
 
+	const valueCell = row.addText(valueIndicator, defaultValueIndicator, textOptions)
+
+	// TODO: catch errors in onTap
 	switch (blueprint.type) {
 		case SettingsValueType.ON_OFF:
 		case SettingsValueType.SHOW_HIDE:
-			valueCell = row.addText(valueIndicator, defaultValueIndicator, textOptions)
 			row.setOnTap(() => updateValue(!value))
 			break
+		case SettingsValueType.COLOR:
+			log('set as color')
+			row.setOnTap(async () => {
+				log('open color editor')
+				openColorEditor(tableMenu, value as string, updateValue)
+			})
+			break
+
 		default:
-			valueCell = row.addText(valueIndicator, defaultValueIndicator, textOptions)
 			row.setOnTap(async () => {
 				const newValue = await openValueEditor(formattedValue, formattedDefaultValue, blueprint)
 				log(`Config Editor: New value for "${blueprint.title}": ${newValue}`)
@@ -86,4 +93,33 @@ function formatValue(value: PrimitiveSettingsValue, type: SettingsValueType, isS
 			if (!value) return 'undefined'
 			return value.toString()
 	}
+}
+
+/**
+ * Opens a new table subview which allows to select one of the background colors.
+ */
+function openColorEditor(tableMenu: TableMenu, value: string, updateValue: (newValue: string) => void) {
+	// open a new table menu to select a color
+	const colorTable = tableMenu.createSubView()
+	colorTable.addTitleRow('🎨 Select a color')
+	colorTable.addSpacerRow()
+
+	// TODO: extend to selecting colors more generally (not from the backgrounds)
+	// TODO: add something similar to a colorwheel (hue, saturation, brightness)
+	// NOTE: it is not possible to use colored buttons: buttons cannot be colored, text cannot be tapped
+	for (const colorName of Object.keys(unparsedColors.background)) {
+		const color = unparsedColors.background[colorName]
+		const row = colorTable.addTextRow(colorName)
+		// also display the color code
+		const colorCodeText = row.addText(color, '', {})
+		colorCodeText.cell.titleColor = new Color('#A7B4B8')
+		// color the row with the color
+		row.setBackgroundColor(getColor(color))
+		row.setOnTap(() => {
+			updateValue(color)
+			colorTable.showPreviousView()
+		})
+	}
+
+	colorTable.show(false, false)
 }
