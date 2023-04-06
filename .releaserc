@@ -1,0 +1,54 @@
+{
+	"branches": [
+		{
+			"name": "main"
+		},
+		{
+			"name": "beta",
+			"channel": "beta",
+			"prerelease": true
+		}
+	],
+	"plugins": [
+		[
+			"@semantic-release/commit-analyzer",
+			{}
+		],
+		[
+			"@semantic-release/release-notes-generator",
+			{
+				"writerOpts": {
+					"commitsSort": [
+						"subject",
+						"scope"
+					]
+				}
+			}
+		],
+		[
+			"@semantic-release/npm",
+			{}
+		],
+		[
+			"@semantic-release/git",
+			{
+				"assets": [
+					"package.json"
+				],
+				"message": "chore(release): ${nextRelease.version} [skip ci]"
+			}
+		],
+		[
+			"@semantic-release/github",
+			{
+				"assets": [
+					{
+						"path": "dist/untis.js",
+						"label": "${branch.prerelease ? '⚠️ BETA ⚠️ ' : ''}Scriptable Untis Widget ${nextRelease.gitTag}",
+						"name": "UntisWidget${branch.prerelease ? '-Beta' : ''}.scriptable"
+					}
+				]
+			}
+		]
+	]
+}
