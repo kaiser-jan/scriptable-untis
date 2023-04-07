@@ -87,6 +87,9 @@ async function runInteractive() {
 		case ScriptActions.UPDATE:
 			await checkForUpdates(GITHUB_USER, GITHUB_REPO, GITHUB_SCRIPT_NAME, API_KEY)
 			break
+		default:
+			console.log('No action selected, exiting script.')
+			break
 	}
 }
 
@@ -106,8 +109,10 @@ try {
 	let widget: ListWidget
 	const castedError = error as Error
 
+	// try to find a matching error from the known scriptable errors
 	const scriptableError = SCRIPTABLE_ERROR_MAP[castedError.message.toLowerCase()]
-	log(scriptableError)
+
+	// treat the error as a scriptable error if it is one, or as an extended error otherwise
 	if (scriptableError) {
 		widget = createErrorWidget(scriptableError.title, scriptableError.description, scriptableError.icon)
 	} else {
@@ -117,9 +122,9 @@ try {
 
 	if (!config.runsInWidget) {
 		widget.presentLarge()
+	} else {
+		Script.setWidget(widget)
 	}
-
-	Script.setWidget(widget)
 }
 
 console.log(`Script finished in ${new Date().getTime() - SCRIPT_START_DATETIME.getTime()}ms.`)

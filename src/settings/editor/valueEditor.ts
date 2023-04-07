@@ -1,6 +1,6 @@
 import { PrimitiveSettingsValue, SettingsValue, SettingsValueType } from '@/types/settings'
 import { Duration } from '@/utils/duration'
-import { askForSingleInput, parseArray, selectOption, showInfoPopup } from '@/utils/scriptable/input'
+import { askForSingleInput, parseArray, showInfoPopup } from '@/utils/scriptable/input'
 
 const LOCALE_REGEX = /^[a-z]{2}(-[A-Z]{2})?$/
 
@@ -59,16 +59,4 @@ export async function openTextValueEditor(
 		placeholder: defaultValue.toString(),
 		defaultValue: value.toString(),
 	})
-}
-
-export async function openBooleanEditor(settingsValue: SettingsValue) {
-	try {
-		const response = await selectOption(['true', 'false'], {
-			title: settingsValue.title,
-			description: settingsValue.description,
-		})
-		return response === 'true'
-	} catch {
-		return null
-	}
 }

@@ -91,13 +91,19 @@ export async function askForInput<T>(
 	return results
 }
 
+/**
+ * Allows the user to select one of the available options.
+ * @param availableOptions the options to choose from
+ * @param options options for the text shown in the prompt
+ * @returns the selected option or null if the user cancels the selection
+ */
 export async function selectOption(
 	availableOptions: string[],
 	options: {
 		title?: string
 		description?: string
 	}
-): Promise<string> {
+): Promise<string | null> {
 	let alert = new Alert()
 
 	alert.title = options.title ?? 'Select an Option'
@@ -112,7 +118,7 @@ export async function selectOption(
 	const responseIndex = await alert.presentSheet()
 
 	if (responseIndex === -1) {
-		throw createError(ErrorCode.SELECTION_CANCELLED)
+		return null
 	}
 
 	return availableOptions[responseIndex]
