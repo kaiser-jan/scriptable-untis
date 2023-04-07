@@ -39,6 +39,26 @@ async function setupAndCreateWidget() {
 	return widget
 }
 
+async function presentWidget() {
+	const widget = await setupAndCreateWidget()
+	switch (PREVIEW_WIDGET_SIZE) {
+		case 'small':
+			widget.presentSmall()
+			break
+		case 'medium':
+			widget.presentMedium()
+			break
+		case 'large':
+			widget.presentLarge()
+			break
+	}
+}
+
+function showDocumentation() {
+	console.log('📖 Opening documentation in Safari.')
+	Safari.openInApp('https://github.com/JFK-05/scriptable-untis#readme')
+}
+
 enum ScriptActions {
 	VIEW = '💻 Show Widget',
 	CHANGE_CREDENTIALS = '🔑 Change Credentials',
@@ -48,49 +68,32 @@ enum ScriptActions {
 	UPDATE = '⏫ Update Script',
 }
 
+const actionMap: Record<ScriptActions, Function> = {
+	[ScriptActions.VIEW]: presentWidget,
+	[ScriptActions.CHANGE_CREDENTIALS]: writeKeychain,
+	[ScriptActions.EDIT_CONFIG]: openSettings,
+	[ScriptActions.CLEAR_CACHE]: clearCache,
+	[ScriptActions.SHOW_DOCUMENTATION]: showDocumentation,
+	[ScriptActions.UPDATE]: () => checkForUpdates(GITHUB_USER, GITHUB_REPO, GITHUB_SCRIPT_NAME, API_KEY),
+}
+
 async function runInteractive() {
 	const actions = Object.values(ScriptActions).filter((item) => {
 		return isNaN(Number(item))
 	})
 
-	const input = await selectOption(actions, {
+	const input = (await selectOption(actions, {
 		title: 'What do you want to do?',
-	})
+	})) as ScriptActions | null
 
-	switch (input) {
-		case ScriptActions.VIEW:
-			const widget = await setupAndCreateWidget()
-			switch (PREVIEW_WIDGET_SIZE) {
-				case 'small':
-					widget.presentSmall()
-					break
-				case 'medium':
-					widget.presentMedium()
-					break
-				case 'large':
-					widget.presentLarge()
-					break
-			}
-			break
-		case ScriptActions.CHANGE_CREDENTIALS:
-			await writeKeychain()
-			break
-		case ScriptActions.EDIT_CONFIG:
-			await openSettings()
-			break
-		case ScriptActions.CLEAR_CACHE:
-			clearCache()
-			break
-		case ScriptActions.SHOW_DOCUMENTATION:
-			Safari.openInApp('https://github.com/JFK-05/scriptable-untis#readme')
-			break
-		case ScriptActions.UPDATE:
-			await checkForUpdates(GITHUB_USER, GITHUB_REPO, GITHUB_SCRIPT_NAME, API_KEY)
-			break
-		default:
-			console.log('No action selected, exiting script.')
-			break
+	const action = actionMap[input]
+
+	if (!action) {
+		console.log('No action selected, exiting.')
+		return
 	}
+
+	await action()
 }
 
 try {
