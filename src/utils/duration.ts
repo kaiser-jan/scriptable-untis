@@ -118,6 +118,10 @@ export class Duration {
 		return this.seconds
 	}
 
+	public toMilliseconds(): number {
+		return this.seconds * 1000
+	}
+
 	public static asSeconds(value: number, unit: DurationUnit): number {
 		return value * durationUnitMultipliers[unit]
 	}
