@@ -61,17 +61,17 @@ function showDocumentation() {
 
 enum ScriptActions {
 	VIEW = '💻 Show Widget',
+	OPEN_SETTINGS = '⚙️ Open Settings',
 	CHANGE_CREDENTIALS = '🔑 Change Credentials',
-	EDIT_CONFIG = '🛠️ Edit Config',
+	UPDATE = '⏫ Update Script',
 	CLEAR_CACHE = '🗑️ Clear Cache',
 	SHOW_DOCUMENTATION = '📖 Open Documentation',
-	UPDATE = '⏫ Update Script',
 }
 
 const actionMap: Record<ScriptActions, Function> = {
 	[ScriptActions.VIEW]: presentWidget,
 	[ScriptActions.CHANGE_CREDENTIALS]: writeKeychain,
-	[ScriptActions.EDIT_CONFIG]: openSettings,
+	[ScriptActions.OPEN_SETTINGS]: openSettings,
 	[ScriptActions.CLEAR_CACHE]: clearCache,
 	[ScriptActions.SHOW_DOCUMENTATION]: showDocumentation,
 	[ScriptActions.UPDATE]: () => checkForUpdates(GITHUB_USER, GITHUB_REPO, GITHUB_SCRIPT_NAME, API_KEY),
