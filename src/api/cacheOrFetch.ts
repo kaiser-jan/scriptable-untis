@@ -145,11 +145,16 @@ export async function getTimetable(user: FullUser, widgetConfig: Settings) {
 	const sortedKeys = sortKeysByDate(timetable)
 	// find the index of the current day
 	const todayIndex = sortedKeys.indexOf(todayKey)
-	// get the next day
+	// get the next day -> will take the first day if no todayKey was found
 	let nextDayKey = sortedKeys[todayIndex + 1]
 
-	// fetch the next week, if the next day is on the next week
-	if (todayIndex === -1 || todayIndex === sortedKeys.length - 1) {
+	// unset the nextDayKey, if it has already passed
+	if (nextDayKey && new Date(nextDayKey) < CURRENT_DATETIME) {
+		nextDayKey = undefined
+	}
+
+	// fetch the next week, if today/tomorrow is not in the current week
+	if (todayIndex === sortedKeys.length - 1 || sortedKeys.length === 0 || !nextDayKey) {
 		// get the first date of the current timetable week
 		const firstDate = sortedKeys[0] ? new Date(sortedKeys[0]) : CURRENT_DATETIME
 		// get the first date of the next timetable week
@@ -159,8 +164,11 @@ export async function getTimetable(user: FullUser, widgetConfig: Settings) {
 		const nextWeekTimetable = await getLessonsFor(user, nextWeekFirstDate, true, widgetConfig)
 		// merge the next week timetable into the current one
 		Object.assign(timetable, nextWeekTimetable)
-		// set the next day key to the first day of the next week
-		nextDayKey = sortKeysByDate(nextWeekTimetable)[0]
+
+		// set the next day key to the first day of the next week, if it is not set
+		if (!nextDayKey) {
+			nextDayKey = sortKeysByDate(nextWeekTimetable)[0]
+		}
 	}
 
 	// apply custom lesson configs
