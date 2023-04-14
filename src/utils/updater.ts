@@ -2,6 +2,7 @@ import { GithubRelease } from '@/types/github'
 import { Duration } from './duration'
 import { getModuleFileManager } from './scriptable/fileSystem'
 import { KeychainManager } from './scriptable/keychainManager'
+import { GITHUB_REPO, GITHUB_SCRIPT_NAME, GITHUB_USER } from '@/constants'
 
 /**
  * Determines if the app should check for updates.
@@ -22,6 +23,11 @@ export function shouldCheckForUpdates(updateInterval: Duration) {
 	}
 }
 
+export async function checkForUpdates() {
+	const API_KEY = KeychainManager.get('githubApiKey')
+	checkForUpdatesWith(GITHUB_USER, GITHUB_REPO, GITHUB_SCRIPT_NAME, API_KEY)
+}
+
 /**
  * Checks for updates and updates if necessary.
  * 1. Check the keychain for the current version.
@@ -34,7 +40,7 @@ export function shouldCheckForUpdates(updateInterval: Duration) {
  * @param assetName the name of the asset (the script) to download
  * @returns true if the script was updated, false otherwise
  */
-export async function checkForUpdates(user: string, repo: string, assetName: string, apiKey?: string) {
+export async function checkForUpdatesWith(user: string, repo: string, assetName: string, apiKey?: string) {
 	log('⏫❔ Checking for updates...')
 
 	const currentVersion = KeychainManager.get('currentVersion')

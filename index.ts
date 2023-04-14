@@ -14,17 +14,16 @@ import { createErrorWidget, ExtendedError, SCRIPTABLE_ERROR_MAP } from '@/utils/
 import { getModuleFileManager as getFileManagerOptions, readConfig } from '@/utils/scriptable/fileSystem'
 import { selectOption } from '@/utils/scriptable/input'
 import { KeychainManager } from '@/utils/scriptable/keychainManager'
-import { checkForUpdates, shouldCheckForUpdates } from '@/utils/updater'
+import { checkForUpdates, checkForUpdatesWith, shouldCheckForUpdates } from '@/utils/updater'
 import { createWidget } from '@/widget'
 
 // initialize the keychain manager
 new KeychainManager('untis')
-const API_KEY = KeychainManager.get('githubApiKey')
 
 // check for updates (in a try-catch block to prevent the script from crashing if the update fails)
 try {
 	if (shouldCheckForUpdates(UPDATE_INTERVAL)) {
-		await checkForUpdates(GITHUB_USER, GITHUB_REPO, GITHUB_SCRIPT_NAME, API_KEY)
+		await checkForUpdates()
 	}
 } catch (error) {
 	console.error('⏫❌ Could not check for updates.')
@@ -63,8 +62,8 @@ enum ScriptActions {
 	VIEW = '💻 Show Widget',
 	OPEN_SETTINGS = '⚙️ Open Settings',
 	CHANGE_CREDENTIALS = '🔑 Change Credentials',
-	UPDATE = '⏫ Update Script',
-	CLEAR_CACHE = '🗑️ Clear Cache',
+	// UPDATE = '⏫ Update Script',
+	// CLEAR_CACHE = '🗑️ Clear Cache',
 	SHOW_DOCUMENTATION = '📖 Open Documentation',
 }
 
@@ -72,9 +71,9 @@ const actionMap: Record<ScriptActions, Function> = {
 	[ScriptActions.VIEW]: presentWidget,
 	[ScriptActions.CHANGE_CREDENTIALS]: writeKeychain,
 	[ScriptActions.OPEN_SETTINGS]: openSettings,
-	[ScriptActions.CLEAR_CACHE]: clearCache,
+	// [ScriptActions.CLEAR_CACHE]: clearCache,
 	[ScriptActions.SHOW_DOCUMENTATION]: showDocumentation,
-	[ScriptActions.UPDATE]: () => checkForUpdates(GITHUB_USER, GITHUB_REPO, GITHUB_SCRIPT_NAME, API_KEY),
+	// [ScriptActions.UPDATE]: checkForUpdates,
 }
 
 async function runInteractive() {

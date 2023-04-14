@@ -121,5 +121,12 @@ export function buildSettingsEditorFor(
 		addSettingsCategoryRow(tableMenu, optionsPart, saveConfig)
 	}
 
+	if ('actions' in blueprint && blueprint.actions) {
+		for (const action of Object.keys(blueprint.actions)) {
+			const actionBlueprint = blueprint.actions[action]
+			tableMenu.addButtonRow(actionBlueprint.title, actionBlueprint.description, actionBlueprint.action)
+		}
+	}
+
 	tableMenu.show()
 }

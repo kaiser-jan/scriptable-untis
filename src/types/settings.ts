@@ -33,6 +33,7 @@ type SettingsItemBase = {
 
 export type SettingsCategory<T extends SettingsStructureBase> = SettingsItemBase & {
 	items: SettingsList<T>
+	actions?: SettingsActionList
 }
 
 export type SettingsMap<T extends SettingsStructureBase> = SettingsItemBase & {
@@ -49,6 +50,12 @@ export function isSettingsMap(value: SettingsCategory<any> | SettingsValue): val
 }
 
 export type SettingsMapValue = { _: SettingsStructureBase }
+
+type SettingsActionList = {
+	[key: string]: SettingsItemBase & {
+		action: () => unknown
+	}
+}
 
 export type SettingsList<T extends SettingsStructureBase> = {
 	[K in keyof T]: T[K] extends SettingsStructureBase

@@ -1,4 +1,7 @@
+import { clearCache } from '@/api/cache'
 import { SettingsCategory, SettingsValueType, SubjectConfig } from '@/types/settings'
+import { showInfoPopup } from '@/utils/scriptable/input'
+import { checkForUpdates } from '@/utils/updater'
 import { defaultSettings } from '../settings'
 
 const subjectBlueprint = {
@@ -33,6 +36,23 @@ function subjectNameFormatter(key: string, item: SubjectConfig) {
 export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 	title: '🛠️ Settings',
 	description: 'Configure the widget to your needs.',
+
+	actions: {
+		updateScript: {
+			title: '🔄 Update Script',
+			description: 'Installs the latest version of the script.',
+			action: checkForUpdates,
+		},
+		openDocumentation: {
+			title: '📖 Open Documentation',
+			description: 'Opens the documentation in Safari.',
+			action: () => {
+				console.log('📖 Opening documentation in Safari.')
+				Safari.openInApp('https://github.com/JFK-05/scriptable-untis#readme')
+			},
+		},
+	},
+
 	items: {
 		subjects: {
 			title: '📚 Subjects',
@@ -58,7 +78,7 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 		},
 
 		config: {
-			title: '⚙️ Config',
+			title: '⚙️ General',
 			description: 'General configuration options.',
 
 			items: {
@@ -83,6 +103,17 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 		cache: {
 			title: '🗃️ Cache',
 			description: 'How long data should be reused.',
+
+			actions: {
+				clear: {
+					title: '🗑️ Clear Cache',
+					description: 'Clears all cached data.',
+					action: () => {
+						clearCache()
+						showInfoPopup('🗑️ The cache has been cleared.')
+					},
+				},
+			},
 
 			items: {
 				user: {

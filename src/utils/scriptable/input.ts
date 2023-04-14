@@ -124,10 +124,10 @@ export async function selectOption(
 	return availableOptions[responseIndex]
 }
 
-export async function showInfoPopup(title: string, description: string) {
+export async function showInfoPopup(title: string, description?: string) {
 	let alert = new Alert()
 	alert.title = title
-	alert.message = description
+	alert.message = description ?? ''
 	alert.addAction('OK')
 	await alert.presentAlert()
 }

@@ -91,6 +91,25 @@ export class TableMenu {
 		return row
 	}
 
+	addButtonRow(title: string, subtitle?: string, onTap?: () => void) {
+		const row = this._addRow()
+
+		row.addText(title, subtitle, {
+			font: Font.mediumSystemFont(16),
+			color: Color.blue(),
+			subtitle: {
+				font: Font.systemFont(12),
+				color: Color.gray(),
+			},
+		})
+
+		if (onTap) {
+			row.setOnTap(onTap)
+		}
+
+		return row
+	}
+
 	update() {
 		this._table.removeAllRows()
 		this._rows.forEach((row) => {
