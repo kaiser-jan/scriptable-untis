@@ -1,7 +1,7 @@
 import { PrimitiveSettingsValue, SettingsValue, SettingsValueType } from '@/types/settings'
 import { Duration } from '@/utils/duration'
+import { askForSingleInput, showInfoPopup } from '@/utils/scriptable/input'
 import { TableMenu } from '@/utils/scriptable/table/tableMenu'
-import { TableMenuCell } from '@/utils/scriptable/table/tableMenuCell'
 import { TableMenuRowTextOptions } from '@/utils/scriptable/table/tableMenuRow'
 import { getColor, unparsedColors } from '../colors'
 import { openValueEditor } from './valueEditor'
@@ -104,6 +104,25 @@ function openColorEditor(tableMenu: TableMenu, value: string, updateValue: (newV
 	colorTable.addTitleRow('🎨 Select a color')
 	colorTable.addSpacerRow()
 
+	// add an input for the hex color
+	const hexInputRow = colorTable.addTextRow('custom hex color ✏️')
+	hexInputRow.addIconButton('📋', () => {
+		const hex = Pasteboard.paste()
+		if (!validateHex(hex)) return
+		updateValue(hex)
+	})
+
+	hexInputRow.setOnTap(async () => {
+		// get user input
+		const input = await askForSingleInput({
+			title: 'Enter a hex color',
+			placeholder: 'e.g. #FF0000',
+			defaultValue: value,
+		})
+		if (!validateHex(input)) return
+		updateValue(input)
+	})
+
 	// TODO: extend to selecting colors more generally (not from the backgrounds)
 	// TODO: add something similar to a colorwheel (hue, saturation, brightness)
 	// NOTE: it is not possible to use colored buttons: buttons cannot be colored, text cannot be tapped
@@ -122,4 +141,14 @@ function openColorEditor(tableMenu: TableMenu, value: string, updateValue: (newV
 	}
 
 	colorTable.show(false, false)
+}
+
+function validateHex(input: string): string | null {
+	if (!input) return null
+	// validate the hex color
+	if (!input.match(/^#[0-9A-F]{6}$/i)) {
+		showInfoPopup('Invalid hex color', 'The pasted text is not a valid hex color. (e.g. #FF0000)')
+		return null
+	}
+	return input
 }
