@@ -3,7 +3,6 @@ import { colors } from '@/settings/colors'
 import { TransformedAbsence } from '@/types/transformed'
 import { Duration } from '@/utils/duration'
 import { getCharHeight } from '@/utils/helper'
-import { FlowLayoutRow } from '@/utils/scriptable/layout/flowLayoutRow'
 import { StaticLayoutRow } from '@/utils/scriptable/layout/staticLayoutRow'
 import { ViewBuildData } from '@/widget'
 
@@ -19,11 +18,14 @@ export function addViewAbsences(
 
 	if (height < containerHeight) return 0
 
+	// sort the absences by date, starting with the most recent
+	const sortedAbsences = absences.sort((a, b) => b.from.getTime() - a.from.getTime())
+
 	let absenceCount = 0
 
 	// add the remaining lessons until the max item count is reached
-	for (let i = 0; i < absences.length; i++) {
-		const absence = absences[i]
+	for (let i = 0; i < sortedAbsences.length; i++) {
+		const absence = sortedAbsences[i]
 
 		if (absence.isExcused) continue
 
@@ -79,21 +81,6 @@ export function addViewAbsences(
 			priority: 1,
 		})
 
-		// add the absence duration
-		staticLayoutRow.addItem({
-			type: 'text',
-			variants: [
-				{
-					text: formattedDurationSimple,
-					priority: 3,
-				},
-				{
-					text: formattedDurationMixed,
-					priority: 4,
-				},
-			],
-		})
-
 		// add the absence date
 		staticLayoutRow.addItem({
 			type: 'text',
@@ -106,6 +93,21 @@ export function addViewAbsences(
 				{
 					text: longFromDate,
 					priority: 5,
+				},
+			],
+		})
+
+		// add the absence duration
+		staticLayoutRow.addItem({
+			type: 'text',
+			variants: [
+				{
+					text: formattedDurationSimple,
+					priority: 3,
+				},
+				{
+					text: formattedDurationMixed,
+					priority: 4,
 				},
 			],
 		})
