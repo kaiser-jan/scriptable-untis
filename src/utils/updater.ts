@@ -3,6 +3,7 @@ import { Duration } from './duration'
 import { getModuleFileManager } from './scriptable/fileSystem'
 import { KeychainManager } from './scriptable/keychainManager'
 import { GITHUB_REPO, GITHUB_SCRIPT_NAME, GITHUB_USER } from '@/constants'
+import { scheduleNotification } from './helper'
 
 /**
  * Determines if the app should check for updates.
@@ -86,7 +87,11 @@ export async function checkForUpdatesWith(user: string, repo: string, assetName:
 	// notify the user if the latest version is a breaking release
 	if (versionComparison === 'breaking') {
 		console.log('⏫🔴 Breaking update available.')
-		// TODO: notify the user
+		scheduleNotification(
+			'⏫ Update available',
+			`A breaking update for version ${latestRelease.tag_name} is available.
+			Please read about the changes first. You can find a link in the documentation.`
+		)
 		return false
 	}
 
@@ -152,6 +157,8 @@ async function updateScript(latestRelease: GithubRelease, assetName: string, api
 	KeychainManager.set('currentVersion', latestRelease.tag_name)
 
 	console.log(`⏫✅ Script updated to version ${latestRelease.tag_name}`)
+
+	scheduleNotification('⏫ Untis Widget updated', `The script was updated to version ${latestRelease.tag_name}.`)
 
 	return true
 }

@@ -69,13 +69,21 @@ Lists open (unexcused) absences with their date and duration. It also shows who 
 4. Open Scriptable, click the script to run it.
    You will be asked what you want to do.
    Select `🔑 Change Credentials` and enter your WebUntis credentials as prompted.\
-   You will be asked for the url, which you can find when selecting you school [here](https://arche.webuntis.com/WebUntis/?school=litec#/basic/login). You might have to click the "switch school" button to get to the correct page. The url should look something like this: `https://<server>.webuntis.com/WebUntis/?school=<schoolname>#/basic/login`. (with `<server>` and `<schoolname>` replaced)
+   You will be asked for the url, which you can find when selecting you school [here](https://webuntis.com/). You might have to click the "switch school" button to get to the correct page. The url should look something like this: `https://<server>.webuntis.com/WebUntis/?school=<schoolname>#/basic/login`. (with `<server>` and `<schoolname>` replaced)
 
 5. Now you can add an iOS widget for Scriptable and select the script in the options.
 
 6. The widget should update automatically and display the information. 🥳 (might take a few seconds)
 
 7. If you want to customize the widget (e.g. color the lessons, see the [configuration section](#⚒️-configuration))
+
+## ⏫ Updating
+
+The script will check for updates every few hours.\
+Regular updates will be downloaded and installed automatically.\
+If you want to update manually, you can do so by running the script and selecting `🔄 Update Script` in the menu.\
+When there is a breaking change, you will be notified and asked to update manually.\
+Check the [releases page](https://github.com/JFK-05/scriptable-untis/releases) for more information about the changes.
 
 ## ⚒️ Configuration
 
