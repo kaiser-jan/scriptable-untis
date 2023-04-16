@@ -9,8 +9,8 @@
 	"devDependencies": {
 		"@rollup/plugin-typescript": "^11.1.0",
 		"@types/scriptable-ios": "^1.7.0",
-		"rollup": "^3.20.2",
+		"rollup": "^3.20.3",
 		"tslib": "^2.5.0",
-		"typescript": "^5.0.3"
+		"typescript": "^5.0.4"
 	}
 }
