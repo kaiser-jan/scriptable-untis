@@ -43,7 +43,7 @@
 			{
 				"assets": [
 					{
-						"path": "dist/untis.js",
+						"path": "dist/UntisWidget.js",
 						"label": "${branch.prerelease ? '⚠️ BETA ⚠️ ' : ''}Scriptable Untis Widget ${nextRelease.gitTag}",
 						"name": "UntisWidget${branch.prerelease ? '-Beta' : ''}.js"
 					}
