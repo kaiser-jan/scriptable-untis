@@ -57,25 +57,23 @@ Lists open (unexcused) absences with their date and duration. It also shows who 
 
 ## 📥 Installation
 
-1. Before installing the script, you need to [install Scriptable from the AppStore](https://apps.apple.com/us/app/scriptable/id1405459188?uo=4).
+1. Before installing the script, you need to [install Scriptable from the App Store](https://apps.apple.com/us/app/scriptable/id1405459188?uo=4).
 
 2. To install the script, head over to the [releases page](https://github.com/JFK-05/scriptable-untis/releases) select the latest release.\
-   If you always want to check out the latest features, which might not be stable, you can download the beta release.\
-   Alternatively, you can download the latest stable release [here](https://github.com/JFK-05/scriptable-untis/releases/latest/download/UntisWidget.scriptable).
+   Alternatively, you can directly download the latest stable release [here](https://github.com/JFK-05/scriptable-untis/releases/latest/download/UntisWidget.scriptable).
 
-3. After downloading the file, you can click to open it with scriptable.
-   This will add the script to the list.
+3. After downloading the file, click share, and select scriptable.
+   Now click `Add to My Scripts` at the bottom.
 
-4. Open Scriptable, click the script to run it.
-   You will be asked what you want to do.
-   Select `🔑 Change Credentials` and enter your WebUntis credentials as prompted.\
-   You will be asked for the url, which you can find when selecting you school [here](https://webuntis.com/). You might have to click the "switch school" button to get to the correct page. The url should look something like this: `https://<server>.webuntis.com/WebUntis/?school=<schoolname>#/basic/login`. (with `<server>` and `<schoolname>` replaced)
+4. Click the play button at the lower right (or click the script in the overview) to run the script. This will start the setup process.\
+   You will be asked for the url, which you can find when selecting you school [here](https://webuntis.com/). You might have to click the "switch school" button to get to the correct page.\
+   The url should look something like this: `https://<server>.webuntis.com/WebUntis/?school=<schoolname>#/basic/login`. (with `<server>` and `<schoolname>` replaced)
 
 5. Now you can add an iOS widget for Scriptable and select the script in the options.
 
 6. The widget should update automatically and display the information. 🥳 (might take a few seconds)
 
-7. If you want to customize the widget (e.g. color the lessons, see the [configuration section](#⚒️-configuration))
+7. If you want to customize the widget (e.g. color the lessons), see the [configuration section](#⚒️-configuration).
 
 ## ⏫ Updating
 
