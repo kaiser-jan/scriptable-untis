@@ -175,8 +175,12 @@ async function updateScript(latestRelease: GithubRelease, assetName: string, api
 	}
 
 	console.log('⏫💾 Downloaded latest release, writing to files.')
+
+	// NOTE: not required currently, as the script output is a .js file
 	// replace the .scriptable extension with .js
-	const fileName = assetName.replace('.scriptable', '.js')
+	// const fileName = assetName.replace('.scriptable', '.js')
+	const fileName = assetName
+
 	// save the script to the documents directory
 	const fileManager = getModuleFileManager().fileManager
 	const scriptPath = fileManager.joinPath(fileManager.documentsDirectory(), fileName)

@@ -60,7 +60,7 @@ Lists open (unexcused) absences with their date and duration. It also shows who 
 1. Before installing the script, you need to [install Scriptable from the App Store](https://apps.apple.com/us/app/scriptable/id1405459188?uo=4).
 
 2. To install the script, head over to the [releases page](https://github.com/JFK-05/scriptable-untis/releases) select the latest release.\
-   Alternatively, you can directly download the latest stable release [here](https://github.com/JFK-05/scriptable-untis/releases/latest/download/UntisWidget.scriptable).
+   Alternatively, you can directly download the latest stable release [here](https://github.com/JFK-05/scriptable-untis/releases/latest/download/UntisWidget.js).
 
 3. After downloading the file, click share, and select scriptable.
    Now click `Add to My Scripts` at the bottom.

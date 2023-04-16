@@ -20,4 +20,4 @@ export const CONFIG_FILE_NAME = 'untis-config.json'
 export const CUSTOM_CONFIG_KEYS = ['subjects']
 export const GITHUB_USER = 'JFK-05'
 export const GITHUB_REPO = 'scriptable-untis'
-export const GITHUB_SCRIPT_NAME = 'UntisWidget.scriptable'
+export const GITHUB_SCRIPT_NAME = 'UntisWidget.js'
