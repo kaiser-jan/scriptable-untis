@@ -42,7 +42,7 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 		updateScript: {
 			title: '🔄 Update Script',
 			description: 'Installs the latest version of the script.',
-			action: checkForUpdates,
+			action: () => checkForUpdates(true),
 		},
 		openDocumentation: {
 			title: '📖 Open Documentation',

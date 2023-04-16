@@ -4,6 +4,7 @@ import { getModuleFileManager } from './scriptable/fileSystem'
 import { KeychainManager } from './scriptable/keychainManager'
 import { GITHUB_REPO, GITHUB_SCRIPT_NAME, GITHUB_USER } from '@/constants'
 import { scheduleNotification } from './helper'
+import { showInfoPopup } from './scriptable/input'
 
 /**
  * Determines if the app should check for updates.
@@ -24,9 +25,9 @@ export function shouldCheckForUpdates(updateInterval: Duration) {
 	}
 }
 
-export async function checkForUpdates() {
+export async function checkForUpdates(interactive = false) {
 	const API_KEY = KeychainManager.get('githubApiKey')
-	checkForUpdatesWith(GITHUB_USER, GITHUB_REPO, GITHUB_SCRIPT_NAME, API_KEY)
+	checkForUpdatesWith(GITHUB_USER, GITHUB_REPO, GITHUB_SCRIPT_NAME, API_KEY, interactive)
 }
 
 /**
@@ -41,7 +42,13 @@ export async function checkForUpdates() {
  * @param assetName the name of the asset (the script) to download
  * @returns true if the script was updated, false otherwise
  */
-export async function checkForUpdatesWith(user: string, repo: string, assetName: string, apiKey?: string) {
+export async function checkForUpdatesWith(
+	user: string,
+	repo: string,
+	assetName: string,
+	apiKey?: string,
+	interactive = false
+) {
 	log('⏫❔ Checking for updates...')
 
 	const currentVersion = KeychainManager.get('currentVersion')
@@ -53,12 +60,23 @@ export async function checkForUpdatesWith(user: string, repo: string, assetName:
 
 	if (!latestRelease) {
 		// already logged in getLatestRelease
+
+		if (interactive) {
+			showInfoPopup(
+				'⏫❌ Could not check for updates',
+				'Unable to fetch the latest release. Check the logs for more information.'
+			)
+		}
+
 		return false
 	}
 
 	// exit if the current version is the latest version
 	if (currentVersion === latestRelease.tag_name) {
 		console.log('🟰 No update available.')
+		if (interactive) {
+			showInfoPopup('✅ No update available!', `You are already using the latest version ${currentVersion}.`)
+		}
 		return false
 	}
 
@@ -79,14 +97,17 @@ export async function checkForUpdatesWith(user: string, repo: string, assetName:
 	log('⏫ Comparing versions...')
 	const versionComparison = compareVersions(currentVersionParsed, latestVersionParsed)
 
-	if (versionComparison === 'equal') {
-		console.log('⏫✅ Latest version already installed.')
-		return false
-	}
-
 	// notify the user if the latest version is a breaking release
 	if (versionComparison === 'breaking') {
 		console.log('⏫🔴 Breaking update available.')
+
+		if (interactive) {
+			showInfoPopup(
+				'🛑 Breaking update available',
+				`A breaking update for version ${latestRelease.tag_name} is available. Check the documentation for more information.`
+			)
+		}
+
 		scheduleNotification(
 			'⏫ Update available',
 			`A breaking update for version ${latestRelease.tag_name} is available.
@@ -99,6 +120,14 @@ export async function checkForUpdatesWith(user: string, repo: string, assetName:
 	if (versionComparison === 'feature' || versionComparison === 'minor') {
 		console.log('⏫🟢 Update available.')
 		const updateSuccessful = await updateScript(latestRelease, assetName, apiKey)
+
+		if (updateSuccessful && interactive) {
+			showInfoPopup(
+				`⏫ Updated to version ${latestRelease.tag_name}`,
+				`The script was updated from ${currentVersion} to ${latestRelease.tag_name}.`
+			)
+		}
+
 		return updateSuccessful
 	}
 
