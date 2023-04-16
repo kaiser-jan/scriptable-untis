@@ -14,6 +14,10 @@ It also notifies me about the most important changes.
 
 ## 📥 Installation
 
+
+https://user-images.githubusercontent.com/75926077/232337480-ea6ec7ad-d309-42a8-a9f7-696d3a51d0c0.mp4
+
+
 1. Before installing the script, you need to [install Scriptable from the App Store](https://apps.apple.com/us/app/scriptable/id1405459188?uo=4).
 
 2. You can download the latest version of the script [here](https://github.com/JFK-05/scriptable-untis/releases/latest/download/UntisWidget.js).\
