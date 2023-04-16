@@ -1,5 +1,6 @@
 import { colors } from '@/settings/colors'
 import { addSymbol } from './scriptable/componentHelper'
+import { showInfoPopup } from './scriptable/input'
 
 type IErrorCodes = {
 	[Property in ErrorCodes]: IErrorCode
@@ -55,7 +56,12 @@ export const SCRIPTABLE_ERROR_MAP: Record<string, typeof ErrorCode[keyof typeof 
 }
 
 export interface ExtendedError extends Error {
+	isExtendedError: true
 	icon?: string
+}
+
+export function isExtendedError(error: Error): error is ExtendedError {
+	return 'isExtendedError' in error
 }
 
 /**
@@ -65,6 +71,7 @@ export interface ExtendedError extends Error {
  */
 export function createError(errorCode: IErrorCode) {
 	const error = new Error() as ExtendedError
+	error.isExtendedError = true
 	error.name = errorCode.title
 	if (errorCode.description) {
 		error.message = errorCode.description
@@ -99,4 +106,42 @@ export function createErrorWidget(title: string, description: string, icon?: str
 	}
 
 	return widget
+}
+
+export function handleError(error: Error) {
+	// throw the error if it runs in the app
+	if (config.runsInApp) {
+		if (!isExtendedError(error)) {
+			throw error
+		}
+
+		// exit silently if the error is "input cancelled"
+		if (error.name === ErrorCode.INPUT_CANCELLED.title) {
+			console.log('Input cancelled')
+			return
+		}
+
+		showInfoPopup('❌ ' + error.name, error.message)
+		return
+	}
+
+	let widget: ListWidget
+	const castedError = error as Error
+
+	// try to find a matching error from the known scriptable errors
+	const scriptableError = SCRIPTABLE_ERROR_MAP[castedError.message.toLowerCase()]
+
+	// treat the error as a scriptable error if it is one, or as an extended error otherwise
+	if (scriptableError) {
+		widget = createErrorWidget(scriptableError.title, scriptableError.description, scriptableError.icon)
+	} else {
+		const extendedError = error as ExtendedError
+		widget = createErrorWidget(extendedError.name, extendedError.message, extendedError.icon)
+	}
+
+	if (!config.runsInWidget) {
+		widget.presentLarge()
+	} else {
+		Script.setWidget(widget)
+	}
 }

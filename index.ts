@@ -10,9 +10,9 @@ import {
 import { getLayout } from '@/layout'
 import { openSettings } from '@/settings/editor/settingsEditor'
 import { fillLoginDataInKeychain } from '@/setup'
-import { createErrorWidget, ExtendedError, SCRIPTABLE_ERROR_MAP } from '@/utils/errors'
+import { createErrorWidget, ExtendedError, handleError, isExtendedError, SCRIPTABLE_ERROR_MAP } from '@/utils/errors'
 import { getModuleFileManager as getFileManagerOptions, readConfig } from '@/utils/scriptable/fileSystem'
-import { selectOption } from '@/utils/scriptable/input'
+import { selectOption, showInfoPopup } from '@/utils/scriptable/input'
 import { KeychainManager } from '@/utils/scriptable/keychainManager'
 import { checkForUpdates, checkForUpdatesWith, shouldCheckForUpdates } from '@/utils/updater'
 import { createWidget } from '@/widget'
@@ -103,30 +103,7 @@ try {
 		await runInteractive()
 	}
 } catch (error) {
-	// throw the error if it runs in the app
-	if (config.runsInApp) {
-		throw error
-	}
-
-	let widget: ListWidget
-	const castedError = error as Error
-
-	// try to find a matching error from the known scriptable errors
-	const scriptableError = SCRIPTABLE_ERROR_MAP[castedError.message.toLowerCase()]
-
-	// treat the error as a scriptable error if it is one, or as an extended error otherwise
-	if (scriptableError) {
-		widget = createErrorWidget(scriptableError.title, scriptableError.description, scriptableError.icon)
-	} else {
-		const extendedError = error as ExtendedError
-		widget = createErrorWidget(extendedError.name, extendedError.message, extendedError.icon)
-	}
-
-	if (!config.runsInWidget) {
-		widget.presentLarge()
-	} else {
-		Script.setWidget(widget)
-	}
+	handleError(error)
 }
 
 console.log(`Script finished in ${new Date().getTime() - SCRIPT_START_DATETIME.getTime()}ms.`)
