@@ -1,5 +1,6 @@
 import { SubjectConfig } from '@/types/settings'
 import { Duration, DurationUnit } from '@/utils/duration'
+import { unparsedColors } from './colors'
 
 const defaultSubjectConfig: SubjectConfig = {
 	color: undefined,
@@ -86,6 +87,7 @@ export const defaultSettings = {
 		padding: 8,
 		fontSize: 14,
 		footer: true,
+		backgroundColor: unparsedColors.background.tertiary,
 	},
 }
 

@@ -1,5 +1,6 @@
 import { FetchedData, fetchDataForViews } from './api/fetchManager'
 import { View } from './layout'
+import { getColor } from './settings/colors'
 import { Settings } from './settings/settings'
 import { getCharHeight, getDateInXSeconds } from './utils/helper'
 import { getWidgetSize, getWidgetSizes } from './utils/scriptable/widgetSize'
@@ -45,7 +46,7 @@ export async function createWidget(user: FullUser, layout: View[][], widgetConfi
 	const contentSize = new Size(widgetSize.width - paddingHorizontal * 2, widgetSize.height - paddingVertical * 2)
 
 	widget.setPadding(paddingHorizontal, paddingVertical, paddingHorizontal, paddingVertical)
-	widget.backgroundColor = Color.black()
+	widget.backgroundColor = getColor(widgetConfig.appearance.backgroundColor) ?? Color.black()
 
 	const widgetContent = widget.addStack()
 	widgetContent.layoutHorizontally()

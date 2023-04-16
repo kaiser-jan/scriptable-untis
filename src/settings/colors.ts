@@ -1,6 +1,5 @@
 export const unparsedColors = {
 	background: {
-		primary: '#222629',
 		red: '#461E1E',
 		orange: '#4E2B03',
 		yellow: '#544318',
@@ -14,6 +13,10 @@ export const unparsedColors = {
 		purple: '#3F2156',
 		pink: '#4A183F',
 		brown: '#37291B',
+		black: '#000000',
+		primary: '#222629',
+		secondary: '#1c1e21',
+		tertiary: '#101214',
 	},
 	text: {
 		primary: '#E0EAEF',

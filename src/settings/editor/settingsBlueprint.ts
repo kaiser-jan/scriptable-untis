@@ -366,6 +366,11 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 					description: 'Whether the footer should be shown.',
 					type: SettingsValueType.SHOW_HIDE,
 				},
+				backgroundColor: {
+					title: '🎨 Background Color',
+					description: 'The background color of the widget.',
+					type: SettingsValueType.COLOR,
+				},
 			},
 		},
 	},
