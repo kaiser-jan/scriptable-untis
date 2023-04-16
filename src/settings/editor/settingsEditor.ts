@@ -80,7 +80,9 @@ export function buildSettingsEditorFor(
 	}
 
 	if ('actions' in blueprint && blueprint.actions) {
-		buildActions(blueprint, tableMenu)
+		buildActions(tableMenu, blueprint, () => {
+			buildSettingsEditorFor(tableMenu, options, saveConfig)
+		})
 	}
 
 	tableMenu.show()
@@ -151,10 +153,16 @@ function buildItems(
 	}
 }
 
-function buildActions(blueprint: SettingsCategory<SettingsStructureBase>, tableMenu: TableMenu) {
+function buildActions(
+	tableMenu: TableMenu,
+	blueprint: SettingsCategory<SettingsStructureBase>,
+	updateView: () => void
+) {
 	for (const action of Object.keys(blueprint.actions)) {
 		const actionBlueprint = blueprint.actions[action]
-		tableMenu.addButtonRow(actionBlueprint.title, actionBlueprint.description, actionBlueprint.action)
+		tableMenu.addButtonRow(actionBlueprint.title, actionBlueprint.description, () => {
+			actionBlueprint.action({ updateView })
+		})
 	}
 }
 

@@ -1,6 +1,6 @@
 /**
  * A class for managing the keychain.
- * The main benefit, is that it will add a prefix to all keys, to avoid conflicts with other apps.
+ * The main benefit is that it will add a prefix to all keys, to avoid conflicts with other apps.
  * The prefix can be set when initializing the class. Only one instance can be created.
  * It also provides a method to safely get a value from the keychain, without throwing an error.
  */

@@ -110,10 +110,17 @@ export function isExternalSettingsCategory(
 	return typeof value === 'object' && !Array.isArray(value) && 'externalItems' in value
 }
 
+/**
+ * A list of parameters which are passed to the action function.
+ */
+type ActionParameters = {
+	updateView: () => void
+}
+
 /** A list/map of the available actions in the category. */
 type SettingsActionList = {
 	[key: string]: SettingDescription & {
-		action: () => unknown
+		action: (parameters: ActionParameters) => unknown
 	}
 }
 

@@ -3,6 +3,7 @@ import { SettingsCategory, SettingsValueType, SubjectConfig } from '@/types/sett
 import { showInfoPopup } from '@/utils/scriptable/input'
 import { checkForUpdates } from '@/utils/updater'
 import { defaultSettings } from '../settings'
+import { fillLoginDataInKeychain } from '@/setup'
 
 const subjectBlueprint = {
 	color: {
@@ -57,6 +58,18 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 		login: {
 			title: '🔑 Login',
 			description: 'The data needed to login to Untis.',
+
+			actions: {
+				setupWizard: {
+					title: '🧙‍♂️ Setup Wizard',
+					description: 'Walks you through entering your credentials.',
+					action: async (parameters) => {
+						console.log('🧙‍♂️ Starting setup wizard.')
+						await fillLoginDataInKeychain({}, true)
+						parameters.updateView()
+					},
+				},
+			},
 
 			externalItems: {
 				server: {

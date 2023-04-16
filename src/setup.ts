@@ -52,10 +52,10 @@ export async function readLoginDataFromKeychain() {
 	return loginData
 }
 
-export async function fillLoginDataInKeychain(user: LoginData) {
+export async function fillLoginDataInKeychain(user: Partial<LoginData>, force = false) {
 	const filledUser = { ...user }
 
-	if (!user.server || !user.school) {
+	if (!user.server || !user.school || force) {
 		const { server, school } = await askForServerAndSchool()
 		filledUser.server = server
 		filledUser.school = school
@@ -68,15 +68,15 @@ export async function fillLoginDataInKeychain(user: LoginData) {
 		defaultUsername = usernamePlaceholders[user.school]
 	}
 
-	if (!user.username) {
+	if (!user.username || force) {
 		filledUser.username = await askForUsername(defaultUsername)
 	}
 
-	if (!user.password) {
+	if (!user.password || force) {
 		filledUser.password = await askForPassword()
 	}
 
-	return filledUser
+	return filledUser as LoginData
 }
 
 async function askForServerAndSchool() {
