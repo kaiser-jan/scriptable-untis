@@ -88,8 +88,10 @@ export async function fillLoginDataInKeychain(user: Partial<LoginData>, force = 
 async function askForServerAndSchool() {
 	const webuntisUrl = await askForSingleInput({ ...keychainRequestStrings['school'] })
 
+	if (!webuntisUrl) throw createError(ErrorCode.INPUT_CANCELLED)
+
 	// get the server and school from the input
-	const regex = /https:\/\/(.+?)\.webuntis\.com\/WebUntis\/\?school=(\w+).*/
+	const regex = /https?:\/\/(.+?)\.webuntis\.com\/WebUntis\/\?school=(\w+).*/
 	const match = webuntisUrl.match(regex)
 
 	if (match) {
@@ -107,6 +109,7 @@ async function askForUsername(defaultValue: string) {
 		...keychainRequestStrings['username'],
 		defaultValue,
 	})
+	if (!input) throw createError(ErrorCode.INPUT_CANCELLED)
 	KeychainManager.set(LoginDataKeys.USERNAME, input)
 	return input
 }
@@ -116,6 +119,7 @@ async function askForPassword() {
 		...keychainRequestStrings['password'],
 		isSecure: true,
 	})
+	if (!input) throw createError(ErrorCode.INPUT_CANCELLED)
 	KeychainManager.set(LoginDataKeys.PASSWORD, input)
 	return input
 }
