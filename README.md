@@ -1,6 +1,6 @@
-# Untis Widget for Scriptable
+# 📚 Untis Widget for Scriptable
 
-iOS Widgets for [Untis](https://webuntis.com/) using [Scriptable](https://scriptable.app/) to display important information about school life directly on the homescreen.
+iOS Widgets for [Untis](https://webuntis.com/) using [Scriptable](https://scriptable.app/) to display the most important information about school life directly on the homescreen.
 
 <img src="assets/WidgetSmall.png" alt="Small widget showing upcoming lessons" width="256px">
 <img src="assets/WidgetMedium.png" alt="Medium widget showing upcoming lessons (including cancelled lessons), the next exams and recent grades" width="512px">
@@ -11,6 +11,34 @@ Untis is a service used by many students (mainly in Austria and Germany) to keep
 There is a mobile app, but it does not provide any widgets, at least on iOS.
 That's why I decided to create those widgets myself, so I can have the most important information directly on my homescreen.
 It also notifies me about the most important changes.
+
+## 📥 Installation
+
+1. Before installing the script, you need to [install Scriptable from the App Store](https://apps.apple.com/us/app/scriptable/id1405459188?uo=4).
+
+2. You can download the latest version of the script [here](https://github.com/JFK-05/scriptable-untis/releases/latest/download/UntisWidget.js).\
+   Alternatively, you can head over to the [releases page](https://github.com/JFK-05/scriptable-untis/releases) to download a specific release.
+
+3. After downloading the file, click share, and select scriptable.
+   Now click `Add to My Scripts` at the bottom.
+
+4. Click the play button at the lower right (or click the script in the overview) to run the script, and select `💻 Show Widget`. This will start the setup process.\
+   You will be asked for the url, which you can find when selecting you school [here](https://webuntis.com/). You might have to click the "switch school" button to get to the correct page.\
+   The url should look something like this: `https://<server>.webuntis.com/WebUntis/?school=<schoolname>#/basic/login`. (with `<server>` and `<schoolname>` replaced)
+
+5. Now you can add an iOS widget for Scriptable and select the script in the options.
+
+6. The widget should update automatically and display the information. 🥳 (might take a few seconds)
+
+7. If you want to customize the widget (e.g. color the lessons), see the [configuration section](#⚒️-configuration).
+
+## ⏫ Updating
+
+The script will check for updates every few hours.\
+Regular updates will be downloaded and installed automatically.\
+If you want to update manually, you can do so by running the script and selecting `🔄 Update Script` in the menu.\
+When there is a breaking change, you will be notified and asked to update manually.\
+Check the [releases page](https://github.com/JFK-05/scriptable-untis/releases) for more information about the changes.
 
 ## ✨ Features
 
@@ -54,34 +82,6 @@ You can configure how long grades should be displayed and set a maximum count.
 #### Absences
 
 Lists open (unexcused) absences with their date and duration. It also shows who created the absence, if there is enough space.
-
-## 📥 Installation
-
-1. Before installing the script, you need to [install Scriptable from the App Store](https://apps.apple.com/us/app/scriptable/id1405459188?uo=4).
-
-2. To install the script, head over to the [releases page](https://github.com/JFK-05/scriptable-untis/releases) select the latest release.\
-   Alternatively, you can directly download the latest stable release [here](https://github.com/JFK-05/scriptable-untis/releases/latest/download/UntisWidget.js).
-
-3. After downloading the file, click share, and select scriptable.
-   Now click `Add to My Scripts` at the bottom.
-
-4. Click the play button at the lower right (or click the script in the overview) to run the script. This will start the setup process.\
-   You will be asked for the url, which you can find when selecting you school [here](https://webuntis.com/). You might have to click the "switch school" button to get to the correct page.\
-   The url should look something like this: `https://<server>.webuntis.com/WebUntis/?school=<schoolname>#/basic/login`. (with `<server>` and `<schoolname>` replaced)
-
-5. Now you can add an iOS widget for Scriptable and select the script in the options.
-
-6. The widget should update automatically and display the information. 🥳 (might take a few seconds)
-
-7. If you want to customize the widget (e.g. color the lessons), see the [configuration section](#⚒️-configuration).
-
-## ⏫ Updating
-
-The script will check for updates every few hours.\
-Regular updates will be downloaded and installed automatically.\
-If you want to update manually, you can do so by running the script and selecting `🔄 Update Script` in the menu.\
-When there is a breaking change, you will be notified and asked to update manually.\
-Check the [releases page](https://github.com/JFK-05/scriptable-untis/releases) for more information about the changes.
 
 ## ⚒️ Configuration
 
@@ -137,7 +137,7 @@ The configuration file `untis-config.json` is located in the scriptable folder.\
 A default configuration file is created when the script is run for the first time. Check it out to see what's possible!\
 Changes to the configuration file are applied when the script is run again.
 
-## 🧑‍💻 Notes for Developers
+## 🧑‍💻 Notes to Developers
 
 ### 📦 Bundling
 
@@ -156,5 +156,5 @@ I am quite happy with the result, even though it has a few flaws, which I might 
 
 ### 📖 Documentation
 
-Currently there seems to be an issue with github (similar to [this one](https://github.com/thlorenz/anchor-markdown-header/issues/36)), where emojis in titles break header links.\
-Therefore the header anchors in this readme may not work.
+Currently there seems to be an issue with github (similar to [this one](https://github.com/thlorenz/anchor-markdown-header/issues/36)), where emojis in headers break anchor links.\
+Therefore the links to headers in this readme may not work.
