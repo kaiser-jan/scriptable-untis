@@ -53,6 +53,37 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 		},
 	},
 
+	externalItems: {
+		login: {
+			title: '🔑 Login',
+			description: 'The data needed to login to Untis.',
+
+			externalItems: {
+				server: {
+					title: '🌐 Server',
+					description: 'The subdomain of the Untis server.',
+					itemKey: 'server',
+				},
+				school: {
+					title: '🏫 School',
+					description: 'The name of the school used in WebUntis.',
+					itemKey: 'school',
+				},
+				username: {
+					title: '👤 Username',
+					description: 'The username used to login to WebUntis.',
+					itemKey: 'username',
+				},
+				password: {
+					title: '🔑 Password',
+					description: 'The password used to login to WebUntis.',
+					itemKey: 'password',
+					isSecure: true,
+				},
+			},
+		},
+	},
+
 	items: {
 		subjects: {
 			title: '📚 Subjects',

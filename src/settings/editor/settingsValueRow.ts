@@ -14,7 +14,7 @@ export function addSettingsValueRow(
 	value: PrimitiveSettingsValue,
 	defaultValue: PrimitiveSettingsValue,
 	blueprint: SettingsValue,
-	updateValue: (newValue: PrimitiveSettingsValue) => void
+	updateValue: (newValue: PrimitiveSettingsValue | undefined) => void
 ) {
 	const row = tableMenu.addTextRow(blueprint.title, blueprint.description)
 
@@ -24,7 +24,7 @@ export function addSettingsValueRow(
 	const formattedDefaultValue = formatValue(defaultValue, blueprint.type, true)
 	let textOptions: TableMenuRowTextOptions = { width: 24 }
 	// hide the default value if it's the same as the current value
-	const defaultValueIndicator = isDefaultValue ? '' : formattedDefaultValue
+	let defaultValueIndicator = isDefaultValue ? '' : formattedDefaultValue
 
 	if (blueprint.type === SettingsValueType.COLOR) {
 		const color = getColor(value as string)
@@ -34,9 +34,16 @@ export function addSettingsValueRow(
 		valueIndicator = '■'
 	}
 
+	// hide sensitive values
+	if (blueprint.type === SettingsValueType.SECURE_STRING) {
+		defaultValue = undefined
+		defaultValueIndicator = ''
+	}
+
 	const valueCell = row.addText(valueIndicator, defaultValueIndicator, textOptions)
 
 	// TODO: catch errors in onTap
+	// set the onTap handler depending on the value type
 	switch (blueprint.type) {
 		case SettingsValueType.ON_OFF:
 		case SettingsValueType.SHOW_HIDE:
@@ -52,10 +59,14 @@ export function addSettingsValueRow(
 
 		default:
 			row.setOnTap(async () => {
-				const newValue = await openValueEditor(formattedValue, formattedDefaultValue, blueprint)
-				log(`Config Editor: New value for "${blueprint.title}": ${newValue}`)
-				if (!newValue) return
-				updateValue(newValue)
+				try {
+					const newValue = await openValueEditor(formattedValue, formattedDefaultValue, blueprint)
+					log(`Config Editor: New value for "${blueprint.title}": ${newValue}`)
+					if (!newValue) return
+					updateValue(newValue)
+				} catch (error) {
+					log(error)
+				}
 			})
 			break
 	}
@@ -85,6 +96,9 @@ function formatValue(value: PrimitiveSettingsValue, type: SettingsValueType, isS
 			return value ? '✅' : '❌'
 		case SettingsValueType.STRING:
 			return value as string
+		case SettingsValueType.SECURE_STRING:
+			// secure values should be obfuscated before giving them to the valueRow, but just to make sure
+			return '•'.repeat((value as string).length)
 		case SettingsValueType.STRING_ARRAY:
 			const array = value as string[]
 			if (array.length === 0) return ''

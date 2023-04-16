@@ -1,5 +1,6 @@
 import { ErrorCode, createError } from './utils/errors'
 import { askForSingleInput } from './utils/scriptable/input'
+import { KeychainManager } from './utils/scriptable/keychainManager'
 
 const keychainRequestStrings = {
 	school: {
@@ -15,75 +16,100 @@ const keychainRequestStrings = {
 	},
 	password: {
 		title: 'WebUntis Password',
-		description: 'The password you use to login to WebUntis. It will be stored in your keychain.',
+		description: 'The password you use to login to WebUntis. It will be stored in the Scriptable-Keychain.',
 		placeholder: 'password',
 	},
 }
 
+enum LoginDataKeys {
+	SERVER = 'server',
+	SCHOOL = 'school',
+	USERNAME = 'username',
+	PASSWORD = 'password',
+}
+
 type AvailableKeychainEntries = keyof typeof keychainRequestStrings | 'server'
+
+type LoginData = Record<AvailableKeychainEntries, string>
 
 const usernamePlaceholders: Record<string, string> = {
 	litec: '401467',
 }
 
-export async function readKeychain(requestMissing: boolean = false) {
-	const server = await getFromKeychain('server', requestMissing)
-	const school = await getFromKeychain('school', requestMissing)
-	const username = await getFromKeychain('username', requestMissing, usernamePlaceholders[school ?? ''] ?? '')
-	const password = await getFromKeychain('password', requestMissing)
+export async function readLoginDataFromKeychain() {
+	const server = KeychainManager.get(LoginDataKeys.SERVER)
+	const school = KeychainManager.get(LoginDataKeys.SCHOOL)
+	const username = KeychainManager.get(LoginDataKeys.USERNAME)
+	const password = KeychainManager.get(LoginDataKeys.PASSWORD)
 
-	return { server, school, username, password }
+	let loginData: LoginData = { server, school, username, password }
+
+	if (config.runsInApp) {
+		// if the script is running in the app, we can ask the user to fill in the missing data
+		loginData = await fillLoginDataInKeychain(loginData)
+	}
+
+	return loginData
 }
 
-export async function writeKeychain() {
-	const initialUser = await readKeychain(false)
-	await requestKeychainEntry('school', initialUser.school)
-	let defaultUsername = initialUser.username
-	if (!defaultUsername && initialUser.school) {
-		defaultUsername = usernamePlaceholders[initialUser.school]
+export async function fillLoginDataInKeychain(user: LoginData) {
+	const filledUser = { ...user }
+
+	if (!user.server || !user.school) {
+		const { server, school } = await askForServerAndSchool()
+		filledUser.server = server
+		filledUser.school = school
 	}
-	await requestKeychainEntry('username', defaultUsername)
-	await requestKeychainEntry('password')
+
+	// use the current username if available
+	let defaultUsername = user.username
+	// otherwise, use a default value for the current school
+	if (!defaultUsername && user.school) {
+		defaultUsername = usernamePlaceholders[user.school]
+	}
+
+	if (!user.username) {
+		filledUser.username = await askForUsername(defaultUsername)
+	}
+
+	if (!user.password) {
+		filledUser.password = await askForPassword()
+	}
+
+	return filledUser
 }
 
-async function getFromKeychain(
-	key: AvailableKeychainEntries,
-	requestMissing: boolean = false,
-	defaultValue: string = ''
-): Promise<string | undefined> {
-	const keychainKey = `webuntis-${key}`
-	if (Keychain.contains(keychainKey)) {
-		return Keychain.get(keychainKey)
-	} else if (requestMissing) {
-		return requestKeychainEntry(key, defaultValue)
-	} else {
-		return defaultValue
+async function askForServerAndSchool() {
+	const webuntisUrl = await askForSingleInput({ ...keychainRequestStrings['school'] })
+
+	// get the server and school from the input
+	const regex = /https:\/\/(.+?)\.webuntis\.com\/WebUntis\/\?school=(\w+).*/
+	const match = webuntisUrl.match(regex)
+
+	if (match) {
+		const [, server, school] = match
+		KeychainManager.set(LoginDataKeys.SERVER, server)
+		KeychainManager.set(LoginDataKeys.SCHOOL, school)
+		return { server, school }
 	}
+
+	throw createError(ErrorCode.INVALID_WEBUNTIS_URL)
 }
 
-async function requestKeychainEntry(key: AvailableKeychainEntries, defaultValue = '') {
-	switch (key) {
-		case 'school':
-		case 'server':
-			const webuntisUrl = await askForSingleInput({ ...keychainRequestStrings['school'], defaultValue })
-			// get the server and school from the input
-			const regex = /https:\/\/(.+?)\.webuntis\.com\/WebUntis\/\?school=(\w+).*/
-			const match = webuntisUrl.match(regex)
-			if (match) {
-				const [, server, school] = match
-				Keychain.set('webuntis-server', server)
-				Keychain.set('webuntis-school', school)
-				return school
-			}
-			throw createError(ErrorCode.INVALID_WEBUNTIS_URL)
-		case 'username':
-		case 'password':
-			const input = await askForSingleInput({
-				...keychainRequestStrings[key],
-				defaultValue,
-				isSecure: key === 'password',
-			})
-			Keychain.set(`webuntis-${key}`, input)
-			return input
-	}
+async function askForUsername(defaultValue: string) {
+	const input = await askForSingleInput({
+		...keychainRequestStrings['username'],
+		defaultValue,
+	})
+	KeychainManager.set(LoginDataKeys.USERNAME, input)
+	return input
+}
+
+async function askForPassword() {
+	const input = await askForSingleInput({
+		...keychainRequestStrings['password'],
+		isSecure: true,
+	})
+	KeychainManager.set(LoginDataKeys.PASSWORD, input)
+	return input
 }

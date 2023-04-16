@@ -9,7 +9,7 @@ import {
 } from '@/constants'
 import { getLayout } from '@/layout'
 import { openSettings } from '@/settings/editor/settingsEditor'
-import { writeKeychain } from '@/setup'
+import { fillLoginDataInKeychain } from '@/setup'
 import { createErrorWidget, ExtendedError, SCRIPTABLE_ERROR_MAP } from '@/utils/errors'
 import { getModuleFileManager as getFileManagerOptions, readConfig } from '@/utils/scriptable/fileSystem'
 import { selectOption } from '@/utils/scriptable/input'
@@ -61,7 +61,7 @@ function showDocumentation() {
 enum ScriptActions {
 	VIEW = '💻 Show Widget',
 	OPEN_SETTINGS = '⚙️ Open Settings',
-	CHANGE_CREDENTIALS = '🔑 Change Credentials',
+	// CHANGE_CREDENTIALS = '🔑 Change Credentials',
 	// UPDATE = '⏫ Update Script',
 	// CLEAR_CACHE = '🗑️ Clear Cache',
 	SHOW_DOCUMENTATION = '📖 Open Documentation',
@@ -69,7 +69,7 @@ enum ScriptActions {
 
 const actionMap: Record<ScriptActions, Function> = {
 	[ScriptActions.VIEW]: presentWidget,
-	[ScriptActions.CHANGE_CREDENTIALS]: writeKeychain,
+	// [ScriptActions.CHANGE_CREDENTIALS]: fillLoginDataInKeychain,
 	[ScriptActions.OPEN_SETTINGS]: openSettings,
 	// [ScriptActions.CLEAR_CACHE]: clearCache,
 	[ScriptActions.SHOW_DOCUMENTATION]: showDocumentation,
