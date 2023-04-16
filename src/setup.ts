@@ -44,7 +44,13 @@ export async function readLoginDataFromKeychain() {
 
 	let loginData: LoginData = { server, school, username, password }
 
-	if (config.runsInApp) {
+	// if the login data is incomplete
+	if (!loginData.server || !loginData.school || !loginData.username || !loginData.password) {
+		// show an error if we cannot ask the user for the missing data
+		if (!config.runsInApp) {
+			throw createError(ErrorCode.SETUP_INCOMPLETE)
+		}
+
 		// if the script is running in the app, we can ask the user to fill in the missing data
 		loginData = await fillLoginDataInKeychain(loginData)
 	}

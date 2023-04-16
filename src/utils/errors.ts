@@ -20,6 +20,7 @@ type ErrorCodes =
 	| 'INVALID_WEBUNTIS_URL'
 	| 'INPUT_CANCELLED'
 	| 'SELECTION_CANCELLED'
+	| 'SETUP_INCOMPLETE'
 
 export const ErrorCode: IErrorCodes = {
 	NO_INTERNET: { title: 'The internet connection appears to be offline.', icon: 'wifi.exclamationmark' },
@@ -39,6 +40,7 @@ export const ErrorCode: IErrorCodes = {
 	},
 	INPUT_CANCELLED: { title: 'Input cancelled', description: 'Please try again!', icon: 'xmark.octagon' },
 	SELECTION_CANCELLED: { title: 'Selection cancelled', description: 'Please try again!', icon: 'xmark.octagon' },
+	SETUP_INCOMPLETE: { title: 'Setup incomplete', description: 'Please complete the setup!', icon: 'hammer.circle' },
 }
 
 /**
