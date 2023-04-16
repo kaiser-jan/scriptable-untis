@@ -22,20 +22,52 @@ export type SubjectConfigs = Record<string, SubjectConfig>
 
 //#region Config Editor Types
 
+export type SettingsValue = SettingDescription & {
+	type: SettingsValueType
+}
+
+export function isSettingsValue(value: SettingsCategory<any> | SettingsValue): value is SettingsValue {
+	return typeof value === 'object' && !Array.isArray(value) && 'type' in value && value.type !== SettingsValueType.MAP
+}
+
+export enum SettingsValueType {
+	STRING,
+	SECURE_STRING,
+	STRING_ARRAY,
+	COUNT,
+	ON_OFF,
+	SHOW_HIDE,
+	DURATION,
+	COLOR,
+	LOCALE,
+	MAP,
+}
+
 export type SettingsStructureBase = {
 	[key: string]: SettingsStructureBase | PrimitiveSettingsValue
 }
 
-type SettingsItemBase = {
+type SettingDescription = {
 	title: string
 	description: string
 }
 
-export type SettingsCategory<T extends SettingsStructureBase> = SettingsItemBase & {
-	items: SettingsList<T>
+//#region Category, Map, List
+
+/** The contents of a category in the blueprint. */
+export type SettingsCategory<T extends SettingsStructureBase> = SettingDescription & {
+	items?: SettingsList<T>
+	/** A list of actions in this category which can be executed via buttons. */
+	actions?: SettingsActionList
+	/**
+	 * A list of items which are not contained in the settings object used for the blueprint
+	 * This can be used to add categories for e.g. actions or keychain items.
+	 */
+	externalItems?: ExternalItemList
 }
 
-export type SettingsMap<T extends SettingsStructureBase> = SettingsItemBase & {
+/** A map in the blueprint, which describes the form of the entries. */
+export type SettingsMap<T extends SettingsStructureBase> = SettingDescription & {
 	items: SettingsList<T>
 	type: SettingsValueType.MAP
 	addItemTitle?: string
@@ -48,35 +80,62 @@ export function isSettingsMap(value: SettingsCategory<any> | SettingsValue): val
 	return typeof value === 'object' && !Array.isArray(value) && 'type' in value && value.type === SettingsValueType.MAP
 }
 
-export type SettingsMapValue = { _: SettingsStructureBase }
+type KeychainItem = SettingDescription & {
+	itemKey: string
+	default?: string
+	isSecure?: boolean
+	validate?: (value: string) => boolean
+}
 
+/**
+ * A list/map of the available items in the category, which are not part of the regular config object.
+ * This can be setting values or other categories.
+ */
+type ExternalItemList = {
+	[key: string]: KeychainItem | ExternalSettingsCategory
+}
+
+/**
+ * A category for items which are not part of the regular config object.
+ * Therefore it cannot contain regular items, just external ones and actions.
+ */
+type ExternalSettingsCategory = SettingDescription & {
+	actions?: SettingsActionList
+	externalItems?: ExternalItemList
+}
+
+export function isExternalSettingsCategory(
+	value: ExternalItemList[keyof ExternalItemList]
+): value is ExternalSettingsCategory {
+	return typeof value === 'object' && !Array.isArray(value) && 'externalItems' in value
+}
+
+/**
+ * A list of parameters which are passed to the action function.
+ */
+type ActionParameters = {
+	updateView: () => void
+}
+
+/** A list/map of the available actions in the category. */
+type SettingsActionList = {
+	[key: string]: SettingDescription & {
+		action: (parameters: ActionParameters) => unknown
+	}
+}
+
+/** A list of entries in the settings blueprint (category, map, value, etc.) */
 export type SettingsList<T extends SettingsStructureBase> = {
 	[K in keyof T]: T[K] extends SettingsStructureBase
-		? T[K] extends SettingsMapValue
+		? T[K] extends { _: SettingsStructureBase }
 			? SettingsMap<T[K]['_']>
 			: SettingsCategory<T[K]>
 		: SettingsValue
 }
 
-export type SettingsValue = SettingsItemBase & {
-	type: SettingsValueType
-}
+//#endregion
 
-export function isSettingsValue(value: SettingsCategory<any> | SettingsValue): value is SettingsValue {
-	return typeof value === 'object' && !Array.isArray(value) && 'type' in value && value.type !== SettingsValueType.MAP
-}
-
-export enum SettingsValueType {
-	STRING,
-	STRING_ARRAY,
-	COUNT,
-	ON_OFF,
-	SHOW_HIDE,
-	DURATION,
-	COLOR,
-	LOCALE,
-	MAP,
-}
+// #region Generalized
 
 export type PrimitiveSettingsValue = string | number | boolean | string[]
 
@@ -100,4 +159,5 @@ export interface SettingsEditorParameters<BlueprintT extends GeneralizedSettings
 	fullSettings: Settings
 }
 
+//#endregion
 //#endregion

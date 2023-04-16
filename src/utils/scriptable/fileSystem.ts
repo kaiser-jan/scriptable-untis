@@ -15,7 +15,8 @@ export async function readConfig(useICloud: boolean) {
 	const fileManager = useICloud ? FileManager.iCloud() : FileManager.local()
 
 	const configJson = await readFile({
-		path: [fileManager.documentsDirectory(), CONFIG_FILE_NAME],
+		baseDirectory: fileManager.documentsDirectory(),
+		path: [CONFIG_FILE_NAME],
 		fileManager: fileManager,
 		create: true,
 		defaultValue: JSON.stringify(defaultSettings),
@@ -49,6 +50,7 @@ export async function writeConfig(useICloud: boolean, config: Settings) {
  * @param defaultValue the default value to write to the file if it does not exist and create is true
  */
 async function readFile(options: {
+	baseDirectory: string
 	path: string[]
 	fileManager: FileManager
 	create?: boolean
@@ -57,13 +59,47 @@ async function readFile(options: {
 	const { path, fileManager, create = false, defaultValue = '' } = options
 
 	// read and create directories up to the last one
-	const rootPath = path[0]
-	const directoryPath = path.slice(1, -1)
+	const directoryPaths = path.slice(1, -1)
 	const fileName = path[path.length - 1]
 
-	let currentPath = rootPath
+	const directoryPath = await readFolder({
+		baseDirectory: options.baseDirectory,
+		directoryPath: directoryPaths,
+		fileManager: fileManager,
+		create: create,
+	})
+
+	// read the file
+	const filePath = fileManager.joinPath(directoryPath, fileName)
+
+	if (!fileManager.fileExists(filePath)) {
+		if (!create) return null
+		fileManager.writeString(filePath, defaultValue)
+		return defaultValue
+	}
+
+	await fileManager.downloadFileFromiCloud(directoryPath)
+	return fileManager.readString(filePath)
+}
+
+/**
+ * Reads a path of directories and returns the path to the last directory.
+ * @param baseDirectory the directory to start from
+ * @param directoryPath the path to the directory
+ * @param create if true, the directory path will be created if it does not exist
+ * @returns the path to the last directory or null if the directory does not exist and create is false
+ */
+export async function readFolder(options: {
+	fileManager: FileManager
+	baseDirectory: string
+	directoryPath: string[]
+	create?: boolean
+}) {
+	const { fileManager, baseDirectory, directoryPath, create = false } = options
+
+	let currentPath = baseDirectory
 	for (const directory of directoryPath) {
-		fileManager.joinPath(rootPath, directory)
+		fileManager.joinPath(currentPath, directory)
 
 		if (!fileManager.fileExists(currentPath)) {
 			if (!create) return null
@@ -73,15 +109,5 @@ async function readFile(options: {
 		await fileManager.downloadFileFromiCloud(currentPath)
 	}
 
-	// read the file
-	const filePath = fileManager.joinPath(currentPath, fileName)
-
-	if (!fileManager.fileExists(filePath)) {
-		if (!create) return null
-		fileManager.writeString(filePath, defaultValue)
-		return defaultValue
-	}
-
-	await fileManager.downloadFileFromiCloud(currentPath)
-	return fileManager.readString(filePath)
+	return currentPath
 }

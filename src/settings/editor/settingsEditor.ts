@@ -14,10 +14,13 @@ import {
 	isSettingsMap,
 	SettingsEditorParameters,
 	GeneralizedSettingsCategory,
+	SettingsValueType,
+	isExternalSettingsCategory,
 } from '@/types/settings'
 import { addSettingsCategoryRow } from './settingsCategory'
 import { addSettingsMapRow } from './settingsMap'
 import { addSettingsValueRow } from './settingsValueRow'
+import { KeychainManager } from '@/utils/scriptable/keychainManager'
 
 /**
  * Opens the config editor as a UITable.
@@ -57,9 +60,9 @@ export function buildSettingsEditorFor(
 		blueprint: SettingsCategory<SettingsStructureBase> | SettingsMap<SettingsStructureBase>
 		fullSettings: Settings
 	},
-	saveConfig: () => void
+	saveConfig?: () => void
 ) {
-	const { settings, defaultSettings, blueprint } = options
+	const { blueprint } = options
 
 	log(`Config Editor: Building settings editor for category "${blueprint.title}".`)
 
@@ -67,6 +70,34 @@ export function buildSettingsEditorFor(
 	tableMenu.addTitleRow(blueprint.title)
 	tableMenu.addDescriptionRow(blueprint.description)
 	tableMenu.addSpacerRow()
+
+	if ('items' in blueprint && blueprint.items) {
+		buildItems(tableMenu, options, saveConfig)
+	}
+
+	if ('externalItems' in blueprint && blueprint.externalItems) {
+		buildExternalItems(blueprint, tableMenu, options)
+	}
+
+	if ('actions' in blueprint && blueprint.actions) {
+		buildActions(tableMenu, blueprint, () => {
+			buildSettingsEditorFor(tableMenu, options, saveConfig)
+		})
+	}
+
+	tableMenu.show()
+}
+function buildItems(
+	tableMenu: TableMenu,
+	options: {
+		settings: GeneralizedSettings
+		defaultSettings: GeneralizedSettings
+		blueprint: SettingsCategory<SettingsStructureBase> | SettingsMap<SettingsStructureBase>
+		fullSettings: Settings
+	},
+	saveConfig: () => void
+) {
+	const { settings, defaultSettings, blueprint } = options
 
 	for (const key of Object.keys(blueprint.items)) {
 		const settingsPart = settings[key as keyof typeof settings]
@@ -120,6 +151,73 @@ export function buildSettingsEditorFor(
 
 		addSettingsCategoryRow(tableMenu, optionsPart, saveConfig)
 	}
+}
 
-	tableMenu.show()
+function buildActions(
+	tableMenu: TableMenu,
+	blueprint: SettingsCategory<SettingsStructureBase>,
+	updateView: () => void
+) {
+	for (const action of Object.keys(blueprint.actions)) {
+		const actionBlueprint = blueprint.actions[action]
+		tableMenu.addButtonRow(actionBlueprint.title, actionBlueprint.description, () => {
+			actionBlueprint.action({ updateView })
+		})
+	}
+}
+
+function buildExternalItems(
+	blueprint: SettingsCategory<SettingsStructureBase>,
+	tableMenu: TableMenu,
+	options: {
+		settings: GeneralizedSettings
+		defaultSettings: GeneralizedSettings
+		blueprint: SettingsCategory<SettingsStructureBase> | SettingsMap<SettingsStructureBase>
+		fullSettings: Settings
+	}
+) {
+	for (const keychainItem of Object.keys(blueprint.externalItems)) {
+		const keychainItemBlueprint = blueprint.externalItems[keychainItem]
+
+		if (isExternalSettingsCategory(keychainItemBlueprint)) {
+			addSettingsCategoryRow(tableMenu, {
+				blueprint: keychainItemBlueprint,
+				settings: {},
+				defaultSettings: {},
+				fullSettings: options.fullSettings,
+			})
+			continue
+		}
+
+		const filledBlueprint = {
+			...keychainItemBlueprint,
+			type: SettingsValueType.STRING,
+		} as SettingsValue
+
+		log(`Config Editor: Adding keychain item "${keychainItemBlueprint.itemKey}".`)
+
+		let value = KeychainManager.get(keychainItemBlueprint.itemKey) ?? keychainItemBlueprint.default ?? ''
+		log(`Config Editor: Value is "${value}" for key ${keychainItemBlueprint.itemKey}.`)
+
+		// handle secure values
+		if (keychainItemBlueprint.isSecure) {
+			// tell the ui to hide the value
+			filledBlueprint.type = SettingsValueType.SECURE_STRING
+			// replace the value with a bunch of dots
+			value = '•'.repeat(value.length)
+		}
+
+		addSettingsValueRow(
+			tableMenu,
+			value,
+			keychainItemBlueprint.default,
+			filledBlueprint,
+			(newValue: string | undefined) => {
+				// store the new value in the keychain
+				KeychainManager.set(keychainItemBlueprint.itemKey, newValue ?? '')
+				// update the table view
+				buildSettingsEditorFor(tableMenu, options)
+			}
+		)
+	}
 }

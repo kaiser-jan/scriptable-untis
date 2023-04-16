@@ -1,11 +1,18 @@
 import { PrimitiveSettingsValue, SettingsValue, SettingsValueType } from '@/types/settings'
 import { Duration } from '@/utils/duration'
-import { askForSingleInput, parseArray, selectOption, showInfoPopup } from '@/utils/scriptable/input'
+import { askForSingleInput, parseArray, showInfoPopup } from '@/utils/scriptable/input'
 
 const LOCALE_REGEX = /^[a-z]{2}(-[A-Z]{2})?$/
 
 export async function openValueEditor(formattedValue: string, formattedDefaultValue: string, blueprint: SettingsValue) {
-	const newValue = await openTextValueEditor(formattedValue.toString(), formattedDefaultValue, blueprint)
+	let displayedValue = formattedValue
+
+	// clear the value if it's a secure string
+	if (blueprint.type === SettingsValueType.SECURE_STRING) {
+		displayedValue = ''
+	}
+
+	const newValue = await openTextValueEditor(displayedValue, formattedDefaultValue, blueprint)
 
 	// return null if the user cancels the input
 	if (newValue === null) return null
@@ -38,6 +45,7 @@ export async function openValueEditor(formattedValue: string, formattedDefaultVa
 				return null
 			}
 		case SettingsValueType.STRING:
+		case SettingsValueType.SECURE_STRING:
 		case SettingsValueType.COLOR:
 			return newValue
 		case SettingsValueType.STRING_ARRAY:
@@ -59,16 +67,4 @@ export async function openTextValueEditor(
 		placeholder: defaultValue.toString(),
 		defaultValue: value.toString(),
 	})
-}
-
-export async function openBooleanEditor(settingsValue: SettingsValue) {
-	try {
-		const response = await selectOption(['true', 'false'], {
-			title: settingsValue.title,
-			description: settingsValue.description,
-		})
-		return response === 'true'
-	} catch {
-		return null
-	}
 }

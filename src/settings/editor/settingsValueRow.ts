@@ -1,7 +1,7 @@
 import { PrimitiveSettingsValue, SettingsValue, SettingsValueType } from '@/types/settings'
 import { Duration } from '@/utils/duration'
+import { askForSingleInput, showInfoPopup } from '@/utils/scriptable/input'
 import { TableMenu } from '@/utils/scriptable/table/tableMenu'
-import { TableMenuCell } from '@/utils/scriptable/table/tableMenuCell'
 import { TableMenuRowTextOptions } from '@/utils/scriptable/table/tableMenuRow'
 import { getColor, unparsedColors } from '../colors'
 import { openValueEditor } from './valueEditor'
@@ -14,7 +14,7 @@ export function addSettingsValueRow(
 	value: PrimitiveSettingsValue,
 	defaultValue: PrimitiveSettingsValue,
 	blueprint: SettingsValue,
-	updateValue: (newValue: PrimitiveSettingsValue) => void
+	updateValue: (newValue: PrimitiveSettingsValue | undefined) => void
 ) {
 	const row = tableMenu.addTextRow(blueprint.title, blueprint.description)
 
@@ -24,7 +24,7 @@ export function addSettingsValueRow(
 	const formattedDefaultValue = formatValue(defaultValue, blueprint.type, true)
 	let textOptions: TableMenuRowTextOptions = { width: 24 }
 	// hide the default value if it's the same as the current value
-	const defaultValueIndicator = isDefaultValue ? '' : formattedDefaultValue
+	let defaultValueIndicator = isDefaultValue ? '' : formattedDefaultValue
 
 	if (blueprint.type === SettingsValueType.COLOR) {
 		const color = getColor(value as string)
@@ -34,9 +34,16 @@ export function addSettingsValueRow(
 		valueIndicator = '■'
 	}
 
+	// hide sensitive values
+	if (blueprint.type === SettingsValueType.SECURE_STRING) {
+		defaultValue = undefined
+		defaultValueIndicator = ''
+	}
+
 	const valueCell = row.addText(valueIndicator, defaultValueIndicator, textOptions)
 
 	// TODO: catch errors in onTap
+	// set the onTap handler depending on the value type
 	switch (blueprint.type) {
 		case SettingsValueType.ON_OFF:
 		case SettingsValueType.SHOW_HIDE:
@@ -52,10 +59,14 @@ export function addSettingsValueRow(
 
 		default:
 			row.setOnTap(async () => {
-				const newValue = await openValueEditor(formattedValue, formattedDefaultValue, blueprint)
-				log(`Config Editor: New value for "${blueprint.title}": ${newValue}`)
-				if (!newValue) return
-				updateValue(newValue)
+				try {
+					const newValue = await openValueEditor(formattedValue, formattedDefaultValue, blueprint)
+					log(`Config Editor: New value for "${blueprint.title}": ${newValue}`)
+					if (!newValue) return
+					updateValue(newValue)
+				} catch (error) {
+					log(error)
+				}
 			})
 			break
 	}
@@ -85,6 +96,9 @@ function formatValue(value: PrimitiveSettingsValue, type: SettingsValueType, isS
 			return value ? '✅' : '❌'
 		case SettingsValueType.STRING:
 			return value as string
+		case SettingsValueType.SECURE_STRING:
+			// secure values should be obfuscated before giving them to the valueRow, but just to make sure
+			return '•'.repeat((value as string).length)
 		case SettingsValueType.STRING_ARRAY:
 			const array = value as string[]
 			if (array.length === 0) return ''
@@ -104,6 +118,25 @@ function openColorEditor(tableMenu: TableMenu, value: string, updateValue: (newV
 	colorTable.addTitleRow('🎨 Select a color')
 	colorTable.addSpacerRow()
 
+	// add an input for the hex color
+	const hexInputRow = colorTable.addTextRow('custom hex color ✏️')
+	hexInputRow.addIconButton('📋', () => {
+		const hex = Pasteboard.paste()
+		if (!validateHex(hex)) return
+		updateValue(hex)
+	})
+
+	hexInputRow.setOnTap(async () => {
+		// get user input
+		const input = await askForSingleInput({
+			title: 'Enter a hex color',
+			placeholder: 'e.g. #FF0000',
+			defaultValue: value,
+		})
+		if (!validateHex(input)) return
+		updateValue(input)
+	})
+
 	// TODO: extend to selecting colors more generally (not from the backgrounds)
 	// TODO: add something similar to a colorwheel (hue, saturation, brightness)
 	// NOTE: it is not possible to use colored buttons: buttons cannot be colored, text cannot be tapped
@@ -122,4 +155,14 @@ function openColorEditor(tableMenu: TableMenu, value: string, updateValue: (newV
 	}
 
 	colorTable.show(false, false)
+}
+
+function validateHex(input: string): string | null {
+	if (!input) return null
+	// validate the hex color
+	if (!input.match(/^#[0-9A-F]{6}$/i)) {
+		showInfoPopup('Invalid hex color', 'The pasted text is not a valid hex color. (e.g. #FF0000)')
+		return null
+	}
+	return input
 }

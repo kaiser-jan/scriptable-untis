@@ -1,17 +1,34 @@
 import { clearCache, prepareUser } from '@/api/cache'
-import { PREVIEW_WIDGET_SIZE, SCRIPT_START_DATETIME } from '@/constants'
+import {
+	GITHUB_REPO,
+	GITHUB_SCRIPT_NAME,
+	GITHUB_USER,
+	PREVIEW_WIDGET_SIZE,
+	SCRIPT_START_DATETIME,
+	UPDATE_INTERVAL,
+} from '@/constants'
 import { getLayout } from '@/layout'
 import { openSettings } from '@/settings/editor/settingsEditor'
-import { writeKeychain } from '@/setup'
-import { createErrorWidget, ExtendedError, SCRIPTABLE_ERROR_MAP } from '@/utils/errors'
+import { fillLoginDataInKeychain } from '@/setup'
+import { createErrorWidget, ExtendedError, handleError, isExtendedError, SCRIPTABLE_ERROR_MAP } from '@/utils/errors'
 import { getModuleFileManager as getFileManagerOptions, readConfig } from '@/utils/scriptable/fileSystem'
-import { selectOption } from '@/utils/scriptable/input'
+import { selectOption, showInfoPopup } from '@/utils/scriptable/input'
+import { KeychainManager } from '@/utils/scriptable/keychainManager'
+import { checkForUpdates, checkForUpdatesWith, shouldCheckForUpdates } from '@/utils/updater'
 import { createWidget } from '@/widget'
 
-// TODO: Auto-Update
-// store the last update date in the keychain
-// check every day (store the last check date in the keychain)
-// compare the last update date with the date from the github api
+// initialize the keychain manager
+new KeychainManager('untis')
+
+// check for updates (in a try-catch block to prevent the script from crashing if the update fails)
+try {
+	if (shouldCheckForUpdates(UPDATE_INTERVAL)) {
+		await checkForUpdates()
+	}
+} catch (error) {
+	console.error('⏫❌ Could not check for updates.')
+	log(error)
+}
 
 async function setupAndCreateWidget() {
 	const { useICloud, fileManager } = getFileManagerOptions()
@@ -21,12 +38,42 @@ async function setupAndCreateWidget() {
 	return widget
 }
 
+async function presentWidget() {
+	const widget = await setupAndCreateWidget()
+	switch (PREVIEW_WIDGET_SIZE) {
+		case 'small':
+			widget.presentSmall()
+			break
+		case 'medium':
+			widget.presentMedium()
+			break
+		case 'large':
+			widget.presentLarge()
+			break
+	}
+}
+
+function showDocumentation() {
+	console.log('📖 Opening documentation in Safari.')
+	Safari.openInApp('https://github.com/JFK-05/scriptable-untis#readme')
+}
+
 enum ScriptActions {
 	VIEW = '💻 Show Widget',
-	CHANGE_CREDENTIALS = '🔑 Change Credentials',
-	EDIT_CONFIG = '🛠️ Edit Config',
-	CLEAR_CACHE = '🗑️ Clear Cache',
+	OPEN_SETTINGS = '⚙️ Open Settings',
+	// CHANGE_CREDENTIALS = '🔑 Change Credentials',
+	// UPDATE = '⏫ Update Script',
+	// CLEAR_CACHE = '🗑️ Clear Cache',
 	SHOW_DOCUMENTATION = '📖 Open Documentation',
+}
+
+const actionMap: Record<ScriptActions, Function> = {
+	[ScriptActions.VIEW]: presentWidget,
+	// [ScriptActions.CHANGE_CREDENTIALS]: fillLoginDataInKeychain,
+	[ScriptActions.OPEN_SETTINGS]: openSettings,
+	// [ScriptActions.CLEAR_CACHE]: clearCache,
+	[ScriptActions.SHOW_DOCUMENTATION]: showDocumentation,
+	// [ScriptActions.UPDATE]: checkForUpdates,
 }
 
 async function runInteractive() {
@@ -34,38 +81,18 @@ async function runInteractive() {
 		return isNaN(Number(item))
 	})
 
-	const input = await selectOption(actions, {
+	const input = (await selectOption(actions, {
 		title: 'What do you want to do?',
-	})
+	})) as ScriptActions | null
 
-	switch (input) {
-		case ScriptActions.VIEW:
-			const widget = await setupAndCreateWidget()
-			switch (PREVIEW_WIDGET_SIZE) {
-				case 'small':
-					widget.presentSmall()
-					break
-				case 'medium':
-					widget.presentMedium()
-					break
-				case 'large':
-					widget.presentLarge()
-					break
-			}
-			break
-		case ScriptActions.CHANGE_CREDENTIALS:
-			await writeKeychain()
-			break
-		case ScriptActions.EDIT_CONFIG:
-			await openSettings()
-			break
-		case ScriptActions.CLEAR_CACHE:
-			clearCache()
-			break
-		case ScriptActions.SHOW_DOCUMENTATION:
-			Safari.openInApp('https://github.com/JFK-05/scriptable-untis#readme')
-			break
+	const action = actionMap[input]
+
+	if (!action) {
+		console.log('No action selected, exiting.')
+		return
 	}
+
+	await action()
 }
 
 try {
@@ -76,28 +103,7 @@ try {
 		await runInteractive()
 	}
 } catch (error) {
-	// throw the error if it runs in the app
-	if (config.runsInApp) {
-		throw error
-	}
-
-	let widget: ListWidget
-	const castedError = error as Error
-
-	const scriptableError = SCRIPTABLE_ERROR_MAP[castedError.message.toLowerCase()]
-	log(scriptableError)
-	if (scriptableError) {
-		widget = createErrorWidget(scriptableError.title, scriptableError.description, scriptableError.icon)
-	} else {
-		const extendedError = error as ExtendedError
-		widget = createErrorWidget(extendedError.name, extendedError.message, extendedError.icon)
-	}
-
-	if (!config.runsInWidget) {
-		widget.presentLarge()
-	}
-
-	Script.setWidget(widget)
+	handleError(error)
 }
 
 console.log(`Script finished in ${new Date().getTime() - SCRIPT_START_DATETIME.getTime()}ms.`)

@@ -1,5 +1,9 @@
+import { clearCache } from '@/api/cache'
 import { SettingsCategory, SettingsValueType, SubjectConfig } from '@/types/settings'
+import { showInfoPopup } from '@/utils/scriptable/input'
+import { checkForUpdates } from '@/utils/updater'
 import { defaultSettings } from '../settings'
+import { fillLoginDataInKeychain } from '@/setup'
 
 const subjectBlueprint = {
 	color: {
@@ -33,6 +37,66 @@ function subjectNameFormatter(key: string, item: SubjectConfig) {
 export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 	title: '🛠️ Settings',
 	description: 'Configure the widget to your needs.',
+
+	actions: {
+		updateScript: {
+			title: '🔄 Update Script',
+			description: 'Installs the latest version of the script.',
+			action: () => checkForUpdates(true),
+		},
+		openDocumentation: {
+			title: '📖 Open Documentation',
+			description: 'Opens the documentation in Safari.',
+			action: () => {
+				console.log('📖 Opening documentation in Safari.')
+				Safari.openInApp('https://github.com/JFK-05/scriptable-untis#readme')
+			},
+		},
+	},
+
+	externalItems: {
+		login: {
+			title: '🔑 Login',
+			description: 'The data needed to login to Untis.',
+
+			actions: {
+				setupWizard: {
+					title: '🧙‍♂️ Setup Wizard',
+					description: 'Walks you through entering your credentials.',
+					action: async (parameters) => {
+						console.log('🧙‍♂️ Starting setup wizard.')
+						await fillLoginDataInKeychain({}, true)
+						parameters.updateView()
+					},
+				},
+			},
+
+			externalItems: {
+				server: {
+					title: '🌐 Server',
+					description: 'The subdomain of the Untis server.',
+					itemKey: 'server',
+				},
+				school: {
+					title: '🏫 School',
+					description: 'The name of the school used in WebUntis.',
+					itemKey: 'school',
+				},
+				username: {
+					title: '👤 Username',
+					description: 'The username used to login to WebUntis.',
+					itemKey: 'username',
+				},
+				password: {
+					title: '🔑 Password',
+					description: 'The password used to login to WebUntis.',
+					itemKey: 'password',
+					isSecure: true,
+				},
+			},
+		},
+	},
+
 	items: {
 		subjects: {
 			title: '📚 Subjects',
@@ -58,7 +122,7 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 		},
 
 		config: {
-			title: '⚙️ Config',
+			title: '⚙️ General',
 			description: 'General configuration options.',
 
 			items: {
@@ -83,6 +147,17 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 		cache: {
 			title: '🗃️ Cache',
 			description: 'How long data should be reused.',
+
+			actions: {
+				clear: {
+					title: '🗑️ Clear Cache',
+					description: 'Clears all cached data.',
+					action: () => {
+						clearCache()
+						showInfoPopup('🗑️ The cache has been cleared.')
+					},
+				},
+			},
 
 			items: {
 				user: {
@@ -290,6 +365,11 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 					title: '📝 Footer',
 					description: 'Whether the footer should be shown.',
 					type: SettingsValueType.SHOW_HIDE,
+				},
+				backgroundColor: {
+					title: '🎨 Background Color',
+					description: 'The background color of the widget.',
+					type: SettingsValueType.COLOR,
 				},
 			},
 		},

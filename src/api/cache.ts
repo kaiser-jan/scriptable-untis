@@ -1,5 +1,5 @@
 import { Settings } from '@/settings/settings'
-import { readKeychain } from '@/setup'
+import { readLoginDataFromKeychain } from '@/setup'
 import { login } from './login'
 
 /**
@@ -18,7 +18,7 @@ export async function prepareUser(widgetConfig: Settings): Promise<FullUser> {
 	}
 
 	// get the user data from the keychain
-	const userData = await readKeychain(true)
+	const userData = await readLoginDataFromKeychain()
 	// log into untis
 	const fetchedUser = await login(userData, userData.password)
 

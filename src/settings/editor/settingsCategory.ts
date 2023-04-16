@@ -8,7 +8,7 @@ import { buildSettingsEditorFor } from './settingsEditor'
 export function addSettingsCategoryRow(
 	tableMenu: TableMenu,
 	options: SettingsEditorParameters<GeneralizedSettingsCategory>,
-	saveConfig: () => void
+	saveConfig?: () => void
 ) {
 	const row = tableMenu.addTextRow(options.blueprint.title, options.blueprint.description)
 

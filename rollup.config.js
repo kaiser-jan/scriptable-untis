@@ -17,7 +17,7 @@ export default {
 	input: 'index.ts',
 	output: {
 		format: 'es',
-		file: './dist/untis.js',
+		file: './dist/UntisWidget.js',
 		banner: banner,
 	},
 	plugins: [typescript()],

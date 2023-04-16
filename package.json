@@ -13,9 +13,9 @@
 		"@semantic-release/release-notes-generator": "^10.0.3",
 		"semantic-release": "^21.0.1",
 		"@rollup/plugin-typescript": "^11.1.0",
-		"rollup": "^3.20.2",
+		"@types/scriptable-ios": "^1.7.0",
+		"rollup": "^3.20.3",
 		"tslib": "^2.5.0",
-		"typescript": "^5.0.3",
-		"@types/scriptable-ios": "^1.7.0"
+		"typescript": "^5.0.4"
 	}
 }

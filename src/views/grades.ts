@@ -6,6 +6,7 @@ import { getCharHeight } from '@/utils/helper'
 import { StaticLayoutRow } from '@/utils/scriptable/layout/staticLayoutRow'
 import { ViewBuildData } from '@/widget'
 
+// TODO: the date of grades matches the date of the exam, not when it was added (breaks scope)
 export function addViewGrades(
 	grades: TransformedGrade[],
 	maxCount: number,
