@@ -54,6 +54,11 @@ export function addViewLessons(
 		// apply the config to the lesson
 		applySubjectConfig(lesson, subjectConfig)
 
+		// if the lesson is hidden, skip it
+		if (subjectConfig && subjectConfig.show === false) {
+			continue
+		}
+
 		// take into account the spacing between the lessons
 		if (i > 0) {
 			remainingHeight -= widgetConfig.appearance.spacing

@@ -6,6 +6,7 @@ import { Settings } from '@/settings/settings'
  * @property nameOverride A custom subject name, which will be displayed in the timetable.
  * @property longNameOverride A custom long name for the subject, which will be displayed in the timetable if there is enough space.
  * @property ignoreInfo An array of strings which will be ignored in the info field of the lesson.
+ * @property show Whether the subject should be shown in the timetable.
  * @property teachers A map of teachers to their own subject configuration.
  */
 export interface SubjectConfig {
@@ -13,6 +14,7 @@ export interface SubjectConfig {
 	nameOverride?: string
 	longNameOverride?: string
 	ignoreInfos?: string[]
+	show?: boolean
 	teachers?: Record<string, TeacherSpecificSubjectConfig>
 }
 

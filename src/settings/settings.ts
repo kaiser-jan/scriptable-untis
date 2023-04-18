@@ -7,6 +7,7 @@ const defaultSubjectConfig: SubjectConfig = {
 	nameOverride: undefined,
 	longNameOverride: undefined,
 	ignoreInfos: undefined,
+	show: true,
 }
 
 /**

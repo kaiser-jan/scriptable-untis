@@ -26,6 +26,11 @@ const subjectBlueprint = {
 		description: 'Ignore unnecessary infos.',
 		type: SettingsValueType.STRING_ARRAY,
 	},
+	show: {
+		title: '👁️ Show',
+		description: 'Whether the subject should be shown.',
+		type: SettingsValueType.SHOW_HIDE,
+	},
 }
 
 function subjectNameFormatter(key: string, item: SubjectConfig) {
