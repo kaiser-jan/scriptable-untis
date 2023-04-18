@@ -1,5 +1,5 @@
 import { LOCALE, NO_VALUE_PLACEHOLDERS } from '@/constants'
-import { applySubjectConfig, getLessonConfigFor } from '@/settings/lessonConfig'
+import { applySubjectConfig, getSubjectConfigFor } from '@/settings/subjectConfig'
 import { Settings } from '@/settings/settings'
 import { LessonState } from '@/types/api'
 import { TransformedAbsence, TransformedExam, TransformedGrade, TransformedLessonWeek } from '@/types/transformed'
@@ -58,8 +58,8 @@ export function compareCachedLessons(
 			}
 
 			// apply the custom config (name, infos to ignore, etc.)
-			applySubjectConfig(lesson, getLessonConfigFor(lesson, widgetConfig))
-			applySubjectConfig(cachedLesson, getLessonConfigFor(cachedLesson, widgetConfig))
+			applySubjectConfig(lesson, getSubjectConfigFor(lesson, widgetConfig))
+			applySubjectConfig(cachedLesson, getSubjectConfigFor(cachedLesson, widgetConfig))
 
 			if (lesson.info !== cachedLesson.info) {
 				scheduleNotification(`ℹ️ Info for ${subjectTitle} changed`, `on ${dayString}: "${lesson.info}"`)

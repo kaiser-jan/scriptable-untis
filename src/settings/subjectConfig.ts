@@ -20,7 +20,7 @@ export function applySubjectConfig(lesson: TransformedLesson, subjectConfig: Sub
 	if (subjectConfig.color) lesson.backgroundColor = subjectConfig.color
 }
 
-export function getLessonConfigFor(lesson: TransformedLesson, widgetConfig: Settings) {
+export function getSubjectConfigFor(lesson: TransformedLesson, widgetConfig: Settings) {
 	// return default values if there is no custom config
 	if (!lesson.subject || !widgetConfig.subjects[lesson.subject?.name]) {
 		return undefined

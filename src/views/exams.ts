@@ -45,20 +45,20 @@ export function addViewExams(
 		let backgroundColor = colors.background.primary
 
 		// apply the custom name if it exists
-		const lessonConfig = widgetConfig.subjects[exam.subject] as SubjectConfig
-		if (lessonConfig) {
+		const subjectConfig = widgetConfig.subjects[exam.subject] as SubjectConfig
+		if (subjectConfig) {
 			// apply the overrides
-			if (lessonConfig.nameOverride) subjectName = lessonConfig.nameOverride
-			longSubjectName = lessonConfig.longNameOverride
-			if (lessonConfig.color) backgroundColor = getColor(lessonConfig.color)
+			if (subjectConfig.nameOverride) subjectName = subjectConfig.nameOverride
+			longSubjectName = subjectConfig.longNameOverride
+			if (subjectConfig.color) backgroundColor = getColor(subjectConfig.color)
 
 			// apply the teacher override, if only this teacher is in the exam
 			if (
-				lessonConfig.teachers &&
+				subjectConfig.teachers &&
 				exam.teacherNames.length === 1 &&
-				lessonConfig.teachers[exam.teacherNames[0]]
+				subjectConfig.teachers[exam.teacherNames[0]]
 			) {
-				const teacherConfig = lessonConfig.teachers[exam.teacherNames[0]]
+				const teacherConfig = subjectConfig.teachers[exam.teacherNames[0]]
 				if (teacherConfig.nameOverride) subjectName = teacherConfig.nameOverride
 				if (teacherConfig.longNameOverride) longSubjectName = teacherConfig.longNameOverride
 				if (teacherConfig.color) backgroundColor = getColor(teacherConfig.color)

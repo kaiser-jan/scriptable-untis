@@ -1,6 +1,6 @@
 import { MAX_LONG_SUBJECT_NAME_LENGTH, MAX_SUBJECT_NAME_LENGTH, MAX_TIME_STRING } from '@/constants'
 import { colors } from '@/settings/colors'
-import { applySubjectConfig, getLessonConfigFor } from '@/settings/lessonConfig'
+import { applySubjectConfig, getSubjectConfigFor } from '@/settings/subjectConfig'
 import { Settings } from '@/settings/settings'
 import { LessonState } from '@/types/api'
 import { TransformedLesson } from '@/types/transformed'
@@ -50,7 +50,7 @@ export function addViewLessons(
 		// update the item count, even if the lesson is hidden
 		itemCount++
 
-		const subjectConfig = getLessonConfigFor(lesson, widgetConfig)
+		const subjectConfig = getSubjectConfigFor(lesson, widgetConfig)
 		// apply the config to the lesson
 		applySubjectConfig(lesson, subjectConfig)
 

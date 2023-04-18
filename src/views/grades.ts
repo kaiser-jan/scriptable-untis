@@ -58,12 +58,12 @@ export function addViewGrades(
 		let longSubjectName = grade.subject
 		let backgroundColor = colors.background.primary
 		// apply the custom lesson config if it exists
-		const lessonConfig = widgetConfig.subjects[grade.subject] as SubjectConfig
-		if (lessonConfig) {
+		const subjectConfig = widgetConfig.subjects[grade.subject] as SubjectConfig
+		if (subjectConfig) {
 			// apply the overrides
-			if (lessonConfig.nameOverride) subjectName = lessonConfig.nameOverride
-			longSubjectName = lessonConfig.longNameOverride
-			if (lessonConfig.color) backgroundColor = getColor(lessonConfig.color)
+			if (subjectConfig.nameOverride) subjectName = subjectConfig.nameOverride
+			longSubjectName = subjectConfig.longNameOverride
+			if (subjectConfig.color) backgroundColor = getColor(subjectConfig.color)
 
 			// TODO: apply teacher config
 		}
