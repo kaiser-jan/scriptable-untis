@@ -91,7 +91,7 @@ async function askForServerAndSchool() {
 	if (!webuntisUrl) throw createError(ErrorCode.INPUT_CANCELLED)
 
 	// get the server and school from the input
-	const regex = /https?:\/\/(.+?)\.webuntis\.com\/WebUntis\/\?school=(\w+).*/
+	const regex = /https?:\/\/(.+?)\.webuntis\.com\/WebUntis\/\?school=(.*)#\/.*/
 	const match = webuntisUrl.match(regex)
 
 	if (match) {
