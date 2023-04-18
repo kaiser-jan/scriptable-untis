@@ -242,3 +242,13 @@ export interface SchoolYear {
 		end: string
 	}
 }
+
+export interface PageConfig {
+	elements: {
+		type: number
+		id: number
+		name: string
+	}[]
+	selectedElementId: number
+	selectedFormatId: number
+}
