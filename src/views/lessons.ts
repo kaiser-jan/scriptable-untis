@@ -1,5 +1,6 @@
 import { MAX_LONG_SUBJECT_NAME_LENGTH, MAX_SUBJECT_NAME_LENGTH, MAX_TIME_STRING } from '@/constants'
 import { colors } from '@/settings/colors'
+import { applySubjectConfig, getLessonConfigFor } from '@/settings/lessonConfig'
 import { Settings } from '@/settings/settings'
 import { LessonState } from '@/types/api'
 import { TransformedLesson } from '@/types/transformed'
@@ -40,10 +41,18 @@ export function addViewLessons(
 
 	let remainingHeight = height
 
+	let previousLesson: TransformedLesson | null = null
+
 	// add the remaining lessons until the max item count is reached
 	for (let i = 0; i < lessons.length; i++) {
-		const previousLesson = lessons[i - 1]
 		const lesson = lessons[i]
+
+		// update the item count, even if the lesson is hidden
+		itemCount++
+
+		const subjectConfig = getLessonConfigFor(lesson, widgetConfig)
+		// apply the config to the lesson
+		applySubjectConfig(lesson, subjectConfig)
 
 		// take into account the spacing between the lessons
 		if (i > 0) {
@@ -79,8 +88,10 @@ export function addViewLessons(
 			currentWidth + MAX_LONG_SUBJECT_NAME_LENGTH + getCharWidth(widgetConfig.appearance.fontSize) <= width
 		addWidgetLesson(lesson, container, widgetConfig, { showTime, showToTime, useSubjectLongName })
 
-		itemCount++
 		remainingHeight -= lessonHeight
+
+		// update the previous lesson for the next iteration
+		previousLesson = lesson
 
 		// exit if the max item count is reached
 		if (count && itemCount >= count) break

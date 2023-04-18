@@ -4,28 +4,26 @@ import { unparsedColors } from './colors'
 import { Settings } from './settings'
 
 /**
- * Applies the custom lesson config to a timetable.
- **/
-export function applyLessonConfigs(timetable: TransformedLessonWeek, widgetConfig: Settings) {
-	// iterate over the days, then the lessons
-	for (const key of Object.keys(timetable)) {
-		const day = timetable[key]
-		for (const lesson of day) {
-			// apply the lesson config
-			applyCustomLessonConfig(lesson, widgetConfig)
-		}
-	}
-}
-
-/**
  * Applies the custom lesson config to a lesson.
  */
-export function applyCustomLessonConfig(lesson: TransformedLesson, widgetConfig: Settings) {
+export function applySubjectConfig(lesson: TransformedLesson, subjectConfig: SubjectConfig) {
 	lesson.backgroundColor = unparsedColors.background.primary
 
+	if (!subjectConfig) return
+
+	// apply the custom color
+	if (subjectConfig.ignoreInfos?.includes(lesson.info ?? '')) lesson.info = ''
+	if (subjectConfig.ignoreInfos?.includes(lesson.note ?? '')) lesson.note = ''
+	if (subjectConfig.ignoreInfos?.includes(lesson.text ?? '')) lesson.text = ''
+	if (subjectConfig.nameOverride) lesson.subject.name = subjectConfig.nameOverride
+	if (subjectConfig.longNameOverride) lesson.subject.longName = subjectConfig.longNameOverride
+	if (subjectConfig.color) lesson.backgroundColor = subjectConfig.color
+}
+
+export function getLessonConfigFor(lesson: TransformedLesson, widgetConfig: Settings) {
 	// return default values if there is no custom config
 	if (!lesson.subject || !widgetConfig.subjects[lesson.subject?.name]) {
-		return
+		return undefined
 	}
 
 	const unparsedSubjectConfig = widgetConfig.subjects[lesson.subject?.name]
@@ -48,15 +46,5 @@ export function applyCustomLessonConfig(lesson: TransformedLesson, widgetConfig:
 		if (foundTeacher) subjectConfig = foundTeacher
 	}
 
-	if (!subjectConfig) {
-		return
-	}
-
-	// apply the custom color
-	if (subjectConfig.ignoreInfos?.includes(lesson.info ?? '')) lesson.info = ''
-	if (subjectConfig.ignoreInfos?.includes(lesson.note ?? '')) lesson.note = ''
-	if (subjectConfig.ignoreInfos?.includes(lesson.text ?? '')) lesson.text = ''
-	if (subjectConfig.nameOverride) lesson.subject.name = subjectConfig.nameOverride
-	if (subjectConfig.longNameOverride) lesson.subject.longName = subjectConfig.longNameOverride
-	if (subjectConfig.color) lesson.backgroundColor = subjectConfig.color
+	return subjectConfig
 }

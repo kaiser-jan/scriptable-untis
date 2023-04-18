@@ -2,9 +2,7 @@ import { readFromCache, writeToCache } from '@/api/cache'
 import { fetchAbsencesFor, fetchExamsFor, fetchGradesFor, fetchLessonsFor, fetchSchoolYears } from '@/api/fetch'
 import { CURRENT_DATETIME, NOTIFIABLE_TOPICS } from '@/constants'
 import { compareCachedAbsences, compareCachedExams, compareCachedGrades, compareCachedLessons } from '@/features/notify'
-import { applyLessonConfigs } from '@/settings/lessonConfig'
 import { Settings } from '@/settings/settings'
-import { SubjectConfig } from '@/types/settings'
 import { sortKeysByDate } from '@/utils/helper'
 
 /**
@@ -170,11 +168,6 @@ export async function getTimetable(user: FullUser, widgetConfig: Settings) {
 			nextDayKey = sortKeysByDate(nextWeekTimetable)[0]
 		}
 	}
-
-	// apply custom lesson configs
-	// TODO: it seems more reasonable to NOT do this while transforming,
-	// as these are different tasks and config changes would not behave as expected
-	applyLessonConfigs(timetable, widgetConfig)
 
 	console.log(`Next day: ${nextDayKey}`)
 	// the timetable for the next day in the timetable (ignore weekends)
