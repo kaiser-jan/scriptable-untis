@@ -10,6 +10,7 @@ import {
 	transformSchoolYears,
 } from './transform'
 import { transformLessons } from './transformLessons'
+import { getModuleFileManager, writeConfig } from '@/utils/scriptable/fileSystem'
 
 function prepareRequest(url: string, user: FullUser) {
 	const request = new Request(url)
@@ -77,6 +78,11 @@ export async function fetchLessonsFor(user: FullUser, date: Date = new Date(), w
 	console.log(`📅 Fetched timetable with ${lessons.length} lessons and ${timetableData.elements.length} elements`)
 
 	const transformedLessons = transformLessons(lessons, timetableData.elements, widgetConfig)
+
+	// save the widget config, as transformLessons might add subjects
+	// TODO: think of a better place to put this
+	const { useICloud } = getModuleFileManager()
+	writeConfig(useICloud, widgetConfig)
 
 	console.log(`🧬 Transformed lessons for ${Object.keys(transformedLessons).length} days`)
 

@@ -37,6 +37,7 @@ export const defaultSettings = {
 	},
 	config: {
 		locale: 'de-AT',
+		autoAddSubjects: true,
 		breakMin: Duration.asSeconds(7, DurationUnit.MINUTE),
 		breakMax: Duration.asSeconds(45, DurationUnit.MINUTE),
 	},

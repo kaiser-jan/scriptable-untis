@@ -136,6 +136,11 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 					description: 'Affects date formats.',
 					type: SettingsValueType.LOCALE,
 				},
+				autoAddSubjects: {
+					title: '📚 Auto Add Subjects',
+					description: 'Automatically add subjects configurations which do not exist yet.',
+					type: SettingsValueType.ON_OFF,
+				},
 				breakMin: {
 					title: '🕐️ Minimum break duration',
 					description: 'How many minutes a gap needs to be to separate two lessons.',

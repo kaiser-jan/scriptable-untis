@@ -2,6 +2,7 @@ import { combineLessons } from '@/api/transformLessons'
 import { CURRENT_DATETIME, LOCALE } from '@/constants'
 import { colors } from '@/settings/colors'
 import { Settings } from '@/settings/settings'
+import { getSubjectConfigFor, applySubjectConfig } from '@/settings/subjectConfig'
 import { LessonState } from '@/types/api'
 import { TransformedLesson } from '@/types/transformed'
 import { asNumericTime, getCharHeight, getCharWidth, getTextWidth } from '@/utils/helper'
@@ -127,6 +128,10 @@ function addPreviewList(
 	for (const lesson of combinedLessonsNextDay) {
 		// skip the subject if it is 'free'
 		if (lesson.state === LessonState.FREE) continue
+
+		const subjectConfig = getSubjectConfigFor(lesson, widgetConfig)
+		// apply the config to the lesson
+		applySubjectConfig(lesson, subjectConfig)
 
 		let subjectWidth = getTextWidth(getSubjectTitle(lesson), widgetConfig.appearance.fontSize) + 2 * padding
 		if (widgetConfig.views.lessons.showMultiplier && lesson.duration > 1) {

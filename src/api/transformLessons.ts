@@ -14,6 +14,7 @@ import {
 } from '@/types/transformed'
 import { shouldCombineLessons } from '@/utils/lessonHelper'
 import { combineDateAndTime } from './transform'
+import { SubjectConfig } from '@/types/settings'
 
 /**
  * Transforms the lessons from the API to a more usable format,
@@ -110,6 +111,17 @@ export function transformLessons(
 		}
 
 		transformedLessonWeek[dateKey].push(transformedLesson)
+
+		// TODO: move this somewhere, where it would be expected
+		// add a subject config if it does not exist yet
+		if (widgetConfig.config.autoAddSubjects && !widgetConfig.subjects[subject.name]) {
+			const subjectConfig: SubjectConfig = {
+				color: undefined,
+				nameOverride: subject.name,
+				longNameOverride: subject.longName,
+			}
+			widgetConfig.subjects[subject.name] = subjectConfig
+		}
 	}
 
 	console.log('Sorting...')
