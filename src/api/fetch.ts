@@ -11,6 +11,8 @@ import {
 } from './transform'
 import { transformLessons } from './transformLessons'
 import { getModuleFileManager, writeConfig } from '@/utils/scriptable/fileSystem'
+import { ErrorCode, createError } from '@/utils/errors'
+import { KeychainManager } from '@/utils/scriptable/keychainManager'
 
 function prepareRequest(url: string, user: FullUser) {
 	const request = new Request(url)
@@ -21,47 +23,105 @@ function prepareRequest(url: string, user: FullUser) {
 	return request
 }
 
-// TODO: refactor and document
-async function fetchPageConfig(user) {
-	const url = `https://${user.server}.webuntis.com/WebUntis/api/public/timetable/weekly/pageconfig?type=1`
+/**
+ * Fetches the page config for the given user and element type.
+ * This is needed to get the wanted responses e.g. for the timetable.
+ * @param user
+ * @param elementType the element type to fetch with
+ * @returns the essential page config parameters
+ */
+async function fetchPageConfig(user: FullUser, elementType: number) {
+	// NOTE: the type has to be known beforehand to get the same request as untis, but I have no idea how
+	const url = `https://${user.server}.webuntis.com/WebUntis/api/public/timetable/weekly/pageconfig?type=${elementType}`
 
 	const request = prepareRequest(url, user)
-	const json = await request.loadJSON()
 
-	if (!json || !json.data) {
+	let json: any
+
+	try {
+		json = await request.loadJSON()
+
+		if (!json || !json.data) {
+			console.warn('⚠️ Could not fetch page config!')
+			return null
+		}
+	} catch (error) {
 		console.warn('⚠️ Could not fetch page config!')
-		return undefined
+		return null
 	}
 
 	const pageConfig: PageConfig = json.data
 
 	const elementId = pageConfig.selectedElementId
 	const formatId = pageConfig.selectedFormatId
-	let elementType = 0
 	const selectedElementId = pageConfig.selectedElementId
 
+	// use the element in the response, just to make sure
+	let newElementType = 0
 	for (const element of pageConfig.elements) {
 		if (element.id === elementId) {
-			elementType = element.type
+			newElementType = element.type
 			break
 		}
 	}
 
-	if (!elementType) {
-		console.warn('⚠️ Could not determine element type!')
-	}
-
 	return {
 		elementId,
-		elementType,
+		elementType: newElementType,
 		formatId,
 		selectedElementId,
 	}
 }
 
-export async function fetchLessonsFor(user: FullUser, date: Date = new Date(), widgetConfig: Settings) {
-	const pageConfig = await fetchPageConfig(user)
+/**
+ * The element type is a parameter which is required when requesting the timetable.
+ * Different values lead to different timetables. (e.g. for the user or their class)
+ * It is not obvious which value to use, so we try it out.
+ * @param user the user to log in as
+ * @returns the element type to use
+ */
+export async function determineElementType(user: FullUser) {
+	const ELEMENT_TYPE_MIN = 0
+	const ELEMENT_TYPE_MAX = 5
 
+	let classPageConfig
+
+	for (let elementType = ELEMENT_TYPE_MIN; elementType <= ELEMENT_TYPE_MAX; elementType++) {
+		const pageConfig = await fetchPageConfig(user, elementType)
+		if (!pageConfig) continue
+		// if the element id is the user id, it is the correct one
+		if (pageConfig?.elementId === user.id) {
+			console.log(`Found element type for user (${elementType}).`)
+			return elementType
+		}
+		// if the element id is not -1, it might be a class-pageconfig
+		if (pageConfig.elementId && pageConfig?.elementId !== -1) {
+			console.log(`Possible class-pageconfig found (${elementType}).`)
+			classPageConfig = pageConfig
+		}
+	}
+
+	if (classPageConfig) {
+		console.warn(
+			`Falling back to possible class pageconfig (${classPageConfig.elementType}), as the correct one could not be found.`
+		)
+		return classPageConfig.elementType
+	}
+
+	throw createError(ErrorCode.COULD_NOT_DETERMINE_ELEMENT_TYPE)
+}
+
+export async function fetchLessonsFor(user: FullUser, date: Date = new Date(), widgetConfig: Settings) {
+	let elementType = parseInt(KeychainManager.get('elementType'))
+	if (!elementType) {
+		console.log('Could not get elementType from keychain. Trying to determine it...')
+		elementType = await determineElementType(user)
+		KeychainManager.set('elementType', elementType.toString())
+	}
+
+	const pageConfig = await fetchPageConfig(user, elementType)
+
+	// NOTE: formatId does not seem to be necessary, as untis will use the default value if it is not provided
 	const urlTimetable = `https://${user.server}.webuntis.com/WebUntis/api/public/timetable/weekly/data?elementType=${
 		pageConfig.elementType
 	}&elementId=${pageConfig.elementId}&date=${date.toISOString().split('T')[0]}&formatId=${pageConfig.formatId}`

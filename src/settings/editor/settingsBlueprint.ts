@@ -3,7 +3,7 @@ import { SettingsCategory, SettingsValueType, SubjectConfig } from '@/types/sett
 import { showInfoPopup } from '@/utils/scriptable/input'
 import { checkForUpdates } from '@/utils/updater'
 import { defaultSettings } from '../settings'
-import { fillLoginDataInKeychain } from '@/setup'
+import { autoSetElementType, fillLoginDataInKeychain } from '@/setup'
 
 const subjectBlueprint = {
 	color: {
@@ -74,6 +74,14 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 						parameters.updateView()
 					},
 				},
+				updateElementType: {
+					title: '🔄 Update Element Type',
+					description: 'Automatically determines the correct element type.',
+					action: async (parameters) => {
+						await autoSetElementType()
+						parameters.updateView()
+					},
+				},
 			},
 
 			externalItems: {
@@ -97,6 +105,11 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 					description: 'The password used to login to WebUntis.',
 					itemKey: 'password',
 					isSecure: true,
+				},
+				elementType: {
+					title: '📚 Element Type',
+					description: 'The timetable type is determined when using the wizard.',
+					itemKey: 'elementType',
 				},
 			},
 		},

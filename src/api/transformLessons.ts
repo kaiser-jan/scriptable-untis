@@ -1,5 +1,5 @@
 import { Settings } from '@/settings/settings'
-import { Element, ElementType, Lesson, LessonState, UnresolvedElement } from '@/types/api'
+import { Element, ElementState, ElementType, Lesson, LessonState, UnresolvedElement } from '@/types/api'
 import {
 	ExtendedTransformedElement,
 	Group,
@@ -43,6 +43,13 @@ export function transformLessons(
 		}
 		const { groups, teachers, subject, rooms } = resolvedElements
 
+		const unknownSubject: Stateful<ExtendedTransformedElement> = {
+			id: -1,
+			name: lesson.lessonText ?? '?',
+			longName: lesson.lessonText ?? 'unknown',
+			state: ElementState.REGULAR,
+		}
+
 		// create the transformed lesson
 		const transformedLesson: TransformedLesson = {
 			id: lesson.id,
@@ -58,7 +65,8 @@ export function transformLessons(
 			// get all the elements with the matching type (1), and transform them
 			groups: groups,
 			teachers: teachers,
-			subject: subject,
+			// TODO: a subject might have no subject, a project week for example
+			subject: subject ?? unknownSubject,
 			rooms: rooms,
 
 			// TODO: add specific teacher substitution
@@ -83,7 +91,7 @@ export function transformLessons(
 			}
 			transformedLesson.state = LessonState.ROOM_SUBSTITUTED
 		}
-		if (subject.original) {
+		if (subject?.original) {
 			transformedLesson.state = LessonState.SUBSTITUTED
 		}
 

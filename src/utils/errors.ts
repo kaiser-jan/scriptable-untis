@@ -22,6 +22,7 @@ type ErrorCodes =
 	| 'INPUT_CANCELLED'
 	| 'SELECTION_CANCELLED'
 	| 'SETUP_INCOMPLETE'
+	| 'COULD_NOT_DETERMINE_ELEMENT_TYPE'
 
 export const ErrorCode: IErrorCodes = {
 	NO_INTERNET: { title: 'The internet connection appears to be offline.', icon: 'wifi.exclamationmark' },
@@ -42,12 +43,17 @@ export const ErrorCode: IErrorCodes = {
 	INPUT_CANCELLED: { title: 'Input cancelled', description: 'Please try again!', icon: 'xmark.octagon' },
 	SELECTION_CANCELLED: { title: 'Selection cancelled', description: 'Please try again!', icon: 'xmark.octagon' },
 	SETUP_INCOMPLETE: { title: 'Setup incomplete', description: 'Please complete the setup!', icon: 'hammer.circle' },
+	COULD_NOT_DETERMINE_ELEMENT_TYPE: {
+		title: 'Unable to determine element type',
+		description:
+			'Please contact the developer! You can try to set the value manually in the settings under [Login > Element Type].',
+	},
 }
 
 /**
  * Contains the ErrorCode object for some (lowercase) scriptable error messages
  */
-export const SCRIPTABLE_ERROR_MAP: Record<string, typeof ErrorCode[keyof typeof ErrorCode]> = {
+export const SCRIPTABLE_ERROR_MAP: Record<string, (typeof ErrorCode)[keyof typeof ErrorCode]> = {
 	'the internet connection appears to be offline.': ErrorCode.NO_INTERNET,
 	// TODO: find the correct wording
 	'the request timed out.': ErrorCode.NO_INTERNET,
@@ -108,10 +114,10 @@ export function createErrorWidget(title: string, description: string, icon?: str
 	return widget
 }
 
-export function handleError(error: Error) {
+export function handleError(error: Error, throwUnknownErrors = true) {
 	// throw the error if it runs in the app
 	if (config.runsInApp) {
-		if (!isExtendedError(error)) {
+		if (throwUnknownErrors && !isExtendedError(error)) {
 			throw error
 		}
 

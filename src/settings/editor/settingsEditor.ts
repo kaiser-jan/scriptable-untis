@@ -21,6 +21,7 @@ import { addSettingsCategoryRow } from './settingsCategory'
 import { addSettingsMapRow } from './settingsMap'
 import { addSettingsValueRow } from './settingsValueRow'
 import { KeychainManager } from '@/utils/scriptable/keychainManager'
+import { handleError } from '@/utils/errors'
 
 /**
  * Opens the config editor as a UITable.
@@ -160,8 +161,14 @@ function buildActions(
 ) {
 	for (const action of Object.keys(blueprint.actions)) {
 		const actionBlueprint = blueprint.actions[action]
-		tableMenu.addButtonRow(actionBlueprint.title, actionBlueprint.description, () => {
-			actionBlueprint.action({ updateView })
+		tableMenu.addButtonRow(actionBlueprint.title, actionBlueprint.description, async () => {
+			// force handling the error, as this will be ignored because it is not called in the program but by a callback
+			try {
+				await actionBlueprint.action({ updateView })
+			} catch (error) {
+				console.warn('An error occurred while executing the selected action.')
+				handleError(error, false)
+			}
 		})
 	}
 }

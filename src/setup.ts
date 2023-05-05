@@ -1,3 +1,5 @@
+import { determineElementType } from './api/fetch'
+import { login } from './api/login'
 import { ErrorCode, createError } from './utils/errors'
 import { askForSingleInput } from './utils/scriptable/input'
 import { KeychainManager } from './utils/scriptable/keychainManager'
@@ -82,7 +84,25 @@ export async function fillLoginDataInKeychain(user: Partial<LoginData>, force = 
 		filledUser.password = await askForPassword()
 	}
 
+	autoSetElementType(filledUser as LoginData)
+
 	return filledUser as LoginData
+}
+
+/**
+ * Will log the user in, determine the element type and store it in the keychain.
+ * @param loginData the login data if it is already known
+ */
+export async function autoSetElementType(loginData?: LoginData) {
+	let usedLoginData = loginData
+
+	if (!usedLoginData) {
+		usedLoginData = await readLoginDataFromKeychain()
+	}
+
+	const fullUser = await login(usedLoginData as UserData, usedLoginData.password)
+	const elementType = await determineElementType(fullUser)
+	KeychainManager.set('elementType', elementType.toString())
 }
 
 async function askForServerAndSchool() {
