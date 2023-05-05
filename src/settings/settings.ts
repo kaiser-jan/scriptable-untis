@@ -91,6 +91,11 @@ export const defaultSettings = {
 		footer: true,
 		backgroundColor: unparsedColors.background.tertiary,
 	},
+
+	debugSettings: {
+		customDatetime: undefined,
+		overrideCache: false,
+	},
 }
 
 export type Settings = typeof defaultSettings

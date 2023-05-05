@@ -5,6 +5,7 @@ import { TableMenu } from '@/utils/scriptable/table/tableMenu'
 import { TableMenuRowTextOptions } from '@/utils/scriptable/table/tableMenuRow'
 import { getColor, unparsedColors } from '../colors'
 import { openValueEditor } from './valueEditor'
+import { handleError } from '@/utils/errors'
 
 /**
  * Adds a row which allows the user to change the given value.
@@ -65,7 +66,7 @@ export function addSettingsValueRow(
 					if (!newValue) return
 					updateValue(newValue)
 				} catch (error) {
-					log(error)
+					handleError(error)
 				}
 			})
 			break

@@ -46,7 +46,8 @@ async function getCachedOrFetch<T>(
 
 	// TODO(check): comparing to CURRENT_DATETIME causes the cache to be invalid when CURRENT_DATETIME is modified
 	// refetch if the cache is too old (max age exceeded or not the same day)
-	if (!cachedJson || cacheAge > maxAge * 1000 || cacheDate.getDate() !== CURRENT_DATETIME.getDate()) {
+	const needToFetch = !cachedJson || cacheAge > maxAge * 1000 || cacheDate.getDate() !== CURRENT_DATETIME.getDate()
+	if (needToFetch || widgetConfig.debugSettings.overrideCache) {
 		console.log(`Fetching data ${key}, cache invalid.`)
 
 		// we cannot fall back to the cached data if there is no internet,

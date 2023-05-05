@@ -44,6 +44,14 @@ export async function openValueEditor(formattedValue: string, formattedDefaultVa
 				)
 				return null
 			}
+		case SettingsValueType.DATETIME:
+			// check if the value is a valid date
+			if (isNaN(Date.parse(newValue))) {
+				showInfoPopup('❌ Invalid date', `The date you entered (${newValue}) is not a valid date.`)
+				return null
+			}
+			// TODO: consider returning the parsed date
+			return newValue
 		case SettingsValueType.STRING:
 		case SettingsValueType.SECURE_STRING:
 		case SettingsValueType.COLOR:

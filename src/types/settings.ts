@@ -43,6 +43,7 @@ export enum SettingsValueType {
 	COLOR,
 	LOCALE,
 	MAP,
+	DATETIME,
 }
 
 export type SettingsStructureBase = {

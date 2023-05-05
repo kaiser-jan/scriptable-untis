@@ -1,20 +1,12 @@
-import { clearCache, prepareUser } from '@/api/cache'
-import {
-	GITHUB_REPO,
-	GITHUB_SCRIPT_NAME,
-	GITHUB_USER,
-	PREVIEW_WIDGET_SIZE,
-	SCRIPT_START_DATETIME,
-	UPDATE_INTERVAL,
-} from '@/constants'
+import { prepareUser } from '@/api/cache'
+import { PREVIEW_WIDGET_SIZE, SCRIPT_START_DATETIME, UPDATE_INTERVAL, setCurrentDatetime } from '@/constants'
 import { getLayout } from '@/layout'
 import { openSettings } from '@/settings/editor/settingsEditor'
-import { fillLoginDataInKeychain } from '@/setup'
-import { createErrorWidget, ExtendedError, handleError, isExtendedError, SCRIPTABLE_ERROR_MAP } from '@/utils/errors'
+import { handleError } from '@/utils/errors'
 import { getModuleFileManager as getFileManagerOptions, readConfig } from '@/utils/scriptable/fileSystem'
-import { selectOption, showInfoPopup } from '@/utils/scriptable/input'
+import { selectOption } from '@/utils/scriptable/input'
 import { KeychainManager } from '@/utils/scriptable/keychainManager'
-import { checkForUpdates, checkForUpdatesWith, shouldCheckForUpdates } from '@/utils/updater'
+import { checkForUpdates, shouldCheckForUpdates } from '@/utils/updater'
 import { createWidget } from '@/widget'
 
 // initialize the keychain manager
@@ -33,8 +25,16 @@ try {
 async function setupAndCreateWidget() {
 	const { useICloud, fileManager } = getFileManagerOptions()
 	const widgetConfig = await readConfig(useICloud)
+
+	// update the overriding current date time
+	const customDatetime = new Date(widgetConfig.debugSettings.customDatetime)
+	if (customDatetime && !isNaN(customDatetime.getTime())) {
+		setCurrentDatetime(customDatetime)
+	}
+
 	const user = await prepareUser(widgetConfig)
 	const widget = await createWidget(user, getLayout(), widgetConfig)
+
 	return widget
 }
 

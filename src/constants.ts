@@ -4,7 +4,11 @@ import { Duration, DurationUnit } from './utils/duration'
 export const SCRIPT_START_DATETIME = new Date()
 
 // compile-time constants
-export const CURRENT_DATETIME = new Date() // '2022-09-15T14:00' or '2022-09-19T12:30'
+// NOTE: if possible, use the datetime override in the settings instead of changing this constant
+export let CURRENT_DATETIME = new Date() // '2022-09-15T14:00' or '2022-09-19T12:30'
+export function setCurrentDatetime(datetime: Date) {
+	CURRENT_DATETIME = datetime
+}
 export const LOCALE = Device.locale().replace('_', '-')
 export const UPDATE_INTERVAL = new Duration(8, DurationUnit.HOUR)
 export const PREVIEW_WIDGET_SIZE: typeof config.widgetFamily = 'small'

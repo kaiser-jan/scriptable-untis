@@ -44,11 +44,6 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 	description: 'Configure the widget to your needs.',
 
 	actions: {
-		updateScript: {
-			title: '🔄 Update Script',
-			description: 'Installs the latest version of the script.',
-			action: () => checkForUpdates(true),
-		},
 		openDocumentation: {
 			title: '📖 Open Documentation',
 			description: 'Opens the documentation in Safari.',
@@ -56,6 +51,11 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 				console.log('📖 Opening documentation in Safari.')
 				Safari.openInApp('https://github.com/JFK-05/scriptable-untis#readme')
 			},
+		},
+		updateScript: {
+			title: '🔄 Update Script',
+			description: 'Installs the latest version of the script.',
+			action: () => checkForUpdates(true),
 		},
 	},
 
@@ -393,6 +393,22 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 					title: '🎨 Background Color',
 					description: 'The background color of the widget.',
 					type: SettingsValueType.COLOR,
+				},
+			},
+		},
+		debugSettings: {
+			title: '👨‍💻 Developer Settings',
+			description: 'Settings for development & debugging.',
+			items: {
+				customDatetime: {
+					title: '📅 Override Datetime',
+					description: 'Overrides the current date and time.',
+					type: SettingsValueType.DATETIME,
+				},
+				overrideCache: {
+					title: '🗃️ Override Cache',
+					description: 'Whether the cache should be ignored.',
+					type: SettingsValueType.ON_OFF,
 				},
 			},
 		},
