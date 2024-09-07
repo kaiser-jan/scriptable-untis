@@ -122,7 +122,7 @@ export function transformLessons(
 
 		// TODO: move this somewhere, where it would be expected
 		// add a subject config if it does not exist yet
-		if (widgetConfig.config.autoAddSubjects && !widgetConfig.subjects[subject.name]) {
+		if (widgetConfig.config.autoAddSubjects && subject?.name && !widgetConfig.subjects[subject.name]) {
 			const subjectConfig: SubjectConfig = {
 				color: undefined,
 				nameOverride: subject.name,
