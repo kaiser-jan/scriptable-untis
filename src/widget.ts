@@ -168,28 +168,28 @@ function addView(fetchedData: FetchedData, view: View, viewData: ViewBuildData, 
 			return addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData)
 
 		case View.PREVIEW:
-			if (!fetchedData.lessonsNextDay || !fetchedData.nextDayKey) {
+			if (!fetchedData.lessonsNextDay || fetchedData.lessonsNextDay.length === 0 || !fetchedData.nextDayKey) {
 				console.warn(`Tried to add preview view, but no lessons data was fetched`)
 				return
 			}
-			// only show the day preview, if it is not already shown
+			// HACK: only show the day preview, if it is not already shown
 			if (shownViews.has(View.LESSONS) && fetchedData.lessonsTodayRemaining?.length === 0) break
 
 			return addViewPreview(fetchedData.lessonsNextDay, fetchedData.nextDayKey, viewData)
 		case View.EXAMS:
-			if (!fetchedData.exams) {
+			if (!fetchedData.exams || fetchedData.exams.length === 0) {
 				console.warn(`Tried to add exams view, but no exams data was fetched`)
 				return
 			}
 			return addViewExams(fetchedData.exams, widgetConfig.views.exams.maxCount, viewData)
 		case View.GRADES:
-			if (!fetchedData.grades) {
+			if (!fetchedData.grades || fetchedData.grades.length === 0) {
 				console.warn(`Tried to add grades view, but no grades data was fetched`)
 				return
 			}
 			return addViewGrades(fetchedData.grades, widgetConfig.views.grades.maxCount, viewData)
 		case View.ABSENCES:
-			if (!fetchedData.absences) {
+			if (!fetchedData.absences || fetchedData.absences.length === 0) {
 				console.warn(`Tried to add absences view, but no absences data was fetched`)
 				return
 			}

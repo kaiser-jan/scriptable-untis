@@ -42,7 +42,7 @@ const VIEW_FETCH_MAP = new Map<View, FetchableItems>([
 ])
 
 /**
- * Fetches the data which is required for the given views.
+ * Fetches the data which is required for the given views in parallel.
  */
 export async function fetchDataForViews(viewNames: View[], user: FullUser, widgetConfig: Settings) {
 	let fetchedData: FetchedData = {}

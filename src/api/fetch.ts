@@ -167,7 +167,12 @@ export async function fetchSchoolYears(user: FullUser) {
 }
 
 // #region Fetch data with same structure
-async function fetchArrayData<T, TransformedT>(
+
+/**
+	* Utility function to fetch array-like data, which is often used in WebUntis.
+	* Handles fetching, retrieving the data from the nested object (by key, if expectArray is false), and transforming.
+	*/
+async function fetchArrayLikeData<T, TransformedT>(
 	user: FullUser,
 	url: string,
 	key: string,
@@ -178,7 +183,8 @@ async function fetchArrayData<T, TransformedT>(
 	const json = await request.loadJSON()
 
 	if (!json || !json.data || (!expectArray && !json.data[key])) {
-		console.warn(`⚠️ Could not fetch ${key}!`)
+		console.warn(`⚠️ Could not fetch ${key} - is it supported?`)
+		return []
 	}
 
 	const data: T[] = expectArray ? json.data : json.data[key]
@@ -194,7 +200,7 @@ export async function fetchExamsFor(user: FullUser, from: Date, to: Date) {
 		user.id
 	}&klasseId=-1&startDate=${formatDateForUntis(from)}&endDate=${formatDateForUntis(to)}`
 
-	return fetchArrayData<Exam, TransformedExam>(user, urlExams, 'exams', transformExams)
+	return fetchArrayLikeData<Exam, TransformedExam>(user, urlExams, 'exams', transformExams)
 }
 
 export async function fetchGradesFor(user: FullUser, from: Date, to: Date) {
@@ -203,7 +209,7 @@ export async function fetchGradesFor(user: FullUser, from: Date, to: Date) {
 	}&startDate=${formatDateForUntis(from)}&endDate=${formatDateForUntis(to)}`
 
 	// out of some reason, the grades are not in the "grades" key, but directly in the data object
-	return fetchArrayData<Grade, TransformedGrade>(user, urlGrades, 'grades', transformGrades, true)
+	return fetchArrayLikeData<Grade, TransformedGrade>(user, urlGrades, 'grades', transformGrades, true)
 }
 
 export async function fetchAbsencesFor(user: FullUser, from: Date, to: Date) {
@@ -213,7 +219,7 @@ export async function fetchAbsencesFor(user: FullUser, from: Date, to: Date) {
 		to
 	)}&excuseStatusId=-3&includeTodaysAbsence=true`
 
-	return fetchArrayData<Absence, TransformedAbsence>(user, urlAbsences, 'absences', transformAbsences)
+	return fetchArrayLikeData<Absence, TransformedAbsence>(user, urlAbsences, 'absences', transformAbsences)
 }
 
 export async function fetchClassRolesFor(user: FullUser, from: Date, to: Date) {
@@ -223,6 +229,6 @@ export async function fetchClassRolesFor(user: FullUser, from: Date, to: Date) {
 		from
 	)}&endDate=${formatDateForUntis(to)}`
 
-	return fetchArrayData<ClassRole, TransformedClassRole>(user, urlClassRoles, 'classServices', transformClassRoles)
+	return fetchArrayLikeData<ClassRole, TransformedClassRole>(user, urlClassRoles, 'classServices', transformClassRoles)
 }
 //#endregion
