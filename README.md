@@ -8,9 +8,22 @@ iOS Widgets for [Untis](https://webuntis.com/) using [Scriptable](https://script
 ## ❔ What is this for?
 
 Untis is a service used by many students (mainly in Austria and Germany) to keep track of their school-life, especially for checking the timetable.
-There is a mobile app, but it does not provide any widgets, at least on iOS.
-That's why I decided to create those widgets myself, so I can have the most important information directly on my homescreen.
-It also notifies me about the most important changes.
+There is a mobile app, but it does not provide any proper widgets, at least on iOS.
+That's why I decided to create those widgets myself, so I could have the most important information directly on my homescreen.
+It also sends notifications about important changes in the timetable or new grades!
+
+## 🛠️ Troubleshooting
+If you have encountered an issue with the widget, open an issue in this repository ([in the issue tab](https://github.com/kaiser-jan/scriptable-untis/issues)).\
+Please **attach the log** from running the script!\
+It can be obtained by opening the script via the three dots, running it, opening the log at the bottom. Copy-paste it and add it to the issue surrounded by three backticks (` ``` `) for readability.
+
+## ⚠️ Disclaimers
+
+Untis does not support 3rd-party software, therefore this project may not work as flawless as we would like.\
+Also, Scriptable is rather limited - another reason why not everything may be perfect.
+
+As I have graduated from school already, I am not using the widget anymore and will not implement new features.
+However, I am happy to help where possible and PRs are welcome!
 
 ## 📥 Installation
 
