@@ -8,7 +8,7 @@ export async function login(user: UserData, password: string) {
 	const fullUser = await fetchUserData({ ...user, cookies, token })
 
 	console.log(
-		`🔓 Logged in as ${fullUser.displayName} (${fullUser.username}) in school ${fullUser.school} on ${fullUser.server}.webuntis.com`
+		`🔓 Logged in as ${fullUser.displayName} (${fullUser.username}) in school ${fullUser.school} on ${fullUser.server}.webuntis.com`,
 	)
 
 	return fullUser
@@ -32,13 +32,13 @@ async function fetchCookies(user: UserData, password: string) {
 		throw createError(ErrorCode.NOT_FOUND)
 	}
 
-	const cookies = request.response.cookies.map((cookie: any) => `${cookie.name}=${cookie.value}`)
+	const cookies: string[] = request.response.cookies.map((cookie: any) => `${cookie.name}=${cookie.value}`)
 
 	if (!cookies) {
 		throw createError(ErrorCode.NO_COOKIES)
 	}
 
-	console.log('🍪 Got cookies')
+	console.log(`🍪 Got ${cookies.length} cookies`)
 
 	return cookies
 }
@@ -53,12 +53,19 @@ async function fetchBearerToken(user: UserData, cookies: string[]) {
 
 	const token = await request.loadString()
 
-	// throw a LOGIN_ERROR if the response contains the string "loginError"
 	if (token.includes('loginError')) {
 		throw createError(ErrorCode.LOGIN_ERROR)
 	}
 
 	if (!token) {
+		console.log(`Empty response fetching token:
+			- url: ${url}
+			- cookie names: ${cookies.map((c) => c.split('=')[0])}
+			`)
+
+		// NOTE: uncomment below for debugging - this is sensitive information
+		// console.warn(JSON.stringify(cookies))
+
 		throw createError(ErrorCode.NO_TOKEN)
 	}
 
