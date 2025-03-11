@@ -121,29 +121,24 @@ export function getWidgetSizes() {
 	])
 
 	const deviceSize = Device.screenSize()
-	const isPad = Device.isPad()
 
 	const deviceSizeString = `${deviceSize.width}x${deviceSize.height}`
 	// for rotated devices, the width and height are swapped
 	const alternativeDeviceSizeString = `${deviceSize.height}x${deviceSize.width}`
 
-	if (isPad) {
-		const size = padSizes.get(deviceSizeString) ?? padSizes.get(alternativeDeviceSizeString)
-		if (size) {
-			console.log(`Widget sizes for pad with size ${deviceSize}: ${JSON.stringify(size)}`)
-			return size
-		}
-	} else {
-		const size = phoneSizes.get(deviceSizeString) ?? phoneSizes.get(alternativeDeviceSizeString)
-		if (size) {
-			console.log(`Widget sizes for phone with size ${deviceSize}: ${JSON.stringify(size)}`)
-			return size
-		}
+	const widgetSizes =
+		phoneSizes.get(deviceSizeString) ??
+		phoneSizes.get(alternativeDeviceSizeString) ??
+		padSizes.get(deviceSizeString) ??
+		padSizes.get(alternativeDeviceSizeString)
+
+	if (!widgetSizes) {
+		console.warn(`Unsupported ${Device.isPad() ? 'pad' : 'phone'} with size ${deviceSize}!`)
+		throw createError(ErrorCode.UNSUPPORTED_DEVICE_RESOLUTION)
 	}
 
-	console.warn(`Your device is currently not supported! (${isPad ? 'pad' : 'phone'}) with size ${deviceSize}!`)
-
-	throw createError(ErrorCode.UNSUPPORTED_DEVICE_RESOLUTION)
+	console.log(`Widget sizes for device with size ${JSON.stringify(deviceSize)}: ${JSON.stringify(widgetSizes)}`)
+	return widgetSizes
 }
 
 /**
