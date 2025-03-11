@@ -10,11 +10,16 @@ interface HomescreenWidgetSizes {
 
 type WidgetSizesList = Map<string, HomescreenWidgetSizes>
 
+/**
+ * @link https://developer.apple.com/design/human-interface-guidelines/widgets?utm_source=chatgpt.com#Specifications
+ */
 export function getWidgetSizes() {
 	const phoneSizes: WidgetSizesList = new Map([
+		['430x932', { small: new Size(170, 170), medium: new Size(364, 170), large: new Size(364, 382) }],
 		['428x926', { small: new Size(170, 170), medium: new Size(364, 170), large: new Size(364, 382) }],
 		['414x896', { small: new Size(169, 169), medium: new Size(360, 169), large: new Size(360, 379) }],
 		['414x736', { small: new Size(159, 159), medium: new Size(348, 157), large: new Size(348, 357) }],
+		['393x852', { small: new Size(158, 158), medium: new Size(338, 158), large: new Size(338, 354) }],
 		['390x844', { small: new Size(158, 158), medium: new Size(338, 158), large: new Size(338, 354) }],
 		['375x812', { small: new Size(155, 155), medium: new Size(329, 155), large: new Size(329, 345) }],
 		['375x667', { small: new Size(148, 148), medium: new Size(321, 148), large: new Size(321, 324) }],
