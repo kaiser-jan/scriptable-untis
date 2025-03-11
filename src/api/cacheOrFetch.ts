@@ -29,7 +29,7 @@ async function getCachedOrFetch<T>(
 	maxAge: number,
 	widgetConfig: Settings,
 	fetchData: () => Promise<T>,
-	compareData?: (fetchedData: T, cachedData: T, widgetConfig: Settings) => void
+	compareData?: (fetchedData: T, cachedData: T, widgetConfig: Settings) => void,
 ): Promise<T | undefined> {
 	const { json: cachedJson, cacheAge, cacheDate } = await readFromCache(key)
 
@@ -41,14 +41,11 @@ async function getCachedOrFetch<T>(
 
 	let fetchedData: T
 
-	log(cacheAge)
-	log(maxAge * 1000)
-
 	// TODO(check): comparing to CURRENT_DATETIME causes the cache to be invalid when CURRENT_DATETIME is modified
 	// refetch if the cache is too old (max age exceeded or not the same day)
 	const needToFetch = !cachedJson || cacheAge > maxAge * 1000 || cacheDate.getDate() !== CURRENT_DATETIME.getDate()
 	if (needToFetch || widgetConfig.debugSettings.overrideCache) {
-		console.log(`Fetching data ${key}, cache invalid.`)
+		console.log(`Fetching data ${key}, cache invalid (${Math.round(maxAge / 60)}min).`)
 
 		// we cannot fall back to the cached data if there is no internet,
 		// as the script will already have failed when fetching the user
@@ -72,9 +69,8 @@ async function getCachedOrFetch<T>(
 
 	if (cachedJson && fetchedData && compareData && areNotificationsEnabled) {
 		console.log('There is cached data and fetched data, checking for compare...')
-		if (cachedJson === JSON.stringify(fetchedData)) {
-			console.log('Data did not change, not comparing.')
-		} else {
+		if (cachedJson !== JSON.stringify(fetchedData)) {
+			console.log('Data changed, checking for important updates...')
 			compareData(fetchedData, cachedData, widgetConfig)
 		}
 	}
@@ -89,7 +85,7 @@ export async function getLessonsFor(user: FullUser, date: Date, isNext: boolean,
 		widgetConfig.cache.lessons,
 		widgetConfig,
 		() => fetchLessonsFor(user, date, widgetConfig),
-		compareCachedLessons
+		compareCachedLessons,
 	)
 }
 
@@ -99,7 +95,7 @@ export async function getExamsFor(user: FullUser, from: Date, to: Date, widgetCo
 		widgetConfig.cache.exams,
 		widgetConfig,
 		() => fetchExamsFor(user, from, to),
-		compareCachedExams
+		compareCachedExams,
 	)
 }
 
@@ -109,7 +105,7 @@ export async function getGradesFor(user: FullUser, from: Date, to: Date, widgetC
 		widgetConfig.cache.grades,
 		widgetConfig,
 		() => fetchGradesFor(user, from, to),
-		compareCachedGrades
+		compareCachedGrades,
 	)
 }
 
@@ -119,7 +115,7 @@ export async function getAbsencesFor(user: FullUser, from: Date, to: Date, widge
 		widgetConfig.cache.absences,
 		widgetConfig,
 		() => fetchAbsencesFor(user, from, to),
-		compareCachedAbsences
+		compareCachedAbsences,
 	)
 }
 

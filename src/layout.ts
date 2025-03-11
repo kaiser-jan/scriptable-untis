@@ -45,8 +45,8 @@ function adaptLayoutForSize(layout: View[][]) {
 
 export function getLayout() {
 	const layoutString = args.widgetParameter ?? defaultLayout
-	console.log(layoutString)
+	console.log(`Parsing layout string "${layoutString}..."`)
 	const layout = adaptLayoutForSize(parseLayoutString(layoutString))
-	console.log(layout)
+	console.log(`Got parsed layout: ${layout}`)
 	return layout
 }
