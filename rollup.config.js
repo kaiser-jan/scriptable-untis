@@ -5,7 +5,7 @@ const banner = `// Variables used by Scriptable.
 // icon-color: orange; icon-glyph: graduation-cap;
 
 /*
-Untis Widget by JFK-05
+Untis Widget by kaiser-jan
 
 A widget used to display information from Untis.
 

@@ -55,7 +55,7 @@ async function presentWidget() {
 
 function showDocumentation() {
 	console.log('📖 Opening documentation in Safari.')
-	Safari.openInApp('https://github.com/JFK-05/scriptable-untis#readme')
+	Safari.openInApp('https://github.com/kaiser-jan/scriptable-untis#readme')
 }
 
 enum ScriptActions {

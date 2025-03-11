@@ -33,8 +33,8 @@ https://user-images.githubusercontent.com/75926077/232337480-ea6ec7ad-d309-42a8-
 
 1. Before installing the script, you need to [install Scriptable from the App Store](https://apps.apple.com/us/app/scriptable/id1405459188?uo=4).
 
-2. You can download the latest version of the script [here](https://github.com/JFK-05/scriptable-untis/releases/latest/download/UntisWidget.js).\
-   Alternatively, you can head over to the [releases page](https://github.com/JFK-05/scriptable-untis/releases) to download a specific release.
+2. You can download the latest version of the script [here](https://github.com/kaiser-jan/scriptable-untis/releases/latest/download/UntisWidget.js).\
+   Alternatively, you can head over to the [releases page](https://github.com/kaiser-jan/scriptable-untis/releases) to download a specific release.
 
 3. After downloading the file, click share, and select scriptable.
    Now click `Add to My Scripts` at the bottom.
@@ -55,7 +55,7 @@ The script will check for updates every few hours.\
 Regular updates will be downloaded and installed automatically.\
 If you want to update manually, you can do so by running the script and selecting `🔄 Update Script` in the menu.\
 When there is a breaking change, you will be notified and asked to update manually.\
-Check the [releases page](https://github.com/JFK-05/scriptable-untis/releases) for more information about the changes.
+Check the [releases page](https://github.com/kaiser-jan/scriptable-untis/releases) for more information about the changes.
 
 ## ✨ Features
 

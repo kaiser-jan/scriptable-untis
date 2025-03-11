@@ -8,7 +8,7 @@ export const LOCALE = getDeviceLocaleAsIntlLocale('en-US')
 // NOTE: if possible, use the datetime override in the settings instead of changing this constant
 export let CURRENT_DATETIME = new Date() // '2022-09-15T14:00' or '2022-09-19T12:30'
 export function setCurrentDatetime(datetime: Date) {
-    CURRENT_DATETIME = datetime
+	CURRENT_DATETIME = datetime
 }
 
 // compile-time constants
@@ -23,6 +23,6 @@ export const NOTIFIABLE_TOPICS = ['lessons', 'exams', 'grades', 'absences']
 export const defaultLayout = 'lessons,exams,grades,absences'
 export const CONFIG_FILE_NAME = 'untis-config.json'
 export const CUSTOM_CONFIG_KEYS = ['subjects']
-export const GITHUB_USER = 'JFK-05'
+export const GITHUB_USER = 'kaiser-jan'
 export const GITHUB_REPO = 'scriptable-untis'
 export const GITHUB_SCRIPT_NAME = 'UntisWidget.js'
