@@ -23,6 +23,7 @@ type ErrorCodes =
 	| 'SELECTION_CANCELLED'
 	| 'SETUP_INCOMPLETE'
 	| 'COULD_NOT_DETERMINE_ELEMENT_TYPE'
+	| 'UNSUPPORTED_DEVICE_RESOLUTION'
 
 export const ErrorCode: IErrorCodes = {
 	NO_INTERNET: { title: 'The internet connection appears to be offline.', icon: 'wifi.exclamationmark' },
@@ -47,6 +48,10 @@ export const ErrorCode: IErrorCodes = {
 		title: 'Unable to determine element type',
 		description:
 			'Please contact the developer! You can try to set the value manually in the settings under [Login > Element Type].',
+	},
+	UNSUPPORTED_DEVICE_RESOLUTION: {
+		title: 'Unsupported device',
+		description: 'Your devices resolution is not yet supported! Please file an issue on github.',
 	},
 }
 

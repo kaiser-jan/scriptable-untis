@@ -1,4 +1,5 @@
 import { PREVIEW_WIDGET_SIZE } from '@/constants'
+import { ErrorCode, createError } from '../errors'
 
 interface HomescreenWidgetSizes {
 	small: Size
@@ -115,13 +116,11 @@ export function getWidgetSizes() {
 	])
 
 	const deviceSize = Device.screenSize()
+	const isPad = Device.isPad()
+
 	const deviceSizeString = `${deviceSize.width}x${deviceSize.height}`
 	// for rotated devices, the width and height are swapped
 	const alternativeDeviceSizeString = `${deviceSize.height}x${deviceSize.width}`
-	console.log(`Device size: ${deviceSizeString}`)
-
-	const isPad = Device.isPad()
-	console.log(`Device isPad: ${isPad}`)
 
 	if (isPad) {
 		const size = padSizes.get(deviceSizeString) ?? padSizes.get(alternativeDeviceSizeString)
@@ -137,14 +136,9 @@ export function getWidgetSizes() {
 		}
 	}
 
-	console.log(`Could not find widget sizes for device with size ${deviceSize}`)
+	console.warn(`Your device is currently not supported! (${isPad ? 'pad' : 'phone'}) with size ${deviceSize}!`)
 
-	return {
-		small: new Size(0, 0),
-		medium: new Size(0, 0),
-		large: new Size(0, 0),
-		extraLarge: new Size(0, 0),
-	}
+	throw createError(ErrorCode.UNSUPPORTED_DEVICE_RESOLUTION)
 }
 
 /**
