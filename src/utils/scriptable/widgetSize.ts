@@ -25,6 +25,8 @@ export function getWidgetSizes() {
 		['375x667', { small: new Size(148, 148), medium: new Size(321, 148), large: new Size(321, 324) }],
 		['360x780', { small: new Size(155, 155), medium: new Size(329, 155), large: new Size(329, 345) }],
 		['320x568', { small: new Size(141, 141), medium: new Size(292, 141), large: new Size(292, 311) }],
+		// Quick fix for the IPhone 16 Pro | TODO: update small and large
+		['402x874', { small: new Size(160, 158), medium: new Size(338, 158), large: new Size(338, 316) }],
 	])
 
 	const padSizes: WidgetSizesList = new Map([
