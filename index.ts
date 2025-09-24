@@ -2,6 +2,7 @@ import { prepareUser } from '@/api/cache'
 import { PREVIEW_WIDGET_SIZE, SCRIPT_START_DATETIME, UPDATE_INTERVAL, setCurrentDatetime } from '@/constants'
 import { getLayout } from '@/layout'
 import { openSettings } from '@/settings/editor/settingsEditor'
+import { Settings } from '@/settings/settings'
 import { handleError } from '@/utils/errors'
 import { getModuleFileManager as getFileManagerOptions, readConfig } from '@/utils/scriptable/fileSystem'
 import { selectOption } from '@/utils/scriptable/input'
@@ -9,12 +10,22 @@ import { KeychainManager } from '@/utils/scriptable/keychainManager'
 import { checkForUpdates, shouldCheckForUpdates } from '@/utils/updater'
 import { createWidget } from '@/widget'
 
+// TODO: clean up this file so the controlflow is easier to read
+
 // initialize the keychain manager
 new KeychainManager('untis')
 
+let widgetConfig: Settings | null = null
+
+// try reading the widgetConfig to get the auto-update setting
+try {
+	const { useICloud } = getFileManagerOptions()
+	widgetConfig = await readConfig(useICloud)
+} catch (error) {}
+
 // check for updates (in a try-catch block to prevent the script from crashing if the update fails)
 try {
-	if (shouldCheckForUpdates(UPDATE_INTERVAL)) {
+	if (shouldCheckForUpdates(widgetConfig, UPDATE_INTERVAL)) {
 		await checkForUpdates()
 	}
 } catch (error) {

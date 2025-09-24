@@ -5,16 +5,22 @@ import { KeychainManager } from './scriptable/keychainManager'
 import { GITHUB_REPO, GITHUB_SCRIPT_NAME, GITHUB_USER } from '@/constants'
 import { scheduleNotification } from './helper'
 import { showInfoPopup } from './scriptable/input'
+import { Settings } from '@/settings/settings'
 
 /**
  * Determines if the app should check for updates.
  * This will read the last time the app checked for updates from the keychain.
  * @param updateInterval the interval in milliseconds to check for updates.
  */
-export function shouldCheckForUpdates(updateInterval: Duration) {
+export function shouldCheckForUpdates(widgetConfig: Settings | null, updateInterval: Duration): boolean {
 	const lastCheckISO = KeychainManager.get('lastUpdateCheck')
 
 	if (!lastCheckISO) return true
+
+	if (widgetConfig?.debugSettings?.autoUpdateEnabled === false) {
+		console.log('Auto updates disabled via settings, skipping.')
+		return false
+	}
 
 	const now = new Date().getTime()
 	const lastCheckDate = new Date(lastCheckISO).getTime()
@@ -47,7 +53,7 @@ export async function checkForUpdatesWith(
 	repo: string,
 	assetName: string,
 	apiKey?: string,
-	interactive = false
+	interactive = false,
 ) {
 	log('⏫❔ Checking for updates...')
 
@@ -64,7 +70,7 @@ export async function checkForUpdatesWith(
 		if (interactive) {
 			showInfoPopup(
 				'⏫❌ Could not check for updates',
-				'Unable to fetch the latest release. Check the logs for more information.'
+				'Unable to fetch the latest release. Check the logs for more information.',
 			)
 		}
 
@@ -104,14 +110,14 @@ export async function checkForUpdatesWith(
 		if (interactive) {
 			showInfoPopup(
 				'🛑 Breaking update available',
-				`A breaking update for version ${latestRelease.tag_name} is available. Check the documentation for more information.`
+				`A breaking update for version ${latestRelease.tag_name} is available. Check the documentation for more information.`,
 			)
 		}
 
 		scheduleNotification(
 			'⏫ Update available',
 			`A breaking update for version ${latestRelease.tag_name} is available.
-			Please read about the changes first. You can find a link in the documentation.`
+			Please read about the changes first. You can find a link in the documentation.`,
 		)
 		return false
 	}
@@ -124,7 +130,7 @@ export async function checkForUpdatesWith(
 		if (updateSuccessful && interactive) {
 			showInfoPopup(
 				`⏫ Updated to version ${latestRelease.tag_name}`,
-				`The script was updated from ${currentVersion} to ${latestRelease.tag_name}.`
+				`The script was updated from ${currentVersion} to ${latestRelease.tag_name}.`,
 			)
 		}
 
@@ -217,7 +223,7 @@ async function getLatestRelease(user: string, repo: string, apiKey?: string) {
 
 	if (json.message) {
 		console.error(
-			`⏫❌ Could not fetch latest release from GitHub API. (${json.message})\nPlease check your API key.`
+			`⏫❌ Could not fetch latest release from GitHub API. (${json.message})\nPlease check your API key.`,
 		)
 		return null
 	}

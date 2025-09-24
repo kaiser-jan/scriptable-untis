@@ -95,6 +95,7 @@ export const defaultSettings = {
 	debugSettings: {
 		customDatetime: undefined,
 		overrideCache: false,
+		autoUpdateEnabled: true,
 	},
 }
 

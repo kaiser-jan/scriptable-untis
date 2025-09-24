@@ -410,6 +410,11 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 					description: 'Whether the cache should be ignored.',
 					type: SettingsValueType.ON_OFF,
 				},
+				autoUpdateEnabled: {
+					title: '🔄 Auto Update',
+					description: 'Whether to automatically check for and install new updates.',
+					type: SettingsValueType.ON_OFF,
+				},
 			},
 		},
 	},
