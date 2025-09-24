@@ -96,6 +96,11 @@ async function runInteractive() {
 }
 
 try {
+	const currentVersion = KeychainManager.get('currentVersion')
+	console.log(`Starting kaiser-jan/scriptable-untis version ${currentVersion}...`)
+} catch (error) {}
+
+try {
 	if (config.runsInWidget) {
 		const widget = await setupAndCreateWidget()
 		Script.setWidget(widget)
