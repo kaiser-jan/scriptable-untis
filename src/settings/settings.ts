@@ -90,6 +90,7 @@ export const defaultSettings = {
 		fontSize: 14,
 		footer: true,
 		backgroundColor: unparsedColors.background.tertiary,
+		liquidGlass: false,
 	},
 
 	debugSettings: {

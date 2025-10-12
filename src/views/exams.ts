@@ -75,7 +75,9 @@ export function addViewExams(
 		examContainer.layoutHorizontally()
 		examContainer.setPadding(padding, padding, padding, padding)
 		examContainer.spacing = widgetConfig.appearance.spacing
-		examContainer.backgroundColor = backgroundColor
+		const __liquidItemColors = getItemColors(backgroundColor, widgetConfig, false)
+		examContainer.backgroundColor = __liquidItemColors.backgroundColor
+		const textColor = __liquidItemColors.textColor
 		examContainer.cornerRadius = widgetConfig.appearance.cornerRadius
 
 		// build the layout row
@@ -84,7 +86,7 @@ export function addViewExams(
 			widgetConfig.appearance.spacing,
 			Font.mediumSystemFont(widgetConfig.appearance.fontSize),
 			widgetConfig.appearance.fontSize,
-			colors.text.primary
+			textColor
 		)
 
 		/**
@@ -102,7 +104,7 @@ export function addViewExams(
 			type: 'icon',
 			icon: 'book.circle',
 			size: widgetConfig.appearance.fontSize,
-			color: colors.text.primary,
+			color: textColor,
 			priority: 1,
 		})
 
@@ -120,14 +122,14 @@ export function addViewExams(
 				},
 			],
 			fontSize: widgetConfig.appearance.fontSize,
-			color: colors.text.primary,
+			color: textColor,
 		})
 
 		// add the exam type
 		staticLayoutRow.addItem({
 			type: 'text',
 			variants: [{ text: exam.type, priority: 4 }],
-			color: colors.text.secondary,
+			color: __liquidItemColors.secondaryTextColor,
 		})
 
 		// add the date
@@ -143,7 +145,7 @@ export function addViewExams(
 					priority: 6,
 				},
 			],
-			color: colors.text.primary,
+			color: textColor,
 		})
 
 		staticLayoutRow.build(examContainer)
