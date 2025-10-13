@@ -5,6 +5,7 @@ import { TransformedGrade } from '@/types/transformed'
 import { getCharHeight } from '@/utils/helper'
 import { StaticLayoutRow } from '@/utils/scriptable/layout/staticLayoutRow'
 import { ViewBuildData } from '@/widget'
+import { getItemColors } from '@/utils/scriptable/componentHelper'
 
 // TODO: the date of grades matches the date of the exam, not when it was added (breaks scope)
 export function addViewGrades(

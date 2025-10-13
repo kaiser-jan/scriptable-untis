@@ -119,7 +119,7 @@ function makeTimelineEntry(
 	return lessonContainer
 }
 
-function getLessonColors(lesson: TransformedLesson) {
+function getLessonColors(lesson: TransformedLesson, widgetConfig: Settings) {
 	/** Whether the lesson was rescheduled away from here. (isSource)
 	 * The lesson state seems to be CANCELED? */
 	const isRescheduledAway = lesson.rescheduleInfo?.isSource
@@ -173,7 +173,7 @@ function getLessonColors(lesson: TransformedLesson) {
  * widgetConfig: the widget configuration object
  * disabled: whether the item should be shown as disabled (uses disabled text/background)
  */
-function getItemColors(baseBackgroundColor, widgetConfig, disabled = false) {
+export function getItemColors(baseBackgroundColor: Color, widgetConfig: Settings, disabled = false) {
     let backgroundColor = baseBackgroundColor ?? colors.background.primary
     let textColor = colors.text.primary
     let secondaryTextColor = colors.text.secondary
@@ -221,7 +221,7 @@ export function addWidgetLesson(
 	}
 ) {
 	// get the colors for the lesson based on its state (red, disabled, normal)
-	const { backgroundColor, textColor, secondaryTextColor } = getLessonColors(lesson)
+	const { backgroundColor, textColor, secondaryTextColor } = getLessonColors(lesson, widgetConfig)
 
 	// consider breaks during the combined lesson
 	let toTime = lesson.to
@@ -312,7 +312,7 @@ export function addWidgetLesson(
  * @param widgetConfig
  */
 export function fillContainerWithSubject(lesson: TransformedLesson, container: WidgetStack, widgetConfig: Settings) {
-	const { backgroundColor, textColor, secondaryTextColor } = getLessonColors(lesson)
+	const { backgroundColor, textColor, secondaryTextColor } = getLessonColors(lesson, widgetConfig)
 
 	container.backgroundColor = backgroundColor
 	container.layoutHorizontally()

@@ -6,6 +6,7 @@ import { getCharHeight, getCharWidth, getTextWidth } from '@/utils/helper'
 import { FlowLayoutRow } from '@/utils/scriptable/layout/flowLayoutRow'
 import { StaticLayoutRow } from '@/utils/scriptable/layout/staticLayoutRow'
 import { ViewBuildData } from '@/widget'
+import { getItemColors } from '@/utils/scriptable/componentHelper'
 
 export function addViewExams(
 	exams: TransformedExam[],

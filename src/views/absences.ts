@@ -5,6 +5,7 @@ import { Duration } from '@/utils/duration'
 import { getCharHeight } from '@/utils/helper'
 import { StaticLayoutRow } from '@/utils/scriptable/layout/staticLayoutRow'
 import { ViewBuildData } from '@/widget'
+import { getItemColors } from '@/utils/scriptable/componentHelper'
 
 export function addViewAbsences(
 	absences: TransformedAbsence[],
