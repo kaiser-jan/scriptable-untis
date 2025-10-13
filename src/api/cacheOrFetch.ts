@@ -1,7 +1,7 @@
 import { readFromCache, writeToCache } from '@/api/cache'
-import { fetchAbsencesFor, fetchExamsFor, fetchGradesFor, fetchLessonsFor, fetchSchoolYears } from '@/api/fetch'
+import { fetchAbsencesFor, fetchExamsFor, fetchGradesFor, fetchLessonsFor, fetchSchoolYears, fetchHomeworksFor } from '@/api/fetch'
 import { CURRENT_DATETIME, NOTIFIABLE_TOPICS } from '@/constants'
-import { compareCachedAbsences, compareCachedExams, compareCachedGrades, compareCachedLessons } from '@/features/notify'
+import { compareCachedAbsences, compareCachedExams, compareCachedGrades, compareCachedLessons, compareCachedHomeworks } from '@/features/notify'
 import { Settings } from '@/settings/settings'
 import { sortKeysByDate } from '@/utils/helper'
 
@@ -117,6 +117,15 @@ export async function getAbsencesFor(user: FullUser, from: Date, to: Date, widge
 		() => fetchAbsencesFor(user, from, to),
 		compareCachedAbsences,
 	)
+}
+
+export async function getHomeworksFor(user: FullUser, from: Date, to: Date, widgetConfig: Settings) {
+  return getCachedOrFetch(
+	'homeworks',
+	widgetConfig.cache.homeworks,
+	widgetConfig, () => fetchHomeworksFor(user, from, to),
+	compareCachedHomeworks,
+  )
 }
 
 export async function getSchoolYears(user: FullUser, widgetConfig: Settings) {

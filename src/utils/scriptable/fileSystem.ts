@@ -111,3 +111,15 @@ export async function readFolder(options: {
 
 	return currentPath
 }
+
+// Path to store homework state
+const HOMEWORK_STATE_FILE = 'homeworkStates.json';
+const fm = FileManager.local();
+const pathHWState = fm.joinPath(fm.documentsDirectory(), HOMEWORK_STATE_FILE);
+export function loadHomeworkStates() {
+  if (!fm.fileExists(pathHWState)) return {};
+  try { return JSON.parse(fm.readString(pathHWState)); } catch { return {}; }
+}
+export function saveHomeworkStates(states) {
+  fm.writeString(pathHWState, JSON.stringify(states));
+}

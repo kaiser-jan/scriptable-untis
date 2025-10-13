@@ -2,9 +2,10 @@ import { LOCALE, NO_VALUE_PLACEHOLDERS } from '@/constants'
 import { applySubjectConfig, getSubjectConfigFor } from '@/settings/subjectConfig'
 import { Settings } from '@/settings/settings'
 import { LessonState } from '@/types/api'
-import { TransformedAbsence, TransformedExam, TransformedGrade, TransformedLessonWeek } from '@/types/transformed'
+import { TransformedAbsence, TransformedExam, TransformedGrade, TransformedLessonWeek, TransformedHomework } from '@/types/transformed'
 import { asNumericTime, scheduleNotification } from '@/utils/helper'
 import { getSubjectTitle } from '@/utils/lessonHelper'
+import { cleanupExpiredHomeworks } from '@/utils/scriptable/componentHelper'
 
 /**
  * Compares the fetched lessons with the cached lessons and sends notifications for most changes.
@@ -222,4 +223,53 @@ export function compareCachedAbsences(
 			continue
 		}
 	}
+}
+
+export function compareCachedHomeworks(
+	homeworks: TransformedHomework[],
+	cachedHomeworks: TransformedHomework[],
+	widgetConfig: Settings
+) {
+  const offset = widgetConfig?.views?.homeworks?.dueNotificationOffset ?? 86400 // default 1 day
+  const now = new Date()
+  // Cleanup expired items
+  const activeHomeworks = cleanupExpiredHomeworks(homeworks)
+  // Detect removed homeworks
+  const removed = cachedHomeworks.filter(
+    old => !activeHomeworks.some(hw => hw.id === old.id)
+  )
+  for (const r of removed) {
+    scheduleNotification(
+      `🗑️ Homework removed`,
+      `${r.subject || 'Unknown'} — ${r.text || 'deleted by teacher'}`,
+      'event'
+    )
+    console.log(`Removed homework: ${r.text || r.subject}`)
+  }
+  // Detect new or updated homeworks
+  for (const hw of activeHomeworks) {
+    const cached = cachedHomeworks.find(c => c.id === hw.id)
+    if (!cached) {
+      // New homework
+      scheduleNotification(
+        `📝 New homework: ${hw.subject || 'Unknown'}`,
+        hw.text ?? 'Check the widget for details.'
+      );
+      continue
+    }
+    // Due date changed → re-schedule notification
+    if (hw.dueDate && (!cached.dueDate || hw.dueDate.getTime() !== new Date(cached.dueDate).getTime())) {
+      const notifyDate = new Date(hw.dueDate.getTime() - offset * 1000)
+      if (notifyDate > now) {
+        scheduleNotification(
+          `⏰ Upcoming: ${hw.subject}`,
+          hw.text ?? '',
+          'event',
+          notifyDate
+        )
+      }
+    }
+  }
+  // Return cleaned list to be cached again
+  return activeHomeworks
 }

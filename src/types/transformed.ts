@@ -24,7 +24,9 @@ export type StatelessElement = Teacher | Group | Subject | Room
 export type Stateful<T extends StatelessElement> = T & {
 	state: ElementState
 	original?: T
-}
+} & (
+	T extends Teacher ? { longName: string } : {}
+)
 export type StatefulElement = Stateful<StatelessElement>
 
 export interface TransformedLesson {
@@ -110,9 +112,25 @@ export interface TransformedAbsence {
 	from: Date
 	to: Date
 	createdBy: string
+	reason: string
+	text: string
 	reasonId: number
 	isExcused: boolean
+	excuseStatus: string
 	excusedBy?: string
+}
+
+export interface TransformedHomework {
+	id: number
+	lessonId: number
+	subject: string
+	teacher: string
+	text: string
+	remark: string
+	completed: boolean
+	date?: Date
+	dueDate?: Date
+	attachments: any[]
 }
 
 export interface TransformedClassRole {

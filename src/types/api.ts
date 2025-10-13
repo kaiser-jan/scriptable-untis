@@ -216,6 +216,36 @@ export interface Absence {
 	}
 }
 
+export interface HomeworkApiData {
+	records: {
+		homeworkId: number
+		teacherId: number
+		elementIds: number[]
+	}[]
+
+	homeworks: {
+		id: number
+		lessonId: number
+		date?: number
+		dueDate?: number
+		text?: string
+		remark?: string
+		completed: boolean
+		attachments?: any[]
+	}[]
+
+	teachers: {
+		id: number
+		name: string
+	}[]
+
+	lessons: {
+		id: number
+		subject: string
+		lessonType: string
+	}[]
+}
+
 export interface ClassRole {
 	id: number
 	personId: number
