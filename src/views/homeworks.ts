@@ -107,7 +107,7 @@ export function addViewHomeworks(
     hwContainer.setPadding(S.paddingV, S.paddingH, S.paddingV, S.paddingH);
     hwContainer.cornerRadius = appearance.cornerRadius;
     hwContainer.backgroundColor = neutralBg;
-    hwContainer.url = `scriptable:///run?scriptName=UntisWidget_v5&toggleHomework=${hw.id}`;
+    hwContainer.url = `scriptable:///run?scriptName=UntisWidget&toggleHomework=${hw.id}`;
 
     if (compact) {
       const availableW = (width - 3 * itemSpacing) / 2;
