@@ -49,7 +49,8 @@ export const colors = parseColors(unparsedColors)
 export function getColor(name: string) {
 	if (!(name in colors.background)) {
 		// check if it is a hex color
-		if (/^#?([\da-f]{3}){1,2}$/i.test(name)) {
+		// TODO: unify with validateHex
+		if (/^#?(?:[\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})$/i.test(name)) {
 			return new Color(name)
 		}
 		console.log(`Color ${name} not found`)

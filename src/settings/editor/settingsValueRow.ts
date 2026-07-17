@@ -15,7 +15,7 @@ export function addSettingsValueRow(
 	value: PrimitiveSettingsValue,
 	defaultValue: PrimitiveSettingsValue,
 	blueprint: SettingsValue,
-	updateValue: (newValue: PrimitiveSettingsValue | undefined) => void
+	updateValue: (newValue: PrimitiveSettingsValue | undefined) => void,
 ) {
 	const row = tableMenu.addTextRow(blueprint.title, blueprint.description)
 
@@ -161,7 +161,7 @@ function openColorEditor(tableMenu: TableMenu, value: string, updateValue: (newV
 function validateHex(input: string): string | null {
 	if (!input) return null
 	// validate the hex color
-	if (!input.match(/^#[0-9A-F]{6}$/i)) {
+	if (!input.match(/^#?(?:[\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})$/i)) {
 		showInfoPopup('Invalid hex color', 'The pasted text is not a valid hex color. (e.g. #FF0000)')
 		return null
 	}
