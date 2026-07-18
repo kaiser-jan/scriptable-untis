@@ -394,6 +394,11 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 					description: 'The background color of the widget.',
 					type: SettingsValueType.COLOR,
 				},
+				liquidGlass: {
+                    			title: '🪟 Liquid Glass Mode',
+                    			description: 'Use slightly transparent backgrounds for better readability on iOS "Clear" homescreens (iOS 26).',
+                    			type: SettingsValueType.ON_OFF,
+                		},
 			},
 		},
 		debugSettings: {

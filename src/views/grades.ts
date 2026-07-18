@@ -5,6 +5,7 @@ import { TransformedGrade } from '@/types/transformed'
 import { getCharHeight } from '@/utils/helper'
 import { StaticLayoutRow } from '@/utils/scriptable/layout/staticLayoutRow'
 import { ViewBuildData } from '@/widget'
+import { getItemColors } from '@/utils/scriptable/componentHelper'
 
 // TODO: the date of grades matches the date of the exam, not when it was added (breaks scope)
 export function addViewGrades(
@@ -73,7 +74,9 @@ export function addViewGrades(
 		gradeContainer.layoutHorizontally()
 		gradeContainer.setPadding(padding, padding, padding, padding)
 		gradeContainer.spacing = widgetConfig.appearance.spacing
-		gradeContainer.backgroundColor = backgroundColor
+		const __liquidItemColors = getItemColors(backgroundColor, widgetConfig, false)
+		gradeContainer.backgroundColor = __liquidItemColors.backgroundColor
+		const textColor = __liquidItemColors.textColor
 		gradeContainer.cornerRadius = widgetConfig.appearance.cornerRadius
 
 		// build the layout row
@@ -82,7 +85,7 @@ export function addViewGrades(
 			widgetConfig.appearance.spacing,
 			Font.mediumSystemFont(widgetConfig.appearance.fontSize),
 			widgetConfig.appearance.fontSize,
-			colors.text.primary
+			textColor
 		)
 
 		/**
@@ -100,7 +103,7 @@ export function addViewGrades(
 			type: 'icon',
 			icon: iconName ?? defaultIconName,
 			size: widgetConfig.appearance.fontSize,
-			color: colors.text.primary,
+			color: textColor,
 			priority: iconName ? 1 : 3,
 		})
 
@@ -115,7 +118,7 @@ export function addViewGrades(
 						priority: 1,
 					},
 				],
-				color: colors.text.primary,
+				color: textColor,
 			})
 		}
 
@@ -128,7 +131,7 @@ export function addViewGrades(
 					priority: 2,
 				},
 			],
-			color: colors.text.primary,
+			color: textColor,
 		})
 
 		// add the exam type
@@ -140,13 +143,13 @@ export function addViewGrades(
 					priority: 5,
 				},
 			],
-			color: colors.text.secondary,
+			color: __liquidItemColors.secondaryTextColor,
 		})
 
 		// add the date
 		staticLayoutRow.addItem({
 			type: 'text',
-			color: colors.text.secondary,
+			color: __liquidItemColors.secondaryTextColor,
 			variants: [
 				{
 					text: shortDate,

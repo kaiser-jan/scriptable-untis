@@ -5,6 +5,7 @@ import { Duration } from '@/utils/duration'
 import { getCharHeight } from '@/utils/helper'
 import { StaticLayoutRow } from '@/utils/scriptable/layout/staticLayoutRow'
 import { ViewBuildData } from '@/widget'
+import { getItemColors } from '@/utils/scriptable/componentHelper'
 
 export function addViewAbsences(
 	absences: TransformedAbsence[],
@@ -37,7 +38,9 @@ export function addViewAbsences(
 		absenceContainer.layoutHorizontally()
 		absenceContainer.setPadding(padding, padding, padding, padding)
 		absenceContainer.spacing = widgetConfig.appearance.spacing
-		absenceContainer.backgroundColor = colors.background.primary
+		const __liquidItemColors = getItemColors(colors.background.primary, widgetConfig, absence.isExcused);
+		absenceContainer.backgroundColor = __liquidItemColors.backgroundColor
+		const textColor = __liquidItemColors.textColor
 		absenceContainer.cornerRadius = widgetConfig.appearance.cornerRadius
 
 		const shortFromDate = absence.from.toLocaleDateString(LOCALE, { day: '2-digit', month: 'short' })
@@ -58,7 +61,7 @@ export function addViewAbsences(
 			widgetConfig.appearance.spacing,
 			Font.mediumSystemFont(widgetConfig.appearance.fontSize),
 			widgetConfig.appearance.fontSize,
-			colors.text.primary
+			textColor
 		)
 
 		/**
@@ -77,14 +80,14 @@ export function addViewAbsences(
 			type: 'icon',
 			icon: 'pills.circle',
 			size: widgetConfig.appearance.fontSize,
-			color: colors.text.primary,
+			color: textColor,
 			priority: 1,
 		})
 
 		// add the absence date
 		staticLayoutRow.addItem({
 			type: 'text',
-			color: colors.text.secondary,
+			color: __liquidItemColors.secondaryTextColor,
 			variants: [
 				{
 					text: shortFromDate,
@@ -115,7 +118,7 @@ export function addViewAbsences(
 		// add the creator
 		staticLayoutRow.addItem({
 			type: 'text',
-			color: colors.text.secondary,
+			color: __liquidItemColors.secondaryTextColor,
 			variants: [
 				{
 					// toLoweCase to make it less prominent

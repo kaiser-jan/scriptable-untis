@@ -34,15 +34,20 @@ export function addBreak(
 	showToTime: boolean,
 	widgetConfig: Settings
 ) {
+	// Liquid Glass
+        const __liquidItemColors = getItemColors(colors.background.primary, widgetConfig, false)
 	const breakContainer = makeTimelineEntry(to, breakFrom, widgetConfig, {
-		backgroundColor: colors.background.primary,
+		backgroundColor: __liquidItemColors.backgroundColor,
 		showTime: true,
 		showToTime: showToTime,
 		toTime: breakTo,
 	})
+			
+        breakContainer.cornerRadius = widgetConfig.appearance.cornerRadius
+
 	const breakTitle = breakContainer.addText('Break')
 	breakTitle.font = Font.mediumSystemFont(widgetConfig.appearance.fontSize)
-	breakTitle.textColor = colors.text.secondary
+	breakTitle.textColor = __liquidItemColors.secondaryTextColor
 	breakContainer.addSpacer()
 }
 
@@ -114,7 +119,7 @@ function makeTimelineEntry(
 	return lessonContainer
 }
 
-function getLessonColors(lesson: TransformedLesson) {
+function getLessonColors(lesson: TransformedLesson, widgetConfig: Settings) {
 	/** Whether the lesson was rescheduled away from here. (isSource)
 	 * The lesson state seems to be CANCELED? */
 	const isRescheduledAway = lesson.rescheduleInfo?.isSource
@@ -136,7 +141,61 @@ function getLessonColors(lesson: TransformedLesson) {
 		secondaryTextColor = colors.text.red
 	}
 
+	// Liquid Glass override
+    	try {
+            const liquid = !!(widgetConfig && widgetConfig.appearance && widgetConfig.appearance.liquidGlass)
+            if (liquid) {
+                // For normal lessons use a slight translucent overlay that adapts to appearance:
+                // light appearance white 30% overlay, dark appearance black 30% overlay
+                if (lesson.state !== LessonState.CANCELED && lesson.state !== LessonState.FREE && !isRescheduledAway) {
+                    backgroundColor = Color.dynamic(new Color('#ffffff', 0.30), new Color('#000000', 0.30))
+                    // Ensure high contrast text colors
+                    textColor = Color.dynamic(new Color('#000000'), new Color('#ffffff'))
+                    secondaryTextColor = Color.dynamic(new Color('#666666'), new Color('#999999'))
+                } else {
+                    // For cancelled/free/rescheduled keep disabled look but ensure contrast
+                    textColor = colors.text.disabled
+                    secondaryTextColor = colors.text.disabled
+                    backgroundColor = colors.background.primary
+                }
+            }
+        } catch (e) {
+            // if something fails, fall back to default colors
+            console.warn('Liquid Glass override failed: ' + e)
+        }
+
 	return { backgroundColor, textColor, secondaryTextColor }
+}
+
+/**
+ * Generic color helper that applies the Liquid Glass override when enabled.
+ * baseBackgroundColor: the original background color that would have been used (may be null)
+ * widgetConfig: the widget configuration object
+ * disabled: whether the item should be shown as disabled (uses disabled text/background)
+ */
+export function getItemColors(baseBackgroundColor: Color, widgetConfig: Settings, disabled = false) {
+    let backgroundColor = baseBackgroundColor ?? colors.background.primary
+    let textColor = colors.text.primary
+    let secondaryTextColor = colors.text.secondary
+    if (disabled) {
+        backgroundColor = colors.background.primary
+        textColor = colors.text.disabled
+        secondaryTextColor = colors.text.disabled
+    }
+    // Liquid Glass override (same approach as lessons)
+    try {
+        const liquid = !!(widgetConfig && widgetConfig.appearance && widgetConfig.appearance.liquidGlass)
+        if (liquid && !disabled) {
+            // translucent overlay that adapts to appearance
+            backgroundColor = Color.dynamic(new Color('#ffffff', 0.30), new Color('#000000', 0.30))
+            // high contrast text colors
+            textColor = Color.dynamic(new Color('#000000'), new Color('#ffffff'));
+            secondaryTextColor = Color.dynamic(new Color('#666666'), new Color('#999999'))
+        }
+    } catch (e) {
+        console.warn('getItemColors Liquid Glass override failed: ' + e)
+    }
+    return { backgroundColor, textColor, secondaryTextColor }
 }
 
 /**
@@ -162,7 +221,7 @@ export function addWidgetLesson(
 	}
 ) {
 	// get the colors for the lesson based on its state (red, disabled, normal)
-	const { backgroundColor, textColor, secondaryTextColor } = getLessonColors(lesson)
+	const { backgroundColor, textColor, secondaryTextColor } = getLessonColors(lesson, widgetConfig)
 
 	// consider breaks during the combined lesson
 	let toTime = lesson.to
@@ -253,7 +312,7 @@ export function addWidgetLesson(
  * @param widgetConfig
  */
 export function fillContainerWithSubject(lesson: TransformedLesson, container: WidgetStack, widgetConfig: Settings) {
-	const { backgroundColor, textColor, secondaryTextColor } = getLessonColors(lesson)
+	const { backgroundColor, textColor, secondaryTextColor } = getLessonColors(lesson, widgetConfig)
 
 	container.backgroundColor = backgroundColor
 	container.layoutHorizontally()
