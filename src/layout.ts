@@ -7,6 +7,7 @@ export enum View {
 	EXAMS = 'exams',
 	GRADES = 'grades',
 	ABSENCES = 'absences',
+	HOMEWORKS = 'homeworks',
 }
 
 function parseLayoutString(layoutString: string) {
@@ -43,10 +44,37 @@ function adaptLayoutForSize(layout: View[][]) {
 	}
 }
 
+// keep the last raw layout string (so createWidget can show better error messages)
+let LAST_LAYOUT_STRING = ""
 export function getLayout() {
-	const layoutString = args.widgetParameter ?? defaultLayout
-	console.log(`Parsing layout string "${layoutString}..."`)
-	const layout = adaptLayoutForSize(parseLayoutString(layoutString))
-	console.log(`Got parsed layout: ${layout}`)
-	return layout
+    let layoutStringRaw = args.widgetParameter?.trim() ?? ""
+    LAST_LAYOUT_STRING = layoutStringRaw // store raw param for createWidget
+    let layoutString = layoutStringRaw
+    console.log(`Parsing layout string "${layoutString}"...`)
+
+    // Handle "all" or empty parameter
+    if (layoutString === "" || layoutString.toLowerCase() === "all") {
+        layoutString = defaultLayout
+        // If it was truly empty, clear LAST_LAYOUT_STRING so we don't treat it as "unknown"
+        if (layoutStringRaw === "") LAST_LAYOUT_STRING = ""
+    }
+
+    // Allow comma-separated values (e.g. "homeworks,lessons")
+    layoutString = layoutString
+        .split(",")
+        .map(v => v.trim().toLowerCase())
+        .filter(v => v.length > 0)
+        .join(",")
+
+    const layout = adaptLayoutForSize(parseLayoutString(layoutString))
+    console.log(`Got parsed layout: ${layout}`)
+    return layout
+}
+
+export function getLastLayoutString(): string {
+    return LAST_LAYOUT_STRING
+}
+
+export function setLastLayoutString(value: string) {
+	LAST_LAYOUT_STRING = value
 }

@@ -5,137 +5,113 @@ import { Duration } from '@/utils/duration'
 import { getCharHeight } from '@/utils/helper'
 import { StaticLayoutRow } from '@/utils/scriptable/layout/staticLayoutRow'
 import { ViewBuildData } from '@/widget'
+import { getItemColors } from '@/utils/scriptable/componentHelper'
 
 export function addViewAbsences(
 	absences: TransformedAbsence[],
 	maxCount: number,
 	{ container, width, height, widgetConfig }: ViewBuildData
 ) {
-	let remainingHeight = height
-	const charHeight = getCharHeight(widgetConfig.appearance.fontSize)
-	const padding = 4
-	const containerHeight = charHeight + 2 * padding
+  let remainingHeight = height
+  const baseFontSize = widgetConfig.appearance.fontSize
+  const charHeight = getCharHeight(baseFontSize)
+  const padding = 4
+  const singleLineHeight = charHeight + 2 * padding
+  const detailFontSize = Math.max(9, baseFontSize - 1)
+  const detailCharHeight = getCharHeight(detailFontSize)
+  if (height < singleLineHeight) return 0
 
-	if (height < containerHeight) return 0
+  // Sort: unexcused first, newest first
+  const sorted = absences.sort((a, b) => {
+    if (a.isExcused !== b.isExcused) return a.isExcused ? 1 : -1
+    return b.from.getTime() - a.from.getTime()
+  })
 
-	// sort the absences by date, starting with the most recent
-	const sortedAbsences = absences.sort((a, b) => b.from.getTime() - a.from.getTime())
+  let shown = 0
+  for (const absence of sorted) {
+    const hasDetail = !!(absence.reason || absence.text)
+    const itemHeight = singleLineHeight + (hasDetail ? detailCharHeight + 2 : 0)
+    if (itemHeight > remainingHeight) break
 
-	let absenceCount = 0
+    const stack = container.addStack()
+    stack.layoutVertically()
+    stack.setPadding(padding, padding, padding, padding)
+    stack.spacing = 1
+    stack.cornerRadius = widgetConfig.appearance.cornerRadius
 
-	// add the remaining lessons until the max item count is reached
-	for (let i = 0; i < sortedAbsences.length; i++) {
-		const absence = sortedAbsences[i]
+    const isExcused = absence.isExcused
+    const colorset = getItemColors(colors.background.primary, widgetConfig, false)
+    stack.backgroundColor = isExcused
+      ? Color.dynamic(new Color("#003300", 0.25), new Color("#003300", 0.35))
+      : Color.dynamic(new Color("#330000", 0.25), new Color("#330000", 0.35))
+    stack.opacity = isExcused ? 0.6 : 1.0
 
-		if (absence.isExcused) continue
+    // Row 1: Icon + date/time/duration + teacher
+    const row1 = stack.addStack()
+    row1.layoutHorizontally()
+    row1.centerAlignContent()
+    row1.spacing = widgetConfig.appearance.spacing
 
-		// subtract the spacing between the items
-		if (i > 0) remainingHeight -= widgetConfig.appearance.spacing
+    const staticLayout = new StaticLayoutRow(
+      width - 2 * padding,
+      widgetConfig.appearance.spacing,
+      Font.mediumSystemFont(baseFontSize),
+      baseFontSize,
+      colorset.textColor
+    )
 
-		const absenceContainer = container.addStack()
-		absenceContainer.size = new Size(width, containerHeight)
-		absenceContainer.layoutHorizontally()
-		absenceContainer.setPadding(padding, padding, padding, padding)
-		absenceContainer.spacing = widgetConfig.appearance.spacing
-		absenceContainer.backgroundColor = colors.background.primary
-		absenceContainer.cornerRadius = widgetConfig.appearance.cornerRadius
+    const day = absence.from.toLocaleDateString(LOCALE, { weekday: "short" })
+    const dateStr = absence.from.toLocaleDateString(LOCALE, { day: "2-digit", month: "short" })
+    const fromStr = absence.from.toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" })
+    const toStr = absence.to.toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" })
+    const durationMs = absence.to.getTime() - absence.from.getTime()
+    const durationStr = Duration.fromSeconds(durationMs / 1000).toString()
 
-		const shortFromDate = absence.from.toLocaleDateString(LOCALE, { day: '2-digit', month: 'short' })
-		const longFromDate = absence.from.toLocaleDateString(LOCALE, {
-			weekday: 'short',
-			day: '2-digit',
-			month: 'short',
-		})
+    const icon = isExcused ? "checkmark.circle.fill" : "exclamationmark.circle.fill"
+    const iconColor = isExcused ? new Color("#00cc66") : new Color("#ff3b30")
+    staticLayout.addItem({ type: "icon", icon, size: baseFontSize, color: iconColor, priority: 1 })
 
-		const durationMilliseconds = absence.to.getTime() - absence.from.getTime()
-		const duration = Duration.fromSeconds(durationMilliseconds / 1000)
-		const formattedDurationSimple = duration.toString()
-		const formattedDurationMixed = duration.toMixedUnitString()
+    staticLayout.addItem({
+      type: "text",
+      color: colorset.textColor,
+      variants: [
+        { text: `${day}, ${dateStr} ${fromStr}-${toStr} (${durationStr})`, priority: 2 },
+      ],
+    })
 
-		// build the layout row
-		const staticLayoutRow = new StaticLayoutRow(
-			width - 2 * padding,
-			widgetConfig.appearance.spacing,
-			Font.mediumSystemFont(widgetConfig.appearance.fontSize),
-			widgetConfig.appearance.fontSize,
-			colors.text.primary
-		)
+    if (absence.createdBy) {
+      staticLayout.addItem({
+        type: "text",
+        color: colorset.secondaryTextColor,
+        variants: [{ text: absence.createdBy, priority: 3 }],
+      })
+    }
 
-		/**
-		 * Priorities:
-		 * 1. icon
-		 * 2. date
-		 * 3. duration
-		 * 4. long duration (mixed units)
-		 * 5. long date
-		 * 6. creator
-		 * TODO(transform): reason (parse reasons when transforming)
-		 */
+    staticLayout.build(row1)
 
-		// add the absence icon
-		staticLayoutRow.addItem({
-			type: 'icon',
-			icon: 'pills.circle',
-			size: widgetConfig.appearance.fontSize,
-			color: colors.text.primary,
-			priority: 1,
-		})
+    // --- Row 2: reason + text ---
+    if (hasDetail) {
+      const row2 = stack.addStack()
+      row2.layoutHorizontally()
+      row2.centerAlignContent()
+      row2.spacing = 3
 
-		// add the absence date
-		staticLayoutRow.addItem({
-			type: 'text',
-			color: colors.text.secondary,
-			variants: [
-				{
-					text: shortFromDate,
-					priority: 2,
-				},
-				{
-					text: longFromDate,
-					priority: 5,
-				},
-			],
-		})
+      const reasonText = absence.reason?.trim() ?? ""
+      const detailText = absence.text?.trim() ?? ""
+      const combined = reasonText && detailText ? `${reasonText} • ${detailText}` : reasonText || detailText
 
-		// add the absence duration
-		staticLayoutRow.addItem({
-			type: 'text',
-			variants: [
-				{
-					text: formattedDurationSimple,
-					priority: 3,
-				},
-				{
-					text: formattedDurationMixed,
-					priority: 4,
-				},
-			],
-		})
+      const txt = row2.addText(combined)
+      txt.font = Font.systemFont(detailFontSize)
+      txt.textColor = colorset.secondaryTextColor
+      txt.lineLimit = 2
+      txt.minimumScaleFactor = 0.8
+    }
 
-		// add the creator
-		staticLayoutRow.addItem({
-			type: 'text',
-			color: colors.text.secondary,
-			variants: [
-				{
-					// toLoweCase to make it less prominent
-					text: absence.createdBy.toLowerCase(),
-					priority: 6,
-				},
-			],
-		})
+    remainingHeight -= itemHeight
+    shown++
+    if (shown >= maxCount) break
+    if (singleLineHeight + widgetConfig.appearance.spacing > remainingHeight) break
+  }
 
-		staticLayoutRow.build(absenceContainer)
-
-		remainingHeight -= containerHeight
-		absenceCount++
-
-		// exit if the max item count is reached
-		if (absenceCount >= maxCount) break
-
-		// exit if it would get too big, use the maximum height
-		if (containerHeight + widgetConfig.appearance.spacing > remainingHeight) break
-	}
-
-	return height - remainingHeight
+  return height - remainingHeight
 }

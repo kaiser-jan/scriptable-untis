@@ -1,10 +1,11 @@
-import { Absence, ClassRole, Exam, Grade, SchoolYear } from '@/types/api'
+import { Absence, ClassRole, Exam, Grade, SchoolYear , HomeworkApiData} from '@/types/api'
 import {
 	TransformedAbsence,
 	TransformedClassRole,
 	TransformedExam,
 	TransformedGrade,
 	TransformedSchoolYear,
+	TransformedHomework,
 } from '@/types/transformed'
 
 function parseDateNumber(date: number) {
@@ -94,13 +95,78 @@ export function transformAbsences(absences: Absence[]) {
 			from: combineDateAndTime(absence.startDate, absence.startTime),
 			to: combineDateAndTime(absence.endDate, absence.endTime),
 			createdBy: absence.createdUser,
+			reason: absence.reason ?? "Unknown",
+      		text: absence.text ?? "",
 			reasonId: absence.reasonId,
 			isExcused: absence.isExcused,
-			excusedBy: absence.excuse.username,
+			excuseStatus: absence.excuseStatus ?? absence.excuse?.excuseStatus ?? "open",
+			excusedBy: absence.excuse?.username ?? "",
 		}
 		transformedAbsences.push(transformedAbsence)
 	}
 	return transformedAbsences
+}
+
+export function transformHomeworks(apiData: HomeworkApiData): TransformedHomework[] {
+	const transformedHomeworks: TransformedHomework[] = []
+
+	const records = apiData.records ?? []
+	const homeworks = apiData.homeworks ?? []
+	const teachers = apiData.teachers ?? []
+	const lessons = apiData.lessons ?? []
+
+	const hwMap = new Map(homeworks.map(hw => [hw.id, hw]))
+
+	// 1️⃣ Verknüpfte Homeworks (mit Record)
+	for (const record of records) {
+		const hw = hwMap.get(record.homeworkId)
+		if (!hw) continue
+
+		const teacher = teachers.find(t => t.id === record.teacherId)
+		const lesson = lessons.find(l => l.id === hw.lessonId)
+
+		transformedHomeworks.push({
+			id: hw.id,
+			lessonId: hw.lessonId,
+			subject: lesson?.subject ?? "",
+			teacher: teacher?.name ?? "",
+			text: hw.text ?? "",
+			remark: hw.remark ?? "",
+			completed: !!hw.completed,
+			date: hw.date ? parseDateNumber(hw.date) : undefined,
+			dueDate: hw.dueDate ? parseDateNumber(hw.dueDate) : undefined,
+			attachments: hw.attachments ?? [],
+		})
+	}
+
+	// 2️⃣ Homeworks ohne Record
+	for (const hw of homeworks) {
+		if (!transformedHomeworks.find(t => t.id === hw.id)) {
+			const lesson = lessons.find(l => l.id === hw.lessonId)
+
+			transformedHomeworks.push({
+				id: hw.id,
+				lessonId: hw.lessonId,
+				subject: lesson?.subject ?? "",
+				teacher: "",
+				text: hw.text ?? "",
+				remark: hw.remark ?? "",
+				completed: !!hw.completed,
+				date: hw.date ? parseDateNumber(hw.date) : undefined,
+				dueDate: hw.dueDate ? parseDateNumber(hw.dueDate) : undefined,
+				attachments: hw.attachments ?? [],
+			})
+		}
+	}
+
+	// 3️⃣ Sortieren
+	transformedHomeworks.sort((a, b) => {
+		const aTime = a.dueDate ? a.dueDate.getTime() : (a.date ? a.date.getTime() : 0)
+		const bTime = b.dueDate ? b.dueDate.getTime() : (b.date ? b.date.getTime() : 0)
+		return aTime - bTime
+	})
+
+	return transformedHomeworks
 }
 
 export function transformClassRoles(classRoles: ClassRole[]) {

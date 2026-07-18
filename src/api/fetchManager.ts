@@ -7,11 +7,12 @@ import {
 	TransformedExam,
 	TransformedGrade,
 	TransformedLesson,
+	TransformedHomework,
 } from '@/types/transformed'
 import { getDateInXSeconds } from '@/utils/helper'
 import { getRefreshDateForLessons } from '@/utils/refreshDate'
 import { checkNewRefreshDate, proposeRefreshIn } from '@/widget'
-import { getAbsencesFor, getExamsFor, getGradesFor, getSchoolYears, getTimetable } from './cacheOrFetch'
+import { getAbsencesFor, getExamsFor, getGradesFor, getSchoolYears, getTimetable, getHomeworksFor } from './cacheOrFetch'
 import { fetchClassRolesFor } from './fetch'
 
 export interface FetchedData {
@@ -21,6 +22,7 @@ export interface FetchedData {
 	exams?: TransformedExam[]
 	grades?: TransformedGrade[]
 	absences?: TransformedAbsence[]
+	homeworks?: TransformedHomework[]
 	classRoles?: TransformedClassRole[]
 	refreshDate?: Date
 }
@@ -31,6 +33,7 @@ enum FetchableItems {
 	GRADES,
 	ABSENCES,
 	ROLES,
+	HOMEWORKS,
 }
 
 const VIEW_FETCH_MAP = new Map<View, FetchableItems>([
@@ -39,6 +42,7 @@ const VIEW_FETCH_MAP = new Map<View, FetchableItems>([
 	[View.EXAMS, FetchableItems.EXAMS],
 	[View.GRADES, FetchableItems.GRADES],
 	[View.ABSENCES, FetchableItems.ABSENCES],
+	[View.HOMEWORKS, FetchableItems.HOMEWORKS]
 ])
 
 /**
@@ -100,6 +104,15 @@ export async function fetchDataForViews(viewNames: View[], user: FullUser, widge
 		proposeRefreshIn(widgetConfig.cache.absences, fetchedData)
 		fetchPromises.push(promise)
 	}
+
+	if (itemsToFetch.has(FetchableItems.HOMEWORKS)) {
+        const homeworksTo = getDateInXSeconds(widgetConfig.views.homeworks.scope);
+        const promise = getHomeworksFor(user, CURRENT_DATETIME, homeworksTo, widgetConfig).then((homeworks) => {
+            fetchedData.homeworks = homeworks;
+        });
+        proposeRefreshIn(widgetConfig.cache.homeworks, fetchedData);
+        fetchPromises.push(promise);
+    }
 
 	if (itemsToFetch.has(FetchableItems.ROLES)) {
 		const promise = fetchClassRolesFor(user, CURRENT_DATETIME, CURRENT_DATETIME).then((roles) => {

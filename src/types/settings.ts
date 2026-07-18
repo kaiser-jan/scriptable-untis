@@ -1,6 +1,17 @@
 import { Settings } from '@/settings/settings'
 
 /**
+ * Configuration for the "homeworks" view in the widget.
+ */
+export interface HomeworkViewConfig {
+  enableCompactMode?: boolean;
+  dueWarningDays?: number;
+  dueOverdueDays?: number;
+  dueWarningColor?: string;
+  dueOverdueColor?: string;
+}
+
+/**
  * A configuration for a single subject.
  * @property color The color of the subject as one of the Colors or a hex value.
  * @property nameOverride A custom subject name, which will be displayed in the timetable.

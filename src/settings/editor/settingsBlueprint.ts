@@ -4,6 +4,7 @@ import { showInfoPopup } from '@/utils/scriptable/input'
 import { checkForUpdates } from '@/utils/updater'
 import { defaultSettings } from '../settings'
 import { autoSetElementType, fillLoginDataInKeychain } from '@/setup'
+import { Duration, DurationUnit } from '@/utils/duration'
 
 const subjectBlueprint = {
 	color: {
@@ -208,6 +209,11 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 					description: 'How long absences should be cached.',
 					type: SettingsValueType.DURATION,
 				},
+				homeworks: {
+                          title: '📝 Homeworks',
+                          description: 'How long homeworks should be cached.',
+                          type: SettingsValueType.DURATION,
+                },
 				schoolYears: {
 					title: '📅 School Years',
 					description: 'How long school years should be cached. This can be quite long.',
@@ -331,6 +337,52 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 						},
 					},
 				},
+				homeworks: {
+                    title: '📝 Homeworks',
+                    description: 'Edit which homeworks to display.',
+                    items: {
+                        maxCount: {
+                            title: '🔢 Maximum Count',
+                            description: 'Up to how many homeworks should be shown.',
+                            type: SettingsValueType.COUNT,
+                        },
+                        scope: {
+                            title: '📅 Scope',
+                            description: 'How long in advance the homeworks should be shown.',
+                            type: SettingsValueType.DURATION,
+                        },
+                        dueWarningDays: {
+                            title: '⚠️ Warning Days',
+                            description: 'Number of days before due date to show as warning.',
+                            type: SettingsValueType.DURATION,
+                        },
+                        dueOverdueDays: {
+                            title: '❌ Overdue Days',
+                            description: 'Number of days past due date to show as overdue.',
+                            type: SettingsValueType.DURATION,
+                        },
+                        enableCompactMode: {
+                                title: '🧩 Enable Compact Mode',
+                                description: 'Use a more compact layout.',
+                                type: SettingsValueType.ON_OFF,
+                        },
+                        dueWarningColor: {
+                            title: '🟡 Warning Color',
+                            description: 'Color used for soon-due items (yellow by default).',
+                            type: SettingsValueType.COLOR
+                        },
+                        dueOverdueColor: {
+                            title: '🔴 Overdue Color',
+                            description: 'Color used for overdue items (red by default).',
+                            type: SettingsValueType.COLOR,
+                        },
+                        dueNotificationOffset: {
+                            title: '🕐 Notification Offset',
+                            description: 'The time a notification is sent before the due date.',
+                            type: SettingsValueType.DURATION,
+                        },
+                    },
+                },
 			},
 		},
 		notifications: {
@@ -358,6 +410,11 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 					description: 'added absences',
 					type: SettingsValueType.ON_OFF,
 				},
+				homeworks: {
+                      title: '📝 Homework Notifications',
+                      description: 'Notify for new homeworks and near due dates.',
+                      type: SettingsValueType.ON_OFF,
+                },
 			},
 		},
 		appearance: {
@@ -394,6 +451,11 @@ export const settingsBlueprint: SettingsCategory<typeof defaultSettings> = {
 					description: 'The background color of the widget.',
 					type: SettingsValueType.COLOR,
 				},
+				liquidGlass: {
+                    			title: '🪟 Liquid Glass Mode',
+                    			description: 'Use slightly transparent backgrounds for better readability on iOS "Clear" homescreens (iOS 26).',
+                    			type: SettingsValueType.ON_OFF,
+                		},
 			},
 		},
 		debugSettings: {

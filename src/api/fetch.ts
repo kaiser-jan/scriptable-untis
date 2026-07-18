@@ -8,6 +8,7 @@ import {
 	transformExams,
 	transformGrades,
 	transformSchoolYears,
+	transformHomeworks
 } from './transform'
 import { transformLessons } from './transformLessons'
 import { getModuleFileManager, writeConfig } from '@/utils/scriptable/fileSystem'
@@ -220,6 +221,17 @@ export async function fetchAbsencesFor(user: FullUser, from: Date, to: Date) {
 	)}&excuseStatusId=-3&includeTodaysAbsence=true`
 
 	return fetchArrayLikeData<Absence, TransformedAbsence>(user, urlAbsences, 'absences', transformAbsences)
+}
+
+export async function fetchHomeworksFor(user, from, to) {
+  const urlHomeworks = `https://${user.server}.webuntis.com/WebUntis/api/homeworks/lessons?startDate=${formatDateForUntis(from)}&endDate=${formatDateForUntis(to)}`
+  const request = prepareRequest(urlHomeworks, user)
+  const json = await request.loadJSON()
+  if (!json || !json.data) {
+    console.warn('⚠️ Could not fetch homeworks!')
+    return []
+  }
+  return transformHomeworks(json.data)
 }
 
 export async function fetchClassRolesFor(user: FullUser, from: Date, to: Date) {

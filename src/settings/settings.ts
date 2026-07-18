@@ -48,6 +48,7 @@ export const defaultSettings = {
 		grades: Duration.asSeconds(8, DurationUnit.HOUR),
 		absences: Duration.asSeconds(12, DurationUnit.HOUR),
 		schoolYears: Duration.asSeconds(1, DurationUnit.DAY),
+		homeworks: Duration.asSeconds(12, DurationUnit.HOUR),
 	},
 	refresh: {
 		normalScope: Duration.asSeconds(12, DurationUnit.HOUR),
@@ -74,6 +75,16 @@ export const defaultSettings = {
 		absences: {
 			maxCount: 3,
 		},
+		homeworks: {
+            maxCount: 6,
+            scope: Duration.asSeconds(7, DurationUnit.DAY),
+            dueWarningDays: Duration.asSeconds(2, DurationUnit.DAY),
+            dueOverdueDays: 1,
+            enableCompactMode: false,
+            dueWarningColor: "#ffd60a",
+            dueOverdueColor: "#ff453a",
+            dueNotificationOffset: Duration.asSeconds(1, DurationUnit.DAY),
+        },
 	},
 
 	notifications: {
@@ -81,6 +92,7 @@ export const defaultSettings = {
 		exams: true,
 		grades: true,
 		absences: true,
+		homeworks: true,
 	},
 
 	appearance: {
@@ -90,6 +102,7 @@ export const defaultSettings = {
 		fontSize: 14,
 		footer: true,
 		backgroundColor: unparsedColors.background.tertiary,
+		liquidGlass: false,
 	},
 
 	debugSettings: {

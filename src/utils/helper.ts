@@ -37,16 +37,18 @@ export function getCharWidth(size: number) {
 }
 
 export function getTextWidth(text: string, fontSize: number) {
+	// ensure text is a string
+  	text = (text ?? "").toString()
 	if (!text) return 0
 	const charWidth = getCharWidth(fontSize)
 	// count the number of really narrow characters
-	let reallyNarrowCharCount = text.match(/[\|Ili\.,:;\ ]/g)?.length ?? 0
+	const reallyNarrowCharCount = (text.match(/[\|Ili\.,:;\ ]/g) || []).length
 	// count the number of narrow characters
-	let narrowCharCount = text.match(/[1ljtr]/g)?.length ?? 0
+	const narrowCharCount = (text.match(/[1ljtr]/g) || []).length
 	// count the number of wide characters
-	let wideCharCount = text.match(/[wmWM]/g)?.length ?? 0
+	const wideCharCount = (text.match(/[wmWM]/g) || []).length
 
-	let normalCharCount = text.length - reallyNarrowCharCount - narrowCharCount - wideCharCount
+	const normalCharCount = text.length - reallyNarrowCharCount - narrowCharCount - wideCharCount
 
 	// approximate the width of the text
 	return charWidth * (normalCharCount + reallyNarrowCharCount * 0.4 + narrowCharCount * 0.75 + wideCharCount * 1.25)

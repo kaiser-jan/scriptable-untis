@@ -50,18 +50,41 @@ async function setupAndCreateWidget() {
 }
 
 async function presentWidget() {
-	const widget = await setupAndCreateWidget()
-	switch (PREVIEW_WIDGET_SIZE) {
-		case 'small':
-			widget.presentSmall()
-			break
-		case 'medium':
-			widget.presentMedium()
-			break
-		case 'large':
-			widget.presentLarge()
-			break
-	}
+    // Ask the user which widget size to preview
+    const alert = new Alert();
+    alert.title = "Widget Preview Size";
+    alert.message = "Select which widget size you want to preview:";
+    alert.addAction("📱 Small");
+    alert.addAction("🖥️ Medium");
+    alert.addAction("🧩 Large");
+    alert.addCancelAction("Cancel");
+
+    const response = await alert.presentAlert();
+    if (response === -1) {
+        console.log("Preview cancelled — no widget shown.");
+        return;
+    }
+
+    const sizeMap = ["small", "medium", "large"];
+    const chosenSize = sizeMap[response];
+
+    config.widgetFamily = chosenSize;
+    console.log(`📱 Previewing as ${chosenSize} widget`);
+
+    const widget = await setupAndCreateWidget();
+
+    // Present the widget in the chosen size
+    switch (chosenSize) {
+        case "small":
+            await widget.presentSmall();
+            break;
+        case "medium":
+            await widget.presentMedium();
+            break;
+        case "large":
+            await widget.presentLarge();
+            break;
+    }
 }
 
 function showDocumentation() {
