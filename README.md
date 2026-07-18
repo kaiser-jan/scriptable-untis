@@ -1,3 +1,9 @@
+> [!WARNING]
+> As I have graduated school, I don't use Untis (and this widget) anymore.\
+> Therefore I will not continue to develop or maintain the project any further.\
+> However, the widget still seems to work for many people, just give it a try.\
+> Feel free to fork this repository if you want to continue development!
+
 # 📚 Untis Widget for Scriptable
 
 iOS Widgets for [Untis](https://webuntis.com/) using [Scriptable](https://scriptable.app/) to display the most important information about school life directly on the homescreen.
@@ -13,23 +19,19 @@ That's why I decided to create those widgets myself, so I could have the most im
 It also sends notifications about important changes in the timetable or new grades!
 
 ## 🛠️ Troubleshooting
+
 If you have encountered an issue with the widget, open an issue in this repository ([in the issue tab](https://github.com/kaiser-jan/scriptable-untis/issues)).\
 Please **attach the log** from running the script!\
 It can be obtained by opening the script via the three dots, running it, opening the log at the bottom. Copy-paste it and add it to the issue surrounded by three backticks (` ``` `) for readability.
 
-## ⚠️ Disclaimers
+## ⚠️ Disclaimer
 
 Untis does not support 3rd-party software, therefore this project may not work as flawless as we would like.\
 Also, Scriptable is rather limited - another reason why not everything may be perfect.
 
-As I have graduated from school already, I am not using the widget anymore and will not implement new features.
-However, I am happy to help where possible and PRs are welcome!
-
 ## 📥 Installation
 
-
 https://user-images.githubusercontent.com/75926077/232337480-ea6ec7ad-d309-42a8-a9f7-696d3a51d0c0.mp4
-
 
 1. Before installing the script, you need to [install Scriptable from the App Store](https://apps.apple.com/us/app/scriptable/id1405459188?uo=4).
 
@@ -69,10 +71,10 @@ Many things can be configured via the visual config editor or the configuration 
 
 You will be notified about the following changes/events:
 
--   Lessons (canceled, shifted, teacher changed, ...)
--   Exams (upcoming)
--   Grades (added)
--   Absences (added)
+- Lessons (canceled, shifted, teacher changed, ...)
+- Exams (upcoming)
+- Grades (added)
+- Absences (added)
 
 Please understand that the notifications can only be sent as soon as the script runs the next time.
 
@@ -128,13 +130,13 @@ By clicking a subject, you can open its specific configuration.
 
 Here are the configuration options:
 
--   `color`: The color of the lesson. You can either enter a hex code (like `#ff0000`) at the top, or select one from the palette.
-    To find the perfect color, you can use [this website](https://htmlcolorcodes.com/color-picker/).
-    Darker, less saturated colors are recommended, as this makes it easier to read the white text on the background.
--   `short name`: The short name of the subject to display.
--   `long name`: The name of the subject to display if there is enough space (and the option is enabled).
--   `ignore infos`: A list of lesson infos to ignore. This can be useful if there is lesson info which is always there.
-    This should be a comma-separated list of the infos to ignore, wrapped in double quotes. (`"infoName"` or `"info1", "info2"`)
+- `color`: The color of the lesson. You can either enter a hex code (like `#ff0000`) at the top, or select one from the palette.
+  To find the perfect color, you can use [this website](https://htmlcolorcodes.com/color-picker/).
+  Darker, less saturated colors are recommended, as this makes it easier to read the white text on the background.
+- `short name`: The short name of the subject to display.
+- `long name`: The name of the subject to display if there is enough space (and the option is enabled).
+- `ignore infos`: A list of lesson infos to ignore. This can be useful if there is lesson info which is always there.
+  This should be a comma-separated list of the infos to ignore, wrapped in double quotes. (`"infoName"` or `"info1", "info2"`)
 
 ##### Adding a new subject
 
@@ -150,7 +152,8 @@ When this teachers now teaches this subject, the configuration of the teacher wi
 
 ### 📄 Config File
 
-The configuration file `untis-config.json` is located in the scriptable folder.\
+The configuration file `untis-config.json` is located in the `Scriptable` folder.\
+You can find it in `iCloud Drive` or `On My iPhone/iPad`, then the `Scriptable` folder.\
 A default configuration file is created when the script is run for the first time. Check it out to see what's possible!\
 Changes to the configuration file are applied when the script is run again.
 
